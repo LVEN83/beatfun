@@ -2177,4 +2177,47 @@
               }
             }
           } else {
-            var cells = ma
+            var cells = matrix.querySelectorAll('.matrix-cell');
+            for (var c = 0; c < cells.length; c++) {
+              var cLen = Number(cells[c].getAttribute('data-len'));
+              var cStep = Number(cells[c].getAttribute('data-step'));
+              cells[c].classList.toggle('now', cStep === (activePlayStep % cLen));
+            }
+          }
+        }
+      }
+
+      if (finaleActive) {
+        drawPixelPigeon(nowMs);
+
+        vinylAngleL += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
+        vinylAngleR += frameDt * (hpfActive ? 5.2 : 2.6);
+
+        drawVinyl(leftVinyl, vinylAngleL, rewindActive);
+        drawVinyl(rightVinyl, vinylAngleR, hpfActive);
+
+        var elapsed = (nowMs - finaleStartMs) / 1000;
+        var progress = Math.min(1, elapsed / FINALE_SECONDS);
+        progressFill.style.width = (progress * 100) + '%';
+
+        if (elapsed >= FINALE_SECONDS - 1.2 && !fadeTriggered) {
+          fadeTriggered = true;
+          appEl.classList.add('vanishing');
+          if (masterGain && audioCtx) {
+            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.1);
+          }
+        }
+
+        if (elapsed >= FINALE_SECONDS) {
+          resetToNewRound();
+        }
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
