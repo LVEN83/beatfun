@@ -132,7 +132,6 @@
       letter-spacing: 1px;
     }
 
-    /* 4x4 Thumb-Friendly Step Grid */
     .step-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -184,7 +183,6 @@
       background-color: #ffffff;
     }
 
-    /* 3 Compact Thumb-Friendly Parameter Sliders */
     .params-grid {
       display: flex;
       flex-direction: column;
@@ -392,7 +390,7 @@
       border-color: #ffffff;
     }
 
-    /* ---------- FINALE SCREEN (PORTRAIT TWO-THUMB DJ) ---------- */
+    /* ---------- FINALE SCREEN ---------- */
     .finale-screen {
       flex: 1;
       display: flex;
@@ -693,7 +691,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (iOS SAFARI UNLOCK SAFE)
+    // WEB AUDIO ENGINE (iOS SAFARI TOUCHEND/CLICK UNLOCK)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -743,6 +741,11 @@
     }
 
     function initAndUnlockAudio() {
+      // Allow playback even when iPhone ringer switch is muted (iOS 16.4+)
+      if (navigator.audioSession) {
+        try { navigator.audioSession.type = 'playback'; } catch (e) {}
+      }
+
       if (!audioCtx) {
         var AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
@@ -769,69 +772,6 @@
         padReverbLPF.connect(padReverbWet);
         padReverbWet.connect(mixBus);
 
-        // Ring-buffer Vinyl Slow-Down & Rewind Melt Processor
-        ringLen = audioCtx.sampleRate * 6;
-        ringBuf = new Float32Array(ringLen);
-        ringWriteIdx = 0;
-        ringReadPos = 0;
-
-        meltProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
-        meltProcessor.onaudioprocess = function(e) {
-          var inp = e.inputBuffer.getChannelData(0);
-          var out = e.outputBuffer.getChannelData(0);
-          var len = inp.length;
-          var sr = audioCtx.sampleRate;
-
-          if (!meltActive) {
-            for (var i = 0; i < len; i++) {
-              ringBuf[ringWriteIdx] = inp[i];
-              ringWriteIdx = (ringWriteIdx + 1) % ringLen;
-              out[i] = 0;
-            }
-            currentVinylSpeed = 1.0;
-            return;
-          }
-
-          var elapsed = Math.max(0, audioCtx.currentTime - meltStartCtxTime);
-          for (var j = 0; j < len; j++) {
-            var t = elapsed + j / sr;
-            var speed;
-            if (t < 0.42) {
-              var p = t / 0.42;
-              speed = 1.0 - p * p * (3 - 2 * p);
-            } else if (t < 1.05) {
-              var q = (t - 0.42) / 0.63;
-              speed = -1.35 * (q * q);
-            } else {
-              speed = -1.15 + Math.sin((t - 1.05) * 4.2) * 0.35;
-            }
-            currentVinylSpeed = speed;
-
-            if (speed > 0) {
-              ringBuf[ringWriteIdx] = inp[j];
-              ringWriteIdx = (ringWriteIdx + 1) % ringLen;
-            }
-
-            var idx0 = Math.floor(ringReadPos);
-            var frac = ringReadPos - idx0;
-            var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
-            var i1 = (i0 + 1) % ringLen;
-            out[j] = ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
-
-            ringReadPos += speed;
-            if (ringReadPos < 0) ringReadPos += ringLen;
-            if (ringReadPos >= ringLen) ringReadPos -= ringLen;
-          }
-        };
-
-        meltLPF = audioCtx.createBiquadFilter();
-        meltLPF.type = 'lowpass';
-        meltLPF.frequency.value = 18000;
-        meltLPF.Q.value = 1.2;
-
-        meltOutGain = audioCtx.createGain();
-        meltOutGain.gain.value = 0.0;
-
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
         masterHPF.frequency.value = 20;
@@ -856,10 +796,77 @@
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
-        mixBus.connect(meltProcessor);
-        meltProcessor.connect(meltLPF);
-        meltLPF.connect(meltOutGain);
-        meltOutGain.connect(masterHPF);
+        // Ring-buffer Vinyl Slow-Down & Rewind Melt Processor
+        try {
+          ringLen = audioCtx.sampleRate * 6;
+          ringBuf = new Float32Array(ringLen);
+          ringWriteIdx = 0;
+          ringReadPos = 0;
+
+          meltProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
+          meltProcessor.onaudioprocess = function(e) {
+            var inp = e.inputBuffer.getChannelData(0);
+            var out = e.outputBuffer.getChannelData(0);
+            var len = inp.length;
+            var sr = audioCtx.sampleRate;
+
+            if (!meltActive) {
+              for (var i = 0; i < len; i++) {
+                ringBuf[ringWriteIdx] = inp[i];
+                ringWriteIdx = (ringWriteIdx + 1) % ringLen;
+                out[i] = 0;
+              }
+              currentVinylSpeed = 1.0;
+              return;
+            }
+
+            var elapsed = Math.max(0, audioCtx.currentTime - meltStartCtxTime);
+            for (var j = 0; j < len; j++) {
+              var t = elapsed + j / sr;
+              var speed;
+              if (t < 0.42) {
+                var p = t / 0.42;
+                speed = 1.0 - p * p * (3 - 2 * p);
+              } else if (t < 1.05) {
+                var q = (t - 0.42) / 0.63;
+                speed = -1.35 * (q * q);
+              } else {
+                speed = -1.15 + Math.sin((t - 1.05) * 4.2) * 0.35;
+              }
+              currentVinylSpeed = speed;
+
+              if (speed > 0) {
+                ringBuf[ringWriteIdx] = inp[j];
+                ringWriteIdx = (ringWriteIdx + 1) % ringLen;
+              }
+
+              var idx0 = Math.floor(ringReadPos);
+              var frac = ringReadPos - idx0;
+              var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
+              var i1 = (i0 + 1) % ringLen;
+              out[j] = ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
+
+              ringReadPos += speed;
+              if (ringReadPos < 0) ringReadPos += ringLen;
+              if (ringReadPos >= ringLen) ringReadPos -= ringLen;
+            }
+          };
+
+          meltLPF = audioCtx.createBiquadFilter();
+          meltLPF.type = 'lowpass';
+          meltLPF.frequency.value = 18000;
+          meltLPF.Q.value = 1.2;
+
+          meltOutGain = audioCtx.createGain();
+          meltOutGain.gain.value = 0.0;
+
+          mixBus.connect(meltProcessor);
+          meltProcessor.connect(meltLPF);
+          meltLPF.connect(meltOutGain);
+          meltOutGain.connect(masterHPF);
+        } catch (err) {
+          meltProcessor = null;
+        }
 
         masterHPF.connect(masterGain);
 
@@ -880,10 +887,14 @@
       }
 
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().then(function() {
+          if (isPlaying && audioCtx) {
+            nextNoteTime = audioCtx.currentTime + 0.03;
+          }
+        }).catch(function() {});
       }
 
-      // iOS Safari physical-tap silent buffer unlock
+      // iOS Safari silent buffer unlock (must happen inside touchend/click gesture)
       if (!audioUnlocked) {
         try {
           var silentBuf = audioCtx.createBuffer(1, 1, 22050);
@@ -891,11 +902,21 @@
           silentSrc.buffer = silentBuf;
           silentSrc.connect(audioCtx.destination);
           silentSrc.start(0);
-          audioUnlocked = true;
+          if (audioCtx.state === 'running') {
+            audioUnlocked = true;
+          }
         } catch (e) {}
       }
     }
 
+    // Keep unlocking cleanly on any touchend or click if iOS suspended it
+    function ensureAudioUnlocked() {
+      if (audioCtx && audioCtx.state !== 'running') {
+        initAndUnlockAudio();
+      }
+    }
+    document.addEventListener('touchend', ensureAudioUnlocked, true);
+    document.addEventListener('click', ensureAudioUnlocked, true);
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -906,7 +927,7 @@
       if (meltActive === on) return;
       meltActive = on;
       leftVinylLabel.classList.toggle('active', on);
-      if (!audioCtx || !dryMixGain || !meltOutGain) return;
+      if (!audioCtx || !dryMixGain || !meltOutGain || !meltProcessor) return;
 
       var now = audioCtx.currentTime;
       if (on) {
@@ -1003,7 +1024,7 @@
     }
 
     function triggerSound(instIdx, stepIdx, time) {
-      if (!audioCtx) return;
+      if (!audioCtx || audioCtx.state !== 'running') return;
       var inst = INSTRUMENTS[instIdx];
       var p = tracks[instIdx].params;
       var pitchVal = lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
@@ -1215,7 +1236,14 @@
 
     function scheduler() {
       if (!isPlaying || !audioCtx) return;
+      if (audioCtx.state !== 'running') {
+        nextNoteTime = audioCtx.currentTime + 0.05;
+        return;
+      }
       var stepDur = 60 / bpm / 4;
+      if (nextNoteTime < audioCtx.currentTime - 0.25) {
+        nextNoteTime = audioCtx.currentTime + 0.02;
+      }
       while (nextNoteTime < audioCtx.currentTime + 0.1) {
         scheduleStep(currentStep, nextNoteTime);
         nextNoteTime += stepDur;
@@ -1314,11 +1342,19 @@
       });
     }
 
-    // Unlock audio + start game on first physical tap
-    bindTap(startBtn, function() {
+    // IMPORTANT FOR iOS SAFARI: Unlock AudioContext on touchend / click (NOT pointerdown!)
+    var lastStartAt = 0;
+    function handleStartTap(e) {
+      var now = Date.now();
+      if (now - lastStartAt < 350) return;
+      lastStartAt = now;
       initAndUnlockAudio();
-      startGame();
-    });
+      if (!isPlaying) {
+        startGame();
+      }
+    }
+    startBtn.addEventListener('touchend', handleStartTap);
+    startBtn.addEventListener('click', handleStartTap);
 
     bindTap(clearBtn, function() {
       tracks[turnIndex].steps.fill(false);
@@ -1368,6 +1404,7 @@
 
           pad.addEventListener('pointerdown', function(e) {
             e.preventDefault();
+            ensureAudioUnlocked();
             var instId = INSTRUMENTS[turnIndex].id;
             if (isNoteInstrument(instId)) {
               if (!tracks[turnIndex].steps[stepIdx]) {
@@ -1391,7 +1428,6 @@
     }
     buildStepGrid();
 
-    // Smooth touch-drag painting across 4x4 step grid on iPhone Safari
     window.addEventListener('pointermove', function(e) {
       if (dragPointerId === null || e.pointerId !== dragPointerId) return;
       if (isNoteInstrument(INSTRUMENTS[turnIndex].id)) return;
@@ -1404,7 +1440,6 @@
       }
     });
 
-    // Multi-touch independent release handling for Left & Right DJ Vinyls
     function handlePointerRelease(e) {
       if (e.pointerId === dragPointerId) {
         dragPointerId = null;
@@ -1421,6 +1456,15 @@
 
     window.addEventListener('pointerup', handlePointerRelease);
     window.addEventListener('pointercancel', handlePointerRelease);
+    window.addEventListener('touchend', function(e) {
+      if (e.touches && e.touches.length === 0) {
+        dragPointerId = null;
+        leftPointerId = null;
+        rightPointerId = null;
+        setMelt(false);
+        setHighPass(false);
+      }
+    });
 
     leftVinyl.addEventListener('pointerdown', function(e) {
       e.preventDefault();
