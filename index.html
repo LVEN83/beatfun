@@ -36,9 +36,9 @@
       max-width: 520px;
       margin: 0 auto;
       padding:
-        calc(12px + env(safe-area-inset-top))
+        calc(10px + env(safe-area-inset-top))
         calc(14px + env(safe-area-inset-right))
-        calc(14px + env(safe-area-inset-bottom))
+        calc(12px + env(safe-area-inset-bottom))
         calc(14px + env(safe-area-inset-left));
       background-color: #000000;
       display: flex;
@@ -99,7 +99,7 @@
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 14px;
+      padding: 12px 14px;
       min-height: 0;
     }
 
@@ -109,7 +109,7 @@
       align-items: center;
       gap: 10px;
       border-bottom: 1px solid #333333;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
     }
 
     .inst-name {
@@ -132,25 +132,68 @@
       letter-spacing: 1px;
     }
 
+    /* 32-step Page Switcher for Chords (1-16 / 17-32) */
+    .page-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .page-btn {
+      min-height: 48px;
+      background-color: #000000;
+      color: #777777;
+      border: 1px solid #333333;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .page-btn.active {
+      background-color: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .page-dot {
+      width: 6px;
+      height: 6px;
+      background-color: transparent;
+    }
+
+    .page-btn.playing .page-dot {
+      background-color: #ffffff;
+    }
+
+    .page-btn.active.playing .page-dot {
+      background-color: #000000;
+    }
+
     .step-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 6px;
       touch-action: none;
-      margin: 8px 0;
+      margin: 4px 0;
     }
 
     .step-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
     }
 
     .step-pad {
       width: 100%;
       min-height: 48px;
-      height: clamp(48px, 7.6dvh, 66px);
+      height: clamp(48px, 7.2dvh, 64px);
       background-color: #000000;
       border: 1px solid #3a3a3a;
       color: #666666;
@@ -161,6 +204,10 @@
       align-items: center;
       justify-content: center;
       touch-action: none;
+    }
+
+    .seq-screen.chords-32 .step-pad {
+      height: clamp(48px, 6.2dvh, 56px);
     }
 
     .step-pad.beat-mark {
@@ -186,12 +233,12 @@
     .params-grid {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .param-box {
       border: 1px solid #333333;
-      padding: 6px 12px;
+      padding: 5px 12px;
       min-height: 48px;
       display: flex;
       flex-direction: column;
@@ -204,7 +251,7 @@
       font-size: 10px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .param-label {
@@ -221,7 +268,7 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 26px;
+      height: 24px;
       margin: 0;
       background: transparent;
       outline: none;
@@ -247,15 +294,15 @@
       display: grid;
       grid-template-columns: 1fr 1.5fr;
       gap: 10px;
-      padding-top: 6px;
+      padding-top: 4px;
     }
 
     .btn-secondary {
       background-color: #000000;
       color: #ffffff;
       border: 1px solid #555555;
-      min-height: 50px;
-      padding: 12px;
+      min-height: 48px;
+      padding: 10px;
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 1.5px;
@@ -272,8 +319,8 @@
       background-color: #ffffff;
       color: #000000;
       border: 1px solid #ffffff;
-      min-height: 50px;
-      padding: 12px;
+      min-height: 48px;
+      padding: 10px;
       font-size: 13px;
       font-weight: 800;
       letter-spacing: 1.5px;
@@ -485,6 +532,11 @@
       align-items: center;
     }
 
+    .matrix-row.row-32 {
+      grid-template-columns: 74px repeat(32, 1fr);
+      gap: 1px;
+    }
+
     .matrix-name {
       font-size: 9px;
       letter-spacing: 0.5px;
@@ -536,6 +588,16 @@
           <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 82px;" />
           <span id="bpmValue">118</span>
         </div>
+      </div>
+
+      <!-- 32-STEP BAR SWITCHER (CHORDS ONLY) -->
+      <div class="page-bar hidden" id="chordPageBar">
+        <button type="button" class="page-btn mono active" id="pageBtn0">
+          <span class="page-dot"></span><span>1 – 16</span>
+        </button>
+        <button type="button" class="page-btn mono" id="pageBtn1">
+          <span class="page-dot"></span><span>17 – 32</span>
+        </button>
       </div>
 
       <div class="step-grid" id="stepGrid"></div>
@@ -642,36 +704,37 @@
 
     var BASS_NOTES = buildNoteRange(24, 36); // C1 to C2
 
-    // 10 harmonious C Natural Minor chords, all notes strictly between C2 (36) and C4 (60)
-    var MINOR_CHORDS = [
-      { name: 'Cm',    notes: [48, 51, 55, 48] }, // C3, Eb3, G3
-      { name: 'Cm7',   notes: [48, 51, 55, 58] }, // C3, Eb3, G3, Bb3
-      { name: 'Cm11',  notes: [46, 48, 51, 53] }, // Bb2, C3, Eb3, F3
-      { name: 'Cm/Eb', notes: [39, 43, 48, 51] }, // Eb2, G2, C3, Eb3
-      { name: 'Cm/G',  notes: [43, 48, 51, 55] }, // G2, C3, Eb3, G3
-      { name: 'Fm',    notes: [41, 44, 48, 53] }, // F2, Ab2, C3, F3
-      { name: 'Fm7',   notes: [41, 44, 48, 51] }, // F2, Ab2, C3, Eb3
-      { name: 'Fm9',   notes: [41, 44, 48, 55] }, // F2, Ab2, C3, G3
-      { name: 'Gm',    notes: [43, 46, 50, 55] }, // G2, Bb2, D3, G3
-      { name: 'Gm7',   notes: [43, 46, 50, 53] }  // G2, Bb2, D3, F3
+    // 10 harmonious mixed chords (Maj7, 6/9, m7, m9, Sus4) in C Major / A Minor, all between C2 (36) and C4 (60)
+    var CHORDS = [
+      { name: 'Cmaj7', notes: [48, 52, 55, 59] },
+      { name: 'C6/9',  notes: [48, 52, 55, 57] },
+      { name: 'Dm7',   notes: [50, 53, 57, 60] },
+      { name: 'Dm9',   notes: [38, 48, 53, 57] },
+      { name: 'Em7',   notes: [40, 47, 50, 55] },
+      { name: 'Fmaj7', notes: [41, 48, 52, 57] },
+      { name: 'F6/9',  notes: [41, 45, 48, 55] },
+      { name: 'G6',    notes: [43, 47, 50, 52] },
+      { name: 'Gsus4', notes: [43, 48, 50, 55] },
+      { name: 'Am9',   notes: [45, 52, 55, 59] }
     ];
 
     var INSTRUMENTS = [
-      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],   decayRange: [0.12, 0.75] },
-      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],  decayRange: [0.03, 0.35] },
-      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],   decayRange: [0.10, 0.65] },
-      { id: 'rimshot',  name: 'Rimshots',   defaults: { pitch: 0.50, decay: 0.22, filter: 0.85 }, pitchRange: [0.65, 1.7], decayRange: [0.03, 0.22] },
-      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],  decayRange: [0.08, 0.50] },
-      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],   decayRange: [0.08, 0.60] },
-      { id: 'chords',   name: 'Chords',     defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-25, 25],   decayRange: [0.15, 2.0] }
+      { id: 'kick',     name: 'Bass Drum',  steps: 16, defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
+      { id: 'hihat',    name: 'Hi-Hats',    steps: 16, defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
+      { id: 'tom',      name: 'Toms',       steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
+      { id: 'maracas',  name: 'Maracas',    steps: 16, defaults: { pitch: 0.50, decay: 0.38, filter: 0.88 }, pitchRange: [0.65, 1.55], decayRange: [0.045, 0.24] },
+      { id: 'snare',    name: 'Snare Drum', steps: 16, defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
+      { id: 'bassline', name: 'Bassline',   steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.08, 0.60] },
+      { id: 'chords',   name: 'Chords',     steps: 32, defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-25, 25],    decayRange: [0.15, 2.0] }
     ];
 
-    var STEPS = 16;
+    var CYCLE_STEPS = 32; // Master clock runs 32 steps so Chords spans 2 bars while 16-step instruments loop twice
     var FINALE_SECONDS = 30;
     var BASE_HPF_HZ = 35;
-    var REWIND_SPEED = -0.5; // Musical half-time reverse (-1 octave in key, locked to BPM)
+    var REWIND_SPEED = -0.5;
 
     var turnIndex = 0;
+    var chordPage = 0; // 0 = steps 1..16, 1 = steps 17..32
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
@@ -685,7 +748,7 @@
         var inst = INSTRUMENTS[i];
         var arr = [];
         var noteArr = [];
-        for (var s = 0; s < STEPS; s++) {
+        for (var s = 0; s < inst.steps; s++) {
           arr.push(false);
           noteArr.push(0);
         }
@@ -701,11 +764,12 @@
       }
       lastChosenBassNoteIdx = 0;
       lastChosenChordIdx = 0;
+      chordPage = 0;
     }
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (HALF-TIME BPM-SYNCED REWIND)
+    // WEB AUDIO ENGINE
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -732,6 +796,9 @@
     var rewindLoopSpan = 0;
     var rewindCursor = 0;
     var rewindActive = false;
+
+    var lastHitAudioTime = -1;
+    var prevHitAudioTime = -1;
 
     var masterHPF = null;
     var hpfReverbSend = null;
@@ -829,7 +896,7 @@
         for (var v = 0; v < 4; v++) {
           var osc = audioCtx.createOscillator();
           osc.type = v === 0 ? 'triangle' : 'sine';
-          osc.frequency.value = midiToHz(MINOR_CHORDS[0].notes[v]);
+          osc.frequency.value = midiToHz(CHORDS[0].notes[v]);
           osc.detune.value = (v - 1.5) * 4;
           var vg = audioCtx.createGain();
           vg.gain.value = 0.25;
@@ -870,7 +937,6 @@
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
-        // Musical Half-Time BPM-Synced 1-Bar Reverse Loop Processor
         try {
           ringLen = audioCtx.sampleRate * 6;
           ringBuf = new Float32Array(ringLen);
@@ -901,7 +967,7 @@
               }
               out[j] = s;
 
-              rewindCursor += REWIND_SPEED; // -0.5x exact half-time reverse
+              rewindCursor += REWIND_SPEED;
               if (rewindCursor < 0) {
                 rewindCursor += rewindLoopSpan;
               }
@@ -994,14 +1060,26 @@
 
       var now = audioCtx.currentTime;
       if (on) {
-        // Lock rewind loop to exact 1-bar (16 steps) at current BPM
-        var barSamples = Math.round((240 / bpm) * audioCtx.sampleRate);
+        var sr = audioCtx.sampleRate;
+        var barSamples = Math.round((240 / bpm) * sr);
         rewindLoopSpan = Math.min(ringLen - 1024, Math.max(2048, barSamples));
         rewindTopIdx = (ringWriteIdx - 256 + ringLen) % ringLen;
-        rewindCursor = rewindLoopSpan;
 
-        dryMixGain.gain.setTargetAtTime(0.0, now, 0.006);
-        rewindOutGain.gain.setTargetAtTime(1.0, now, 0.006);
+        var refHit = lastHitAudioTime;
+        if (refHit > now - 0.035 && prevHitAudioTime > 0) {
+          refHit = prevHitAudioTime;
+        }
+        var backSamples = 0;
+        if (refHit > 0 && (now - refHit) < (rewindLoopSpan / sr)) {
+          var hitAgeSamples = Math.round((now - refHit) * sr);
+          var tailOffset = Math.round(0.11 * sr);
+          backSamples = Math.max(0, Math.min(rewindLoopSpan - 512, hitAgeSamples - tailOffset));
+        }
+
+        rewindCursor = Math.max(256, rewindLoopSpan - backSamples);
+
+        dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
+        rewindOutGain.gain.setTargetAtTime(1.12, now, 0.005);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
         dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
@@ -1090,8 +1168,8 @@
 
       if (inst.id === 'chords') {
         var chordIdx = tracks[instIdx].notes[stepIdx] || 0;
-        if (chordIdx < 0 || chordIdx >= MINOR_CHORDS.length) chordIdx = 0;
-        var chordNotes = MINOR_CHORDS[chordIdx].notes;
+        if (chordIdx < 0 || chordIdx >= CHORDS.length) chordIdx = 0;
+        var chordNotes = CHORDS[chordIdx].notes;
 
         chordLPF.frequency.setTargetAtTime(cutoff, time, 0.015);
 
@@ -1181,51 +1259,41 @@
         tg.connect(lpf);
         tosc.start(time);
         tosc.stop(time + decayVal + 0.015);
-      } else if (inst.id === 'rimshot') {
-        var w1 = audioCtx.createOscillator();
-        var w2 = audioCtx.createOscillator();
-        w1.type = 'triangle';
-        w2.type = 'sine';
-        w1.frequency.setValueAtTime(520 * pitchVal, time);
-        w1.frequency.exponentialRampToValueAtTime(375 * pitchVal, time + 0.014);
-        w2.frequency.setValueAtTime(980 * pitchVal, time);
-        w2.frequency.exponentialRampToValueAtTime(810 * pitchVal, time + 0.012);
+      } else if (inst.id === 'maracas') {
+        var mNoise = audioCtx.createBufferSource();
+        mNoise.buffer = noiseBuffer;
 
-        var wg1 = audioCtx.createGain();
-        var wg2 = audioCtx.createGain();
-        var woodDecay = Math.min(0.095, decayVal * 0.8);
-        wg1.gain.setValueAtTime(0.50, time);
-        wg1.gain.exponentialRampToValueAtTime(0.001, time + woodDecay);
-        wg1.gain.linearRampToValueAtTime(0.0, time + woodDecay + 0.006);
+        var mHP = audioCtx.createBiquadFilter();
+        mHP.type = 'highpass';
+        mHP.frequency.setValueAtTime(3200 * pitchVal, time);
 
-        wg2.gain.setValueAtTime(0.28, time);
-        wg2.gain.exponentialRampToValueAtTime(0.001, time + woodDecay * 0.65);
-        wg2.gain.linearRampToValueAtTime(0.0, time + woodDecay * 0.65 + 0.006);
+        var mBP = audioCtx.createBiquadFilter();
+        mBP.type = 'bandpass';
+        mBP.frequency.setValueAtTime(6200 * pitchVal, time);
+        mBP.Q.value = 1.6;
 
-        w1.connect(wg1);
-        w2.connect(wg2);
-        wg1.connect(lpf);
-        wg2.connect(lpf);
-        w1.start(time);
-        w2.start(time);
-        w1.stop(time + woodDecay + 0.01);
-        w2.stop(time + woodDecay + 0.01);
+        var mPeak = audioCtx.createBiquadFilter();
+        mPeak.type = 'peaking';
+        mPeak.frequency.setValueAtTime(8800 * pitchVal, time);
+        mPeak.Q.value = 1.4;
+        mPeak.gain.value = 3.5;
 
-        var stickNoise = audioCtx.createBufferSource();
-        stickNoise.buffer = noiseBuffer;
-        var stickBP = audioCtx.createBiquadFilter();
-        stickBP.type = 'bandpass';
-        stickBP.frequency.setValueAtTime(1250 * pitchVal, time);
-        stickBP.Q.value = 2.6;
-        var stickG = audioCtx.createGain();
-        stickG.gain.setValueAtTime(0.32, time);
-        stickG.gain.exponentialRampToValueAtTime(0.001, time + 0.018);
-        stickG.gain.linearRampToValueAtTime(0.0, time + 0.022);
-        stickNoise.connect(stickBP);
-        stickBP.connect(stickG);
-        stickG.connect(lpf);
-        stickNoise.start(time);
-        stickNoise.stop(time + 0.025);
+        var attackPeak = Math.min(0.013, decayVal * 0.25);
+        var mgEnv = audioCtx.createGain();
+        mgEnv.gain.setValueAtTime(0.0001, time);
+        mgEnv.gain.linearRampToValueAtTime(0.18, time + 0.003);
+        mgEnv.gain.linearRampToValueAtTime(0.46, time + attackPeak);
+        mgEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        mgEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+
+        mNoise.connect(mHP);
+        mHP.connect(mBP);
+        mBP.connect(mPeak);
+        mPeak.connect(mgEnv);
+        mgEnv.connect(lpf);
+
+        mNoise.start(time + Math.random() * 0.2);
+        mNoise.stop(time + decayVal + 0.015);
       } else if (inst.id === 'snare') {
         var b1 = audioCtx.createOscillator();
         var b2 = audioCtx.createOscillator();
@@ -1313,14 +1381,21 @@
 
     function scheduleStep(step, time) {
       var kickHit = false;
+      var anyHit = false;
       var maxIdx = finaleActive ? INSTRUMENTS.length - 1 : turnIndex;
       for (var i = 0; i <= maxIdx; i++) {
-        if (tracks[i].steps[step]) {
-          triggerSound(i, step, time);
+        var sIdx = step % tracks[i].steps.length;
+        if (tracks[i].steps[sIdx]) {
+          anyHit = true;
+          triggerSound(i, sIdx, time);
           if (INSTRUMENTS[i].id === 'kick') {
             kickHit = true;
           }
         }
+      }
+      if (anyHit) {
+        prevHitAudioTime = lastHitAudioTime;
+        lastHitAudioTime = time;
       }
       visualQueue.push({ step: step, time: time, kickHit: kickHit });
     }
@@ -1338,7 +1413,7 @@
       while (nextNoteTime < audioCtx.currentTime + 0.1) {
         scheduleStep(currentStep, nextNoteTime);
         nextNoteTime += stepDur;
-        currentStep = (currentStep + 1) % STEPS;
+        currentStep = (currentStep + 1) % CYCLE_STEPS;
       }
     }
 
@@ -1355,6 +1430,8 @@
       silenceChordSynth();
       setRewind(false);
       setHighPass(false);
+      lastHitAudioTime = -1;
+      prevHitAudioTime = -1;
       if (ringBuf) ringBuf.fill(0);
       if (audioCtx && hpfReverbWet) {
         hpfReverbWet.gain.setValueAtTime(0.0, audioCtx.currentTime);
@@ -1394,6 +1471,9 @@
     var instName = document.getElementById('instName');
     var bpmSlider = document.getElementById('bpmSlider');
     var bpmValue = document.getElementById('bpmValue');
+    var chordPageBar = document.getElementById('chordPageBar');
+    var pageBtn0 = document.getElementById('pageBtn0');
+    var pageBtn1 = document.getElementById('pageBtn1');
     var stepGrid = document.getElementById('stepGrid');
 
     var pitchSlider = document.getElementById('pitchSlider');
@@ -1428,6 +1508,10 @@
       return instId === 'bassline' || instId === 'chords';
     }
 
+    function getStepOffset() {
+      return INSTRUMENTS[turnIndex].id === 'chords' ? chordPage * 16 : 0;
+    }
+
     function bindTap(el, handler) {
       el.addEventListener('pointerdown', function(e) {
         e.preventDefault();
@@ -1460,6 +1544,18 @@
       nextTurn();
     });
 
+    bindTap(pageBtn0, function() {
+      chordPage = 0;
+      renderChordPageButtons();
+      renderStepPads();
+    });
+
+    bindTap(pageBtn1, function() {
+      chordPage = 1;
+      renderChordPageButtons();
+      renderStepPads();
+    });
+
     bindTap(noteCloseBtn, function() {
       closeNoteModal();
     });
@@ -1475,24 +1571,30 @@
       }
     });
 
-    function paintStepPad(stepIdx, state) {
-      tracks[turnIndex].steps[stepIdx] = state;
-      var pad = stepGrid.querySelector('.step-pad[data-step="' + stepIdx + '"]');
+    function renderChordPageButtons() {
+      pageBtn0.classList.toggle('active', chordPage === 0);
+      pageBtn1.classList.toggle('active', chordPage === 1);
+    }
+
+    function paintStepPad(localIdx, state) {
+      var actualStep = getStepOffset() + localIdx;
+      tracks[turnIndex].steps[actualStep] = state;
+      var pad = stepGrid.querySelector('.step-pad[data-local="' + localIdx + '"]');
       if (pad) pad.classList.toggle('active', state);
     }
 
     function buildStepGrid() {
       stepGrid.innerHTML = '';
-      for (var i = 0; i < STEPS; i++) {
-        (function(stepIdx) {
+      for (var i = 0; i < 16; i++) {
+        (function(localIdx) {
           var wrap = document.createElement('div');
           wrap.className = 'step-wrap';
 
           var pad = document.createElement('button');
           pad.type = 'button';
-          pad.className = 'step-pad mono' + (stepIdx % 4 === 0 ? ' beat-mark' : '');
-          pad.setAttribute('data-step', stepIdx);
-          pad.textContent = stepIdx + 1;
+          pad.className = 'step-pad mono' + (localIdx % 4 === 0 ? ' beat-mark' : '');
+          pad.setAttribute('data-local', localIdx);
+          pad.textContent = localIdx + 1;
 
           var bar = document.createElement('div');
           bar.className = 'playhead-bar';
@@ -1501,17 +1603,18 @@
             e.preventDefault();
             ensureAudioUnlocked();
             var instId = INSTRUMENTS[turnIndex].id;
+            var actualStep = getStepOffset() + localIdx;
             if (isPickerInstrument(instId)) {
-              if (!tracks[turnIndex].steps[stepIdx]) {
-                tracks[turnIndex].steps[stepIdx] = true;
-                tracks[turnIndex].notes[stepIdx] = instId === 'chords' ? lastChosenChordIdx : lastChosenBassNoteIdx;
+              if (!tracks[turnIndex].steps[actualStep]) {
+                tracks[turnIndex].steps[actualStep] = true;
+                tracks[turnIndex].notes[actualStep] = instId === 'chords' ? lastChosenChordIdx : lastChosenBassNoteIdx;
               }
               renderStepPads();
-              openNoteModal(stepIdx);
+              openNoteModal(actualStep);
             } else {
               dragPointerId = e.pointerId;
-              dragPaint = !tracks[turnIndex].steps[stepIdx];
-              paintStepPad(stepIdx, dragPaint);
+              dragPaint = !tracks[turnIndex].steps[actualStep];
+              paintStepPad(localIdx, dragPaint);
             }
           });
 
@@ -1528,9 +1631,10 @@
       if (isPickerInstrument(INSTRUMENTS[turnIndex].id)) return;
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
-        var s = Number(hitEl.getAttribute('data-step'));
-        if (!isNaN(s) && tracks[turnIndex].steps[s] !== dragPaint) {
-          paintStepPad(s, dragPaint);
+        var localIdx = Number(hitEl.getAttribute('data-local'));
+        var actualStep = getStepOffset() + localIdx;
+        if (!isNaN(localIdx) && tracks[turnIndex].steps[actualStep] !== dragPaint) {
+          paintStepPad(localIdx, dragPaint);
         }
       }
     });
@@ -1578,18 +1682,20 @@
     function renderStepPads() {
       var instId = INSTRUMENTS[turnIndex].id;
       var hasPicker = isPickerInstrument(instId);
-      var list = instId === 'chords' ? MINOR_CHORDS : BASS_NOTES;
+      var list = instId === 'chords' ? CHORDS : BASS_NOTES;
+      var offset = getStepOffset();
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
-        var on = track.steps[i];
+        var actualStep = offset + i;
+        var on = track.steps[actualStep];
         pads[i].classList.toggle('active', on);
         if (hasPicker && on) {
-          var nIdx = track.notes[i];
+          var nIdx = track.notes[actualStep];
           if (nIdx < 0 || nIdx >= list.length) nIdx = 0;
           pads[i].textContent = list[nIdx].name;
         } else {
-          pads[i].textContent = i + 1;
+          pads[i].textContent = actualStep + 1;
         }
       }
     }
@@ -1598,7 +1704,7 @@
       editingStepIdx = stepIdx;
       var instId = INSTRUMENTS[turnIndex].id;
       var isChords = instId === 'chords';
-      var list = isChords ? MINOR_CHORDS : BASS_NOTES;
+      var list = isChords ? CHORDS : BASS_NOTES;
 
       var sLabel = (stepIdx + 1) < 10 ? '0' + (stepIdx + 1) : '' + (stepIdx + 1);
       noteModalTitle.textContent = 'STEP ' + sLabel + (isChords ? ' — CHORD' : ' — NOTE');
@@ -1668,8 +1774,13 @@
     function renderTurn() {
       var inst = INSTRUMENTS[turnIndex];
       var track = tracks[turnIndex];
+      var isChords = inst.id === 'chords';
 
       instName.textContent = inst.name;
+      chordPage = 0;
+      chordPageBar.classList.toggle('hidden', !isChords);
+      sequencerScreen.classList.toggle('chords-32', isChords);
+      renderChordPageButtons();
       renderStepPads();
 
       pitchSlider.value = track.params.pitch;
@@ -1942,17 +2053,19 @@
     function buildMatrix() {
       matrix.innerHTML = '';
       for (var i = 0; i < INSTRUMENTS.length; i++) {
+        var len = INSTRUMENTS[i].steps;
         var row = document.createElement('div');
-        row.className = 'matrix-row';
+        row.className = 'matrix-row' + (len === 32 ? ' row-32' : '');
 
         var label = document.createElement('div');
         label.className = 'matrix-name mono';
         label.textContent = INSTRUMENTS[i].name;
         row.appendChild(label);
 
-        for (var s = 0; s < STEPS; s++) {
+        for (var s = 0; s < len; s++) {
           var cell = document.createElement('div');
           cell.className = 'matrix-cell' + (tracks[i].steps[s] ? ' on' : '');
+          cell.setAttribute('data-len', len);
           cell.setAttribute('data-step', s);
           row.appendChild(cell);
         }
@@ -2047,50 +2160,21 @@
         if (activePlayStep !== lastVisualStep) {
           lastVisualStep = activePlayStep;
           if (!finaleActive) {
+            var isChords = INSTRUMENTS[turnIndex].id === 'chords';
             var bars = stepGrid.querySelectorAll('.playhead-bar');
-            for (var i = 0; i < bars.length; i++) {
-              bars[i].classList.toggle('now', i === activePlayStep);
+            if (isChords) {
+              var playingBar = Math.floor(activePlayStep / 16);
+              pageBtn0.classList.toggle('playing', playingBar === 0);
+              pageBtn1.classList.toggle('playing', playingBar === 1);
+              var pageStart = chordPage * 16;
+              for (var i = 0; i < bars.length; i++) {
+                bars[i].classList.toggle('now', activePlayStep === pageStart + i);
+              }
+            } else {
+              var localStep = activePlayStep % 16;
+              for (var j = 0; j < bars.length; j++) {
+                bars[j].classList.toggle('now', j === localStep);
+              }
             }
           } else {
-            var cells = matrix.querySelectorAll('.matrix-cell');
-            for (var c = 0; c < cells.length; c++) {
-              cells[c].classList.toggle('now', Number(cells[c].getAttribute('data-step')) === activePlayStep);
-            }
-          }
-        }
-      }
-
-      if (finaleActive) {
-        drawPixelPigeon(nowMs);
-
-        vinylAngleL += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
-        vinylAngleR += frameDt * (hpfActive ? 5.2 : 2.6);
-
-        drawVinyl(leftVinyl, vinylAngleL, rewindActive);
-        drawVinyl(rightVinyl, vinylAngleR, hpfActive);
-
-        var elapsed = (nowMs - finaleStartMs) / 1000;
-        var progress = Math.min(1, elapsed / FINALE_SECONDS);
-        progressFill.style.width = (progress * 100) + '%';
-
-        if (elapsed >= FINALE_SECONDS - 1.2 && !fadeTriggered) {
-          fadeTriggered = true;
-          appEl.classList.add('vanishing');
-          if (masterGain && audioCtx) {
-            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
-            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.1);
-          }
-        }
-
-        if (elapsed >= FINALE_SECONDS) {
-          resetToNewRound();
-        }
-      }
-
-      requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
-  </script>
-</body>
-</html>
+            var cells = ma
