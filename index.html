@@ -92,7 +92,7 @@
       color: #000000;
     }
 
-    /* ---------- SEQUENCER SCREEN (PORTRAIT 4x4) ---------- */
+    /* ---------- SEQUENCER SCREEN ---------- */
     .seq-screen {
       flex: 1;
       display: flex;
@@ -184,7 +184,7 @@
       background-color: #ffffff;
     }
 
-    /* ---------- SYNTH WAVEFORM SELECTOR & ABLETON PIANO ROLL ---------- */
+    /* ---------- WAVEFORM SELECTOR & ABLETON PIANO ROLL ---------- */
     .wave-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -330,100 +330,6 @@
       color: #ffffff;
     }
 
-    /* ---------- BASSLINE NOTE PICKER POPUP ---------- */
-    .note-modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.88);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 50;
-      touch-action: none;
-    }
-
-    .note-modal {
-      width: 100%;
-      max-width: 390px;
-      background-color: #000000;
-      border: 1px solid #ffffff;
-      padding: 14px;
-    }
-
-    .note-modal-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      font-size: 12px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .note-close-btn {
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #555555;
-      width: 48px;
-      height: 48px;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .note-close-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    .note-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    .note-btn {
-      background-color: #000000;
-      color: #ffffff;
-      border: 1px solid #444444;
-      min-height: 48px;
-      padding: 4px 2px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .note-btn:active {
-      border-color: #ffffff;
-    }
-
-    .note-btn.selected {
-      background-color: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    .note-remove-btn {
-      width: 100%;
-      min-height: 48px;
-      background-color: #000000;
-      color: #999999;
-      border: 1px solid #444444;
-      padding: 10px;
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .note-remove-btn:active {
-      color: #ffffff;
-      border-color: #ffffff;
-    }
-
     /* ---------- FINALE SCREEN ---------- */
     .finale-screen {
       flex: 1;
@@ -548,7 +454,6 @@
       .wave-btn:hover { border-color: #ffffff; }
       .btn-secondary:hover { border-color: #ffffff; }
       .btn-next:hover { background-color: #000000; color: #ffffff; }
-      .note-btn:hover { border-color: #ffffff; }
     }
   </style>
 </head>
@@ -572,10 +477,10 @@
         </div>
       </div>
 
-      <!-- Standard 4x4 step pads (Drums & Bassline) -->
+      <!-- Drum 4x4 step pads -->
       <div class="step-grid" id="stepGrid"></div>
 
-      <!-- Synth Waveform Selector + Ableton 1-Octave Piano Roll -->
+      <!-- Synth Waveform Selector -->
       <div class="wave-bar hidden" id="waveBar">
         <button type="button" class="wave-btn mono active" data-wave="sine">SINE</button>
         <button type="button" class="wave-btn mono" data-wave="sawtooth">SAW</button>
@@ -583,6 +488,7 @@
         <button type="button" class="wave-btn mono" data-wave="triangle">TRI</button>
       </div>
 
+      <!-- Ableton-style 1-Octave Piano Roll (Bassline & Synth) -->
       <div class="piano-roll-wrap hidden" id="pianoRollWrap">
         <canvas class="piano-canvas" id="pianoCanvas"></canvas>
       </div>
@@ -647,18 +553,6 @@
     </div>
   </div>
 
-  <!-- BASSLINE NOTE PICKER MODAL -->
-  <div id="noteModalBackdrop" class="note-modal-backdrop hidden">
-    <div class="note-modal">
-      <div class="note-modal-head mono">
-        <span id="noteModalTitle">STEP 01 — NOTE</span>
-        <button type="button" class="note-close-btn" id="noteCloseBtn">×</button>
-      </div>
-      <div class="note-grid" id="noteGrid"></div>
-      <button type="button" class="note-remove-btn mono" id="noteRemoveBtn">Remove Step</button>
-    </div>
-  </div>
-
   <script>
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
     document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
@@ -689,7 +583,7 @@
     }
 
     var BASS_NOTES  = buildNoteRange(24, 36); // C1 to C2
-    var SYNTH_NOTES = buildNoteRange(60, 72); // C4 to C5 (1 octave, transposed +-1 oct via Transpose)
+    var SYNTH_NOTES = buildNoteRange(60, 72); // C4 to C5
 
     var INSTRUMENTS = [
       { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
@@ -697,8 +591,8 @@
       { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
       { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
-      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.08, 0.60] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.105] } // Transpose (-1,0,+1 oct) & mega-short decay
+      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.06, 0.45] },
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.105] }
     ];
 
     var STEPS = 16;
@@ -711,21 +605,21 @@
     var isPlaying = false;
     var finaleActive = false;
     var tracks = [];
-    var lastChosenBassNoteIdx = 0;
 
     function resetTracks() {
       tracks = [];
       for (var i = 0; i < INSTRUMENTS.length; i++) {
         var inst = INSTRUMENTS[i];
-        var arr = [];
-        var noteArr = [];
+        var arr = [], noteArr = [], tiedArr = [];
         for (var s = 0; s < STEPS; s++) {
           arr.push(false);
           noteArr.push(0);
+          tiedArr.push(false);
         }
         tracks.push({
           steps: arr,
           notes: noteArr,
+          tied: tiedArr,
           waveform: 'sine',
           params: {
             pitch: inst.defaults.pitch,
@@ -734,7 +628,6 @@
           }
         });
       }
-      lastChosenBassNoteIdx = 0;
     }
     resetTracks();
 
@@ -775,6 +668,9 @@
     var masterCompressor = null;
     var masterGain = null;
     var noiseBuffer = null;
+
+    // Crowd Swell nodes (active while Right Vinyl HPF is held)
+    var crowdNodes = null;
 
     var hpfActive = false;
     var activePlayStep = 0;
@@ -1048,6 +944,104 @@
       src.stop(now + 0.36);
     }
 
+    // Stadium/Club Crowd Swell: skips 1 beat, then swells louder & brighter until release
+    function startCrowdSwell() {
+      stopCrowdSwell();
+      if (!audioCtx || !noiseBuffer || !masterCompressor) return;
+
+      var now = audioCtx.currentTime;
+      var skipBeatSec = 60 / bpm;
+      var swellStart = now + skipBeatSec;
+
+      var src1 = audioCtx.createBufferSource();
+      var src2 = audioCtx.createBufferSource();
+      src1.buffer = noiseBuffer;
+      src2.buffer = noiseBuffer;
+      src1.loop = true;
+      src2.loop = true;
+
+      // Vocal crowd formant filter bank ("oooh / aaah / eeeh" roar + excited air)
+      var fLow = audioCtx.createBiquadFilter();
+      fLow.type = 'bandpass'; fLow.frequency.value = 390; fLow.Q.value = 2.4;
+
+      var fMid = audioCtx.createBiquadFilter();
+      fMid.type = 'bandpass'; fMid.frequency.value = 820; fMid.Q.value = 2.6;
+
+      var fHigh = audioCtx.createBiquadFilter();
+      fHigh.type = 'bandpass'; fHigh.frequency.value = 1480; fHigh.Q.value = 2.8;
+
+      var fAir = audioCtx.createBiquadFilter();
+      fAir.type = 'bandpass'; fAir.frequency.value = 2700; fAir.Q.value = 1.8;
+
+      // Subtle organic crowd chatter LFO modulating formant frequencies
+      var lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 5.2;
+      var lfoDepth = audioCtx.createGain();
+      lfoDepth.gain.value = 75;
+      lfo.connect(lfoDepth);
+      lfoDepth.connect(fMid.frequency);
+      lfoDepth.connect(fHigh.frequency);
+
+      var sumGain = audioCtx.createGain();
+      sumGain.gain.value = 1.0;
+
+      // Master crowd brightness filter opens up as crowd gets louder
+      var toneLPF = audioCtx.createBiquadFilter();
+      toneLPF.type = 'lowpass';
+      toneLPF.frequency.setValueAtTime(700, now);
+      toneLPF.frequency.setValueAtTime(700, swellStart);
+      toneLPF.frequency.exponentialRampToValueAtTime(4200, swellStart + 5.5);
+
+      var crowdGain = audioCtx.createGain();
+      crowdGain.gain.setValueAtTime(0.0001, now);
+      crowdGain.gain.setValueAtTime(0.0001, swellStart);
+      crowdGain.gain.exponentialRampToValueAtTime(0.55, swellStart + 4.8);
+
+      src1.connect(fLow);
+      src2.connect(fMid);
+      src1.connect(fHigh);
+      src2.connect(fAir);
+
+      fLow.connect(sumGain);
+      fMid.connect(sumGain);
+      fHigh.connect(sumGain);
+      fAir.connect(sumGain);
+
+      sumGain.connect(toneLPF);
+      toneLPF.connect(crowdGain);
+
+      // Route to both compressor and reverb for huge arena space
+      crowdGain.connect(masterCompressor);
+      if (reverbConvolver) {
+        var revSend = audioCtx.createGain();
+        revSend.gain.value = 0.55;
+        crowdGain.connect(revSend);
+        revSend.connect(reverbConvolver);
+      }
+
+      src1.start(now, 0.1);
+      src2.start(now, 0.9);
+      lfo.start(now);
+
+      crowdNodes = { src1: src1, src2: src2, lfo: lfo, gain: crowdGain };
+    }
+
+    function stopCrowdSwell() {
+      if (!crowdNodes || !audioCtx) return;
+      var nodes = crowdNodes;
+      crowdNodes = null;
+      var now = audioCtx.currentTime;
+      try {
+        nodes.gain.gain.cancelScheduledValues(now);
+        nodes.gain.gain.setValueAtTime(Math.max(0.0001, nodes.gain.gain.value), now);
+        nodes.gain.gain.linearRampToValueAtTime(0.0, now + 0.035);
+        nodes.src1.stop(now + 0.045);
+        nodes.src2.stop(now + 0.045);
+        nodes.lfo.stop(now + 0.045);
+      } catch (e) {}
+    }
+
     function setHighPass(on) {
       if (hpfActive === on) return;
       hpfActive = on;
@@ -1064,10 +1058,12 @@
         hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
         hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
         triggerHpfNoiseBurst();
+        startCrowdSwell();
       } else {
-        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.10);
+        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
         masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
         hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
+        stopCrowdSwell();
       }
     }
 
@@ -1083,13 +1079,33 @@
       return 45 * Math.pow(900 / 45, t);
     }
 
+    function getStitchedSpan(track, startStep) {
+      var span = 1;
+      var baseNote = track.notes[startStep];
+      while (
+        startStep + span < STEPS &&
+        track.steps[startStep + span] &&
+        track.tied[startStep + span] &&
+        track.notes[startStep + span] === baseNote
+      ) {
+        span++;
+      }
+      return span;
+    }
+
     function triggerSound(instIdx, stepIdx, time) {
       if (!audioCtx || audioCtx.state !== 'running') return;
       var inst = INSTRUMENTS[instIdx];
-      var p = tracks[instIdx].params;
+      var track = tracks[instIdx];
+      var p = track.params;
       var pitchVal = inst.id === 'synth' ? Math.round(p.pitch) : lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
       var decayVal = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
       var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
+
+      // Skip re-trigger on tied continuation steps for piano roll instruments
+      if ((inst.id === 'bassline' || inst.id === 'synth') && track.tied[stepIdx]) {
+        return;
+      }
 
       var lpf = audioCtx.createBiquadFilter();
       lpf.type = 'lowpass';
@@ -1237,7 +1253,9 @@
         sn.start(time);
         sn.stop(time + decayVal + 0.015);
       } else if (inst.id === 'bassline') {
-        var noteIdx = tracks[instIdx].notes[stepIdx] || 0;
+        var stepDur = 60 / bpm / 4;
+        var span = getStitchedSpan(track, stepIdx);
+        var noteIdx = track.notes[stepIdx] || 0;
         var semitones = Math.round(pitchVal);
         var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
 
@@ -1254,8 +1272,20 @@
         var bg = audioCtx.createGain();
         bg.gain.setValueAtTime(0.0001, time);
         bg.gain.linearRampToValueAtTime(0.52, time + 0.008);
-        bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-        bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
+
+        var endTime;
+        if (span > 1) {
+          var holdDur = span * stepDur;
+          var rel = Math.min(0.06, decayVal * 0.25);
+          bg.gain.setValueAtTime(0.52, time + Math.max(0.01, holdDur - rel));
+          bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
+          bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.008);
+          endTime = time + holdDur + 0.012;
+        } else {
+          bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+          bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
+          endTime = time + decayVal + 0.018;
+        }
 
         mainSine.connect(bg);
         octSine.connect(octGain);
@@ -1264,14 +1294,16 @@
 
         mainSine.start(time);
         octSine.start(time);
-        mainSine.stop(time + decayVal + 0.018);
-        octSine.stop(time + decayVal + 0.018);
+        mainSine.stop(endTime);
+        octSine.stop(endTime);
       } else if (inst.id === 'synth') {
-        var sNoteIdx = tracks[instIdx].notes[stepIdx];
+        var sStepDur = 60 / bpm / 4;
+        var sSpan = getStitchedSpan(track, stepIdx);
+        var sNoteIdx = track.notes[stepIdx];
         if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
-        var octShift = Math.round(pitchVal) * 12; // -12, 0, or +12 semitones
+        var octShift = Math.round(pitchVal) * 12;
         var sFreq = midiToHz(SYNTH_NOTES[sNoteIdx].midi + octShift);
-        var wave = tracks[instIdx].waveform || 'sine';
+        var wave = track.waveform || 'sine';
 
         var sOsc = audioCtx.createOscillator();
         sOsc.type = wave;
@@ -1280,14 +1312,28 @@
         var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.34 : 0.46;
         var sG = audioCtx.createGain();
         sG.gain.setValueAtTime(0.0001, time);
-        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
-        sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-        sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
+        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.002);
+
+        var sEndTime;
+        if (sSpan > 1) {
+          // Stitched drone / sustained finger line
+          var sHoldDur = sSpan * sStepDur;
+          var sRel = Math.min(0.035, Math.max(0.008, decayVal * 0.4));
+          sG.gain.setValueAtTime(peakAmp, time + Math.max(0.004, sHoldDur - sRel));
+          sG.gain.exponentialRampToValueAtTime(0.0005, time + sHoldDur);
+          sG.gain.linearRampToValueAtTime(0.0, time + sHoldDur + 0.005);
+          sEndTime = time + sHoldDur + 0.01;
+        } else {
+          // Single 16th touch = micro-tonal short to mega-short decay
+          sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+          sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
+          sEndTime = time + decayVal + 0.008;
+        }
 
         sOsc.connect(sG);
         sG.connect(lpf);
         sOsc.start(time);
-        sOsc.stop(time + decayVal + 0.008);
+        sOsc.stop(sEndTime);
       }
     }
 
@@ -1297,7 +1343,9 @@
       var maxIdx = finaleActive ? INSTRUMENTS.length - 1 : turnIndex;
       for (var i = 0; i <= maxIdx; i++) {
         if (tracks[i].steps[step]) {
-          anyHit = true;
+          if (!tracks[i].tied[step]) {
+            anyHit = true;
+          }
           triggerSound(i, step, time);
           if (INSTRUMENTS[i].id === 'kick') {
             kickHit = true;
@@ -1402,19 +1450,21 @@
     var rightVinylLabel = document.getElementById('rightVinylLabel');
     var matrix = document.getElementById('matrix');
 
-    var noteModalBackdrop = document.getElementById('noteModalBackdrop');
-    var noteModalTitle = document.getElementById('noteModalTitle');
-    var noteGrid = document.getElementById('noteGrid');
-    var noteCloseBtn = document.getElementById('noteCloseBtn');
-    var noteRemoveBtn = document.getElementById('noteRemoveBtn');
-    var editingStepIdx = 0;
-
     var dragPointerId = null;
     var dragPaint = true;
+
     var pianoPointerId = null;
-    var pianoDrawMode = 'draw'; // 'draw' or 'erase'
+    var pianoDrawMode = 'draw';
+    var pianoLastStep = 0;
+    var pianoAnchorNote = 0;
+    var pianoMovedHoriz = false;
+
     var leftPointerId = null;
     var rightPointerId = null;
+
+    function isPianoRollInstrument(instId) {
+      return instId === 'bassline' || instId === 'synth';
+    }
 
     function bindTap(el, handler) {
       el.addEventListener('pointerdown', function(e) {
@@ -1438,8 +1488,9 @@
 
     bindTap(clearBtn, function() {
       tracks[turnIndex].steps.fill(false);
+      tracks[turnIndex].tied.fill(false);
       renderStepPads();
-      if (INSTRUMENTS[turnIndex].id === 'synth') {
+      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
         drawPianoRoll();
       }
     });
@@ -1448,29 +1499,12 @@
       nextTurn();
     });
 
-    bindTap(noteCloseBtn, function() {
-      closeNoteModal();
-    });
-
-    bindTap(noteRemoveBtn, function() {
-      removeNoteStep();
-    });
-
-    noteModalBackdrop.addEventListener('pointerdown', function(e) {
-      if (e.target === noteModalBackdrop) {
-        e.preventDefault();
-        closeNoteModal();
-      }
-    });
-
-    // Waveform selector buttons for Synth
     var waveBtns = waveBar.querySelectorAll('.wave-btn');
     for (var wb = 0; wb < waveBtns.length; wb++) {
       (function(btn) {
         bindTap(btn, function() {
           ensureAudioUnlocked();
-          var wave = btn.getAttribute('data-wave');
-          tracks[turnIndex].waveform = wave;
+          tracks[turnIndex].waveform = btn.getAttribute('data-wave');
           renderWaveButtons();
         });
       })(waveBtns[wb]);
@@ -1484,9 +1518,13 @@
     }
 
     // ---------------------------------------------------------
-    // ABLETON-STYLE 1-OCTAVE PIANO ROLL (16 STEPS x 13 NOTES C4-C5)
+    // ABLETON-STYLE 1-OCTAVE PIANO ROLL WITH STITCHED TOUCH NOTES
     // ---------------------------------------------------------
     var PIANO_KEY_W = 28;
+
+    function getPianoNoteList() {
+      return INSTRUMENTS[turnIndex].id === 'bassline' ? BASS_NOTES : SYNTH_NOTES;
+    }
 
     function getPianoCellAt(clientX, clientY) {
       var rect = pianoCanvas.getBoundingClientRect();
@@ -1497,7 +1535,8 @@
       if (step < 0) step = 0;
       if (step >= STEPS) step = STEPS - 1;
 
-      var numRows = SYNTH_NOTES.length; // 13 (top = C5 = idx 12, bottom = C4 = idx 0)
+      var noteList = getPianoNoteList();
+      var numRows = noteList.length;
       var rowFromTop = Math.floor((y / rect.height) * numRows);
       if (rowFromTop < 0) rowFromTop = 0;
       if (rowFromTop >= numRows) rowFromTop = numRows - 1;
@@ -1505,20 +1544,34 @@
       return { step: step, noteIdx: noteIdx };
     }
 
+    function untieIfNeeded(track, step) {
+      if (step + 1 < STEPS && (!track.steps[step] || track.notes[step + 1] !== track.notes[step])) {
+        track.tied[step + 1] = false;
+      }
+    }
+
     pianoCanvas.addEventListener('pointerdown', function(e) {
       e.preventDefault();
       ensureAudioUnlocked();
       pianoPointerId = e.pointerId;
+      pianoMovedHoriz = false;
       var cell = getPianoCellAt(e.clientX, e.clientY);
       var track = tracks[turnIndex];
+
       if (track.steps[cell.step] && track.notes[cell.step] === cell.noteIdx) {
         pianoDrawMode = 'erase';
         track.steps[cell.step] = false;
+        track.tied[cell.step] = false;
+        untieIfNeeded(track, cell.step);
       } else {
         pianoDrawMode = 'draw';
         track.steps[cell.step] = true;
         track.notes[cell.step] = cell.noteIdx;
+        track.tied[cell.step] = false;
+        untieIfNeeded(track, cell.step);
       }
+      pianoLastStep = cell.step;
+      pianoAnchorNote = cell.noteIdx;
       drawPianoRoll();
     });
 
@@ -1538,7 +1591,9 @@
 
       var w = rect.width;
       var h = rect.height;
-      var numRows = SYNTH_NOTES.length; // 13
+      var inst = INSTRUMENTS[turnIndex];
+      var noteList = getPianoNoteList();
+      var numRows = noteList.length;
       var rowH = h / numRows;
       var gridW = w - PIANO_KEY_W;
       var colW = gridW / STEPS;
@@ -1546,32 +1601,30 @@
       ctx.clearRect(0, 0, w, h);
 
       var track = tracks[turnIndex];
-      var octShift = Math.round(track.params.pitch) * 12;
+      var pitchShiftSemis = inst.id === 'synth'
+        ? Math.round(track.params.pitch) * 12
+        : Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], track.params.pitch));
 
-      // 1. Draw rows (dark tint for sharp/black keys, black for white keys)
+      // 1. Rows & left piano keys
       for (var r = 0; r < numRows; r++) {
         var noteIdx = (numRows - 1) - r;
-        var noteObj = SYNTH_NOTES[noteIdx];
+        var noteObj = noteList[noteIdx];
         var y = r * rowH;
 
-        // Grid background
         ctx.fillStyle = noteObj.sharp ? '#0f0f0f' : '#000000';
         ctx.fillRect(PIANO_KEY_W, y, gridW, rowH);
 
-        // Left piano key strip
         ctx.fillStyle = noteObj.sharp ? '#1c1c1c' : '#d8d8d8';
         ctx.fillRect(0, y, PIANO_KEY_W - 1, rowH - 0.5);
 
-        // Key label on C notes and F/G/A for clean orientation
         if (!noteObj.sharp) {
           ctx.fillStyle = '#000000';
           ctx.font = 'bold 8px "Courier New", monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(midiToLabel(noteObj.midi + octShift), (PIANO_KEY_W - 1) / 2, y + rowH / 2 + 0.5);
+          ctx.fillText(midiToLabel(noteObj.midi + pitchShiftSemis), (PIANO_KEY_W - 1) / 2, y + rowH / 2 + 0.5);
         }
 
-        // Horizontal grid line
         ctx.strokeStyle = '#222222';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -1580,7 +1633,7 @@
         ctx.stroke();
       }
 
-      // 2. Vertical step grid lines (brighter on beats 1, 5, 9, 13)
+      // 2. Vertical step grid lines
       for (var s = 0; s <= STEPS; s++) {
         var x = PIANO_KEY_W + s * colW;
         ctx.strokeStyle = (s % 4 === 0) ? '#444444' : '#1b1b1b';
@@ -1591,29 +1644,35 @@
         ctx.stroke();
       }
 
-      // 3. Active playhead column highlight
+      // 3. Playhead highlight column
       if (isPlaying) {
         var px = PIANO_KEY_W + activePlayStep * colW;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
         ctx.fillRect(px, 0, colW, h);
       }
 
-      // 4. Drawn notes (crisp white blocks)
+      // 4. Drawn notes (stitched runs render as one solid continuous bar!)
       for (var st = 0; st < STEPS; st++) {
         if (!track.steps[st]) continue;
         var nIdx = track.notes[st];
         if (nIdx < 0 || nIdx >= numRows) nIdx = 0;
         var rowFromTop = (numRows - 1) - nIdx;
-        var nx = PIANO_KEY_W + st * colW + 1.5;
+
+        var tiedLeft = (st > 0 && track.steps[st - 1] && track.tied[st] && track.notes[st - 1] === nIdx);
+        var tiedRight = (st + 1 < STEPS && track.steps[st + 1] && track.tied[st + 1] && track.notes[st + 1] === nIdx);
+
+        var padL = tiedLeft ? 0 : 1.5;
+        var padR = tiedRight ? 0 : 1.5;
+        var nx = PIANO_KEY_W + st * colW + padL;
         var ny = rowFromTop * rowH + 1.5;
-        var nw = Math.max(4, colW - 3);
+        var nw = Math.max(4, colW - padL - padR);
         var nh = Math.max(4, rowH - 3);
 
         ctx.fillStyle = (isPlaying && st === activePlayStep) ? '#ffffff' : '#dddddd';
         ctx.fillRect(nx, ny, nw, nh);
       }
 
-      // 5. Sharp vertical playhead line
+      // 5. Sharp playhead line
       if (isPlaying) {
         var lineX = PIANO_KEY_W + activePlayStep * colW;
         ctx.strokeStyle = '#ffffff';
@@ -1626,7 +1685,7 @@
     }
 
     // ---------------------------------------------------------
-    // STANDARD STEP GRID (DRUMS & BASSLINE)
+    // STANDARD STEP GRID (DRUMS)
     // ---------------------------------------------------------
     function paintStepPad(stepIdx, state) {
       tracks[turnIndex].steps[stepIdx] = state;
@@ -1653,19 +1712,9 @@
           pad.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             ensureAudioUnlocked();
-            var instId = INSTRUMENTS[turnIndex].id;
-            if (instId === 'bassline') {
-              if (!tracks[turnIndex].steps[stepIdx]) {
-                tracks[turnIndex].steps[stepIdx] = true;
-                tracks[turnIndex].notes[stepIdx] = lastChosenBassNoteIdx;
-              }
-              renderStepPads();
-              openNoteModal(stepIdx);
-            } else {
-              dragPointerId = e.pointerId;
-              dragPaint = !tracks[turnIndex].steps[stepIdx];
-              paintStepPad(stepIdx, dragPaint);
-            }
+            dragPointerId = e.pointerId;
+            dragPaint = !tracks[turnIndex].steps[stepIdx];
+            paintStepPad(stepIdx, dragPaint);
           });
 
           wrap.appendChild(pad);
@@ -1680,23 +1729,74 @@
       if (pianoPointerId !== null && e.pointerId === pianoPointerId) {
         var cell = getPianoCellAt(e.clientX, e.clientY);
         var track = tracks[turnIndex];
-        if (pianoDrawMode === 'draw') {
-          if (!track.steps[cell.step] || track.notes[cell.step] !== cell.noteIdx) {
+
+        if (pianoDrawMode === 'erase') {
+          var loE = Math.min(pianoLastStep, cell.step);
+          var hiE = Math.max(pianoLastStep, cell.step);
+          var changedE = false;
+          for (var ek = loE; ek <= hiE; ek++) {
+            if (track.steps[ek] || track.tied[ek]) {
+              track.steps[ek] = false;
+              track.tied[ek] = false;
+              changedE = true;
+            }
+          }
+          untieIfNeeded(track, hiE);
+          pianoLastStep = cell.step;
+          if (changedE) drawPianoRoll();
+          return;
+        }
+
+        // Draw mode with finger-swipe stitching
+        if (cell.step === pianoLastStep) {
+          if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
             track.steps[cell.step] = true;
             track.notes[cell.step] = cell.noteIdx;
+            track.tied[cell.step] = false;
+            pianoAnchorNote = cell.noteIdx;
+            untieIfNeeded(track, cell.step);
             drawPianoRoll();
           }
-        } else {
-          if (track.steps[cell.step]) {
-            track.steps[cell.step] = false;
-            drawPianoRoll();
-          }
+          return;
         }
+
+        pianoMovedHoriz = true;
+        var dir = cell.step > pianoLastStep ? 1 : -1;
+
+        if (cell.noteIdx === pianoAnchorNote) {
+          // Swiping along the same note row -> stitch steps continuously!
+          var k = pianoLastStep;
+          while (k !== cell.step) {
+            k += dir;
+            track.steps[k] = true;
+            track.notes[k] = pianoAnchorNote;
+          }
+          // Ensure every step in the continuous run after its start is marked tied
+          var runStart = Math.min(pianoLastStep, cell.step);
+          while (runStart > 0 && track.steps[runStart - 1] && track.notes[runStart - 1] === pianoAnchorNote && track.tied[runStart]) {
+            runStart--;
+          }
+          var runEnd = Math.max(pianoLastStep, cell.step);
+          for (var r = runStart + 1; r <= runEnd; r++) {
+            track.tied[r] = true;
+          }
+          untieIfNeeded(track, runEnd);
+        } else {
+          // Finger moved to a different note row -> start a new untied note
+          track.steps[cell.step] = true;
+          track.notes[cell.step] = cell.noteIdx;
+          track.tied[cell.step] = false;
+          pianoAnchorNote = cell.noteIdx;
+          untieIfNeeded(track, cell.step);
+        }
+
+        pianoLastStep = cell.step;
+        drawPianoRoll();
         return;
       }
 
       if (dragPointerId === null || e.pointerId !== dragPointerId) return;
-      if (INSTRUMENTS[turnIndex].id === 'bassline' || INSTRUMENTS[turnIndex].id === 'synth') return;
+      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
         var s = Number(hitEl.getAttribute('data-step'));
@@ -1741,56 +1841,12 @@
     rightVinyl.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     function renderStepPads() {
-      var isBass = INSTRUMENTS[turnIndex].id === 'bassline';
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
-        var on = track.steps[i];
-        pads[i].classList.toggle('active', on);
-        if (isBass && on) {
-          var nIdx = track.notes[i];
-          if (nIdx < 0 || nIdx >= BASS_NOTES.length) nIdx = 0;
-          pads[i].textContent = BASS_NOTES[nIdx].name;
-        } else {
-          pads[i].textContent = i + 1;
-        }
+        pads[i].classList.toggle('active', track.steps[i]);
+        pads[i].textContent = i + 1;
       }
-    }
-
-    function openNoteModal(stepIdx) {
-      editingStepIdx = stepIdx;
-      var sLabel = (stepIdx + 1) < 10 ? '0' + (stepIdx + 1) : '' + (stepIdx + 1);
-      noteModalTitle.textContent = 'STEP ' + sLabel + ' — NOTE';
-      var currentIdx = tracks[turnIndex].notes[stepIdx];
-      noteGrid.innerHTML = '';
-      for (var i = 0; i < BASS_NOTES.length; i++) {
-        (function(itemIdx) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'note-btn mono' + (itemIdx === currentIdx ? ' selected' : '');
-          btn.textContent = BASS_NOTES[itemIdx].name;
-          btn.addEventListener('pointerdown', function(e) {
-            e.preventDefault();
-            tracks[turnIndex].steps[editingStepIdx] = true;
-            tracks[turnIndex].notes[editingStepIdx] = itemIdx;
-            lastChosenBassNoteIdx = itemIdx;
-            renderStepPads();
-            closeNoteModal();
-          });
-          noteGrid.appendChild(btn);
-        })(i);
-      }
-      noteModalBackdrop.classList.remove('hidden');
-    }
-
-    function closeNoteModal() {
-      noteModalBackdrop.classList.add('hidden');
-    }
-
-    function removeNoteStep() {
-      tracks[turnIndex].steps[editingStepIdx] = false;
-      renderStepPads();
-      closeNoteModal();
     }
 
     function updateParamText() {
@@ -1816,13 +1872,14 @@
     function renderTurn() {
       var inst = INSTRUMENTS[turnIndex];
       var track = tracks[turnIndex];
+      var isPiano = isPianoRollInstrument(inst.id);
       var isSynth = inst.id === 'synth';
 
       instName.textContent = inst.name;
 
-      stepGrid.classList.toggle('hidden', isSynth);
+      stepGrid.classList.toggle('hidden', isPiano);
       waveBar.classList.toggle('hidden', !isSynth);
-      pianoRollWrap.classList.toggle('hidden', !isSynth);
+      pianoRollWrap.classList.toggle('hidden', !isPiano);
 
       if (isSynth) {
         pitchLabel.textContent = 'Transpose';
@@ -1830,12 +1887,16 @@
         pitchSlider.max = '1';
         pitchSlider.step = '1';
         renderWaveButtons();
-        requestAnimationFrame(drawPianoRoll);
       } else {
         pitchLabel.textContent = 'Pitch';
         pitchSlider.min = '0';
         pitchSlider.max = '1';
         pitchSlider.step = '0.01';
+      }
+
+      if (isPiano) {
+        requestAnimationFrame(drawPianoRoll);
+      } else {
         renderStepPads();
       }
 
@@ -1860,7 +1921,7 @@
     pitchSlider.addEventListener('input', function(e) {
       tracks[turnIndex].params.pitch = parseFloat(e.target.value);
       updateParamText();
-      if (INSTRUMENTS[turnIndex].id === 'synth') {
+      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
         drawPianoRoll();
       }
     });
@@ -1891,7 +1952,6 @@
     }
 
     function nextTurn() {
-      closeNoteModal();
       dragPointerId = null;
       pianoPointerId = null;
       if (turnIndex < INSTRUMENTS.length - 1) {
@@ -2215,7 +2275,7 @@
         if (activePlayStep !== lastVisualStep) {
           lastVisualStep = activePlayStep;
           if (!finaleActive) {
-            if (INSTRUMENTS[turnIndex].id === 'synth') {
+            if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
               drawPianoRoll();
             } else {
               var bars = stepGrid.querySelectorAll('.playhead-bar');
