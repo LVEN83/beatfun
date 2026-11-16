@@ -592,7 +592,7 @@
       { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.06, 0.45] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.105] }
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.012, 0.24] } // Single-note micro-to-short decay
     ];
 
     var STEPS = 16;
@@ -632,7 +632,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE
+    // WEB AUDIO ENGINE (CLEAN HEADROOM + LIMITER)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -669,7 +669,6 @@
     var masterGain = null;
     var noiseBuffer = null;
 
-    // Crowd Swell nodes (active while Right Vinyl HPF is held)
     var crowdNodes = null;
 
     var hpfActive = false;
@@ -720,7 +719,7 @@
         audioCtx = new AC();
 
         mixBus = audioCtx.createGain();
-        mixBus.gain.value = 0.65;
+        mixBus.gain.value = 0.58;
 
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
@@ -748,14 +747,14 @@
         hpfReverbWet.gain.value = 0.0;
 
         masterCompressor = audioCtx.createDynamicsCompressor();
-        masterCompressor.threshold.setValueAtTime(-10, audioCtx.currentTime);
-        masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
-        masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
-        masterCompressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
-        masterCompressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+        masterCompressor.threshold.setValueAtTime(-14, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(16, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.001, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.14, audioCtx.currentTime);
 
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.90;
+        masterGain.gain.value = 0.82;
 
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
@@ -911,7 +910,7 @@
         rewindCursor = Math.max(256, rewindLoopSpan - backSamples);
 
         dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
-        rewindOutGain.gain.setTargetAtTime(1.18, now, 0.005);
+        rewindOutGain.gain.setTargetAtTime(1.12, now, 0.005);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
         dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
@@ -944,7 +943,7 @@
       src.stop(now + 0.36);
     }
 
-    // Stadium/Club Crowd Swell: skips 1 beat, then swells louder & brighter until release
+    // Stadium/Club Crowd Swell capped at half volume (0.27)
     function startCrowdSwell() {
       stopCrowdSwell();
       if (!audioCtx || !noiseBuffer || !masterCompressor) return;
@@ -960,7 +959,6 @@
       src1.loop = true;
       src2.loop = true;
 
-      // Vocal crowd formant filter bank ("oooh / aaah / eeeh" roar + excited air)
       var fLow = audioCtx.createBiquadFilter();
       fLow.type = 'bandpass'; fLow.frequency.value = 390; fLow.Q.value = 2.4;
 
@@ -973,7 +971,6 @@
       var fAir = audioCtx.createBiquadFilter();
       fAir.type = 'bandpass'; fAir.frequency.value = 2700; fAir.Q.value = 1.8;
 
-      // Subtle organic crowd chatter LFO modulating formant frequencies
       var lfo = audioCtx.createOscillator();
       lfo.type = 'sine';
       lfo.frequency.value = 5.2;
@@ -986,17 +983,16 @@
       var sumGain = audioCtx.createGain();
       sumGain.gain.value = 1.0;
 
-      // Master crowd brightness filter opens up as crowd gets louder
       var toneLPF = audioCtx.createBiquadFilter();
       toneLPF.type = 'lowpass';
       toneLPF.frequency.setValueAtTime(700, now);
       toneLPF.frequency.setValueAtTime(700, swellStart);
-      toneLPF.frequency.exponentialRampToValueAtTime(4200, swellStart + 5.5);
+      toneLPF.frequency.exponentialRampToValueAtTime(4000, swellStart + 5.5);
 
       var crowdGain = audioCtx.createGain();
       crowdGain.gain.setValueAtTime(0.0001, now);
       crowdGain.gain.setValueAtTime(0.0001, swellStart);
-      crowdGain.gain.exponentialRampToValueAtTime(0.55, swellStart + 4.8);
+      crowdGain.gain.exponentialRampToValueAtTime(0.27, swellStart + 4.8); // Capped at half volume (0.27)
 
       src1.connect(fLow);
       src2.connect(fMid);
@@ -1011,11 +1007,10 @@
       sumGain.connect(toneLPF);
       toneLPF.connect(crowdGain);
 
-      // Route to both compressor and reverb for huge arena space
       crowdGain.connect(masterCompressor);
       if (reverbConvolver) {
         var revSend = audioCtx.createGain();
-        revSend.gain.value = 0.55;
+        revSend.gain.value = 0.45;
         crowdGain.connect(revSend);
         revSend.connect(reverbConvolver);
       }
@@ -1102,8 +1097,8 @@
       var decayVal = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
       var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
 
-      // Skip re-trigger on tied continuation steps for piano roll instruments
-      if ((inst.id === 'bassline' || inst.id === 'synth') && track.tied[stepIdx]) {
+      // Skip re-trigger on tied continuation steps for Bassline
+      if (inst.id === 'bassline' && track.tied[stepIdx]) {
         return;
       }
 
@@ -1120,7 +1115,7 @@
         osc.frequency.setValueAtTime(pitchVal * 2.8, time);
         osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
         g.gain.setValueAtTime(0.0001, time);
-        g.gain.linearRampToValueAtTime(0.68, time + 0.003);
+        g.gain.linearRampToValueAtTime(0.62, time + 0.003);
         g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         osc.connect(g);
@@ -1136,7 +1131,7 @@
         var noise = audioCtx.createBufferSource();
         noise.buffer = noiseBuffer;
         var ng = audioCtx.createGain();
-        ng.gain.setValueAtTime(0.30, time);
+        ng.gain.setValueAtTime(0.26, time);
         ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         noise.connect(ng);
@@ -1146,7 +1141,7 @@
 
         var ratios = [2, 3.1, 4.2, 5.4, 6.8];
         var mg = audioCtx.createGain();
-        mg.gain.setValueAtTime(0.14, time);
+        mg.gain.setValueAtTime(0.12, time);
         mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         mg.connect(hp);
@@ -1165,7 +1160,7 @@
         tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
         tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
         tg.gain.setValueAtTime(0.0001, time);
-        tg.gain.linearRampToValueAtTime(0.52, time + 0.003);
+        tg.gain.linearRampToValueAtTime(0.48, time + 0.003);
         tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         tosc.connect(tg);
@@ -1188,8 +1183,8 @@
         var swellTime = Math.min(0.024, decayVal * 0.28);
         var sEnv = audioCtx.createGain();
         sEnv.gain.setValueAtTime(0.0001, time);
-        sEnv.gain.linearRampToValueAtTime(0.10, time + swellTime * 0.45);
-        sEnv.gain.linearRampToValueAtTime(0.42, time + swellTime);
+        sEnv.gain.linearRampToValueAtTime(0.09, time + swellTime * 0.45);
+        sEnv.gain.linearRampToValueAtTime(0.38, time + swellTime);
         sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
 
@@ -1213,10 +1208,10 @@
         var bg1 = audioCtx.createGain();
         var bg2 = audioCtx.createGain();
         var bodyDec = Math.min(0.14, decayVal * 0.45);
-        bg1.gain.setValueAtTime(0.34, time);
+        bg1.gain.setValueAtTime(0.30, time);
         bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
         bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
-        bg2.gain.setValueAtTime(0.24, time);
+        bg2.gain.setValueAtTime(0.20, time);
         bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
         bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
 
@@ -1241,7 +1236,7 @@
         sPeak.gain.value = 5;
 
         var sng = audioCtx.createGain();
-        sng.gain.setValueAtTime(0.42, time);
+        sng.gain.setValueAtTime(0.38, time);
         sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
 
@@ -1267,24 +1262,26 @@
         octSine.frequency.setValueAtTime(freq * 2, time);
 
         var octGain = audioCtx.createGain();
-        octGain.gain.value = 0.22;
+        octGain.gain.value = 0.25;
 
         var bg = audioCtx.createGain();
         bg.gain.setValueAtTime(0.0001, time);
-        bg.gain.linearRampToValueAtTime(0.52, time + 0.008);
 
         var endTime;
         if (span > 1) {
-          var holdDur = span * stepDur;
-          var rel = Math.min(0.06, decayVal * 0.25);
-          bg.gain.setValueAtTime(0.52, time + Math.max(0.01, holdDur - rel));
+          // Clean controlled sub level and finishes 15ms BEFORE next step/bar so held notes never overlap & crackle
+          var holdDur = Math.max(0.04, span * stepDur - 0.015);
+          var rel = Math.min(0.045, holdDur * 0.25);
+          bg.gain.linearRampToValueAtTime(0.26, time + 0.012);
+          bg.gain.setValueAtTime(0.26, time + Math.max(0.014, holdDur - rel));
           bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
-          bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.008);
-          endTime = time + holdDur + 0.012;
+          bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
+          endTime = time + holdDur + 0.008;
         } else {
+          bg.gain.linearRampToValueAtTime(0.34, time + 0.008);
           bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-          bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
-          endTime = time + decayVal + 0.018;
+          bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+          endTime = time + decayVal + 0.012;
         }
 
         mainSine.connect(bg);
@@ -1297,8 +1294,7 @@
         mainSine.stop(endTime);
         octSine.stop(endTime);
       } else if (inst.id === 'synth') {
-        var sStepDur = 60 / bpm / 4;
-        var sSpan = getStitchedSpan(track, stepIdx);
+        // Single-note entry only (no held notes) with slightly longer available decay (12ms-240ms)
         var sNoteIdx = track.notes[stepIdx];
         if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
         var octShift = Math.round(pitchVal) * 12;
@@ -1309,31 +1305,17 @@
         sOsc.type = wave;
         sOsc.frequency.setValueAtTime(sFreq, time);
 
-        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.34 : 0.46;
+        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.20 : 0.28;
         var sG = audioCtx.createGain();
         sG.gain.setValueAtTime(0.0001, time);
-        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.002);
-
-        var sEndTime;
-        if (sSpan > 1) {
-          // Stitched drone / sustained finger line
-          var sHoldDur = sSpan * sStepDur;
-          var sRel = Math.min(0.035, Math.max(0.008, decayVal * 0.4));
-          sG.gain.setValueAtTime(peakAmp, time + Math.max(0.004, sHoldDur - sRel));
-          sG.gain.exponentialRampToValueAtTime(0.0005, time + sHoldDur);
-          sG.gain.linearRampToValueAtTime(0.0, time + sHoldDur + 0.005);
-          sEndTime = time + sHoldDur + 0.01;
-        } else {
-          // Single 16th touch = micro-tonal short to mega-short decay
-          sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-          sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
-          sEndTime = time + decayVal + 0.008;
-        }
+        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0025);
+        sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+        sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.006);
 
         sOsc.connect(sG);
         sG.connect(lpf);
         sOsc.start(time);
-        sOsc.stop(sEndTime);
+        sOsc.stop(time + decayVal + 0.01);
       }
     }
 
@@ -1383,7 +1365,7 @@
       if (isPlaying) return;
       if (audioCtx && masterGain) {
         masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-        masterGain.gain.setValueAtTime(0.90, audioCtx.currentTime);
+        masterGain.gain.setValueAtTime(0.82, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
       setRewind(false);
@@ -1518,7 +1500,8 @@
     }
 
     // ---------------------------------------------------------
-    // ABLETON-STYLE 1-OCTAVE PIANO ROLL WITH STITCHED TOUCH NOTES
+    // ABLETON-STYLE 1-OCTAVE PIANO ROLL
+    // BASSLINE = STITCHED HELD NOTES; SYNTH = SINGLE-NOTE ENTRY
     // ---------------------------------------------------------
     var PIANO_KEY_W = 28;
 
@@ -1605,7 +1588,6 @@
         ? Math.round(track.params.pitch) * 12
         : Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], track.params.pitch));
 
-      // 1. Rows & left piano keys
       for (var r = 0; r < numRows; r++) {
         var noteIdx = (numRows - 1) - r;
         var noteObj = noteList[noteIdx];
@@ -1633,7 +1615,6 @@
         ctx.stroke();
       }
 
-      // 2. Vertical step grid lines
       for (var s = 0; s <= STEPS; s++) {
         var x = PIANO_KEY_W + s * colW;
         ctx.strokeStyle = (s % 4 === 0) ? '#444444' : '#1b1b1b';
@@ -1644,22 +1625,21 @@
         ctx.stroke();
       }
 
-      // 3. Playhead highlight column
       if (isPlaying) {
         var px = PIANO_KEY_W + activePlayStep * colW;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
         ctx.fillRect(px, 0, colW, h);
       }
 
-      // 4. Drawn notes (stitched runs render as one solid continuous bar!)
+      var canTie = (inst.id === 'bassline');
       for (var st = 0; st < STEPS; st++) {
         if (!track.steps[st]) continue;
         var nIdx = track.notes[st];
         if (nIdx < 0 || nIdx >= numRows) nIdx = 0;
         var rowFromTop = (numRows - 1) - nIdx;
 
-        var tiedLeft = (st > 0 && track.steps[st - 1] && track.tied[st] && track.notes[st - 1] === nIdx);
-        var tiedRight = (st + 1 < STEPS && track.steps[st + 1] && track.tied[st + 1] && track.notes[st + 1] === nIdx);
+        var tiedLeft = canTie && (st > 0 && track.steps[st - 1] && track.tied[st] && track.notes[st - 1] === nIdx);
+        var tiedRight = canTie && (st + 1 < STEPS && track.steps[st + 1] && track.tied[st + 1] && track.notes[st + 1] === nIdx);
 
         var padL = tiedLeft ? 0 : 1.5;
         var padR = tiedRight ? 0 : 1.5;
@@ -1672,7 +1652,6 @@
         ctx.fillRect(nx, ny, nw, nh);
       }
 
-      // 5. Sharp playhead line
       if (isPlaying) {
         var lineX = PIANO_KEY_W + activePlayStep * colW;
         ctx.strokeStyle = '#ffffff';
@@ -1728,6 +1707,7 @@
     window.addEventListener('pointermove', function(e) {
       if (pianoPointerId !== null && e.pointerId === pianoPointerId) {
         var cell = getPianoCellAt(e.clientX, e.clientY);
+        var instId = INSTRUMENTS[turnIndex].id;
         var track = tracks[turnIndex];
 
         if (pianoDrawMode === 'erase') {
@@ -1747,7 +1727,25 @@
           return;
         }
 
-        // Draw mode with finger-swipe stitching
+        // Synth: single-note entry only (no held/tied notes)
+        if (instId === 'synth') {
+          var loS = Math.min(pianoLastStep, cell.step);
+          var hiS = Math.max(pianoLastStep, cell.step);
+          var changedS = false;
+          for (var sk = loS; sk <= hiS; sk++) {
+            if (!track.steps[sk] || track.notes[sk] !== cell.noteIdx || track.tied[sk]) {
+              track.steps[sk] = true;
+              track.notes[sk] = cell.noteIdx;
+              track.tied[sk] = false;
+              changedS = true;
+            }
+          }
+          pianoLastStep = cell.step;
+          if (changedS) drawPianoRoll();
+          return;
+        }
+
+        // Bassline: finger-swipe stitching into held notes
         if (cell.step === pianoLastStep) {
           if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
             track.steps[cell.step] = true;
@@ -1764,14 +1762,12 @@
         var dir = cell.step > pianoLastStep ? 1 : -1;
 
         if (cell.noteIdx === pianoAnchorNote) {
-          // Swiping along the same note row -> stitch steps continuously!
           var k = pianoLastStep;
           while (k !== cell.step) {
             k += dir;
             track.steps[k] = true;
             track.notes[k] = pianoAnchorNote;
           }
-          // Ensure every step in the continuous run after its start is marked tied
           var runStart = Math.min(pianoLastStep, cell.step);
           while (runStart > 0 && track.steps[runStart - 1] && track.notes[runStart - 1] === pianoAnchorNote && track.tied[runStart]) {
             runStart--;
@@ -1782,7 +1778,6 @@
           }
           untieIfNeeded(track, runEnd);
         } else {
-          // Finger moved to a different note row -> start a new untied note
           track.steps[cell.step] = true;
           track.notes[cell.step] = cell.noteIdx;
           track.tied[cell.step] = false;
