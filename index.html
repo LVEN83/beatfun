@@ -642,8 +642,6 @@
     var snareGritShaper = null;
     var softClipShaper = null;
 
-    var activeSynthVoice = null;
-
     var rewindProcessor = null;
     var rewindLPF = null;
     var rewindOutGain = null;
@@ -673,7 +671,6 @@
     var masterGain = null;
     var noiseBuffer = null;
 
-    var crowdTimer = null;
     var crowdNodes = null;
 
     var hpfActive = false;
@@ -970,74 +967,85 @@
       src.stop(now + 0.36);
     }
 
-    // High-Pass Stadium Crowd Swell: Starts after 1 beat, swells up loud & rich, cuts on release
+    // High-Pass Stadium Crowd Swell: 1-beat skip, then swells smoothly up to 0.35
     function startCrowdSwell() {
       stopCrowdSwell();
-      if (!audioCtx || !noiseBuffer || !masterGain) return;
+      if (!audioCtx || !noiseBuffer || !masterCompressor) return;
 
       var now = audioCtx.currentTime;
+      var skipBeatSec = 60 / bpm;
+      var swellStart = now + skipBeatSec;
 
-      var nSrc1 = audioCtx.createBufferSource();
-      var nSrc2 = audioCtx.createBufferSource();
-      nSrc1.buffer = noiseBuffer;
-      nSrc2.buffer = noiseBuffer;
-      nSrc1.loop = true;
-      nSrc2.loop = true;
+      var src1 = audioCtx.createBufferSource();
+      var src2 = audioCtx.createBufferSource();
+      src1.buffer = noiseBuffer;
+      src2.buffer = noiseBuffer;
+      src1.loop = true;
+      src2.loop = true;
 
-      // Vocal crowd formant filters (gives human stadium cheer resonance)
-      var f1 = audioCtx.createBiquadFilter();
-      f1.type = 'peaking'; f1.frequency.value = 650; f1.Q.value = 2.0; f1.gain.value = 10;
+      // Vocal crowd formant filters (gives natural human stadium cheer sound)
+      var fLow = audioCtx.createBiquadFilter();
+      fLow.type = 'bandpass'; fLow.frequency.value = 390; fLow.Q.value = 2.4;
 
-      var f2 = audioCtx.createBiquadFilter();
-      f2.type = 'peaking'; f2.frequency.value = 1400; f2.Q.value = 2.4; f2.gain.value = 12;
+      var fMid = audioCtx.createBiquadFilter();
+      fMid.type = 'bandpass'; fMid.frequency.value = 820; fMid.Q.value = 2.6;
+
+      var fHigh = audioCtx.createBiquadFilter();
+      fHigh.type = 'bandpass'; fHigh.frequency.value = 1480; fHigh.Q.value = 2.8;
+
+      var fAir = audioCtx.createBiquadFilter();
+      fAir.type = 'bandpass'; fAir.frequency.value = 2700; fAir.Q.value = 1.8;
+
+      // LFO modulation gives lively fluttering cheer crowd texture
+      var lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 5.2;
+      var lfoDepth = audioCtx.createGain();
+      lfoDepth.gain.value = 75;
+      lfo.connect(lfoDepth);
+      lfoDepth.connect(fMid.frequency);
+      lfoDepth.connect(fHigh.frequency);
+
+      var sumGain = audioCtx.createGain();
+      sumGain.gain.value = 1.0;
 
       var toneLPF = audioCtx.createBiquadFilter();
       toneLPF.type = 'lowpass';
-      toneLPF.frequency.setValueAtTime(800, now);
-      toneLPF.frequency.exponentialRampToValueAtTime(5500, now + 3.0);
-      toneLPF.Q.value = 1.4;
+      toneLPF.frequency.setValueAtTime(700, now);
+      toneLPF.frequency.setValueAtTime(700, swellStart);
+      toneLPF.frequency.exponentialRampToValueAtTime(4200, swellStart + 5.5);
 
-      // Harmonic cheering vocal bed
-      var vOsc1 = audioCtx.createOscillator();
-      var vOsc2 = audioCtx.createOscillator();
-      vOsc1.type = 'sawtooth';
-      vOsc2.type = 'triangle';
-      vOsc1.frequency.setValueAtTime(160, now);
-      vOsc1.frequency.exponentialRampToValueAtTime(440, now + 3.5);
-      vOsc2.frequency.setValueAtTime(240, now);
-      vOsc2.frequency.exponentialRampToValueAtTime(660, now + 3.5);
-
-      var vGain = audioCtx.createGain();
-      vGain.gain.value = 0.22;
-      vOsc1.connect(vGain);
-      vOsc2.connect(vGain);
-
-      // Audible entrance (0.06) immediately swelling to huge crowd volume (0.48)
       var crowdGain = audioCtx.createGain();
-      crowdGain.gain.setValueAtTime(0.06, now);
-      crowdGain.gain.linearRampToValueAtTime(0.48, now + 2.5);
+      crowdGain.gain.setValueAtTime(0.0001, now);
+      crowdGain.gain.setValueAtTime(0.0001, swellStart);
+      crowdGain.gain.exponentialRampToValueAtTime(0.35, swellStart + 4.8);
 
-      nSrc1.connect(f1);
-      nSrc2.connect(f1);
-      vGain.connect(f1);
-      f1.connect(f2);
-      f2.connect(toneLPF);
+      src1.connect(fLow);
+      src2.connect(fMid);
+      src1.connect(fHigh);
+      src2.connect(fAir);
+
+      fLow.connect(sumGain);
+      fMid.connect(sumGain);
+      fHigh.connect(sumGain);
+      fAir.connect(sumGain);
+
+      sumGain.connect(toneLPF);
       toneLPF.connect(crowdGain);
 
-      crowdGain.connect(masterGain);
+      crowdGain.connect(masterCompressor);
       if (reverbConvolver) {
-        var rSend = audioCtx.createGain();
-        rSend.gain.value = 0.45;
-        crowdGain.connect(rSend);
-        rSend.connect(reverbConvolver);
+        var revSend = audioCtx.createGain();
+        revSend.gain.value = 0.40;
+        crowdGain.connect(revSend);
+        revSend.connect(reverbConvolver);
       }
 
-      nSrc1.start(now);
-      nSrc2.start(now);
-      vOsc1.start(now);
-      vOsc2.start(now);
+      src1.start(now, 0.1);
+      src2.start(now, 0.9);
+      lfo.start(now);
 
-      crowdNodes = { nSrc1: nSrc1, nSrc2: nSrc2, vOsc1: vOsc1, vOsc2: vOsc2, gain: crowdGain };
+      crowdNodes = { src1: src1, src2: src2, lfo: lfo, gain: crowdGain };
     }
 
     function stopCrowdSwell() {
@@ -1048,11 +1056,10 @@
       try {
         nodes.gain.gain.cancelScheduledValues(now);
         nodes.gain.gain.setValueAtTime(Math.max(0.0001, nodes.gain.gain.value), now);
-        nodes.gain.gain.linearRampToValueAtTime(0.0, now + 0.02);
-        nodes.nSrc1.stop(now + 0.03);
-        nodes.nSrc2.stop(now + 0.03);
-        nodes.vOsc1.stop(now + 0.03);
-        nodes.vOsc2.stop(now + 0.03);
+        nodes.gain.gain.linearRampToValueAtTime(0.0, now + 0.035);
+        nodes.src1.stop(now + 0.045);
+        nodes.src2.stop(now + 0.045);
+        nodes.lfo.stop(now + 0.045);
       } catch (e) {}
     }
 
@@ -1069,21 +1076,12 @@
       if (on) {
         masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
         masterHPF.Q.setTargetAtTime(1.6, now, 0.04);
-        hpfReverbWet.gain.setTargetAtTime(0.35, now, 0.03);
-        hpfReverbSend.gain.setTargetAtTime(0.45, now, 0.05);
+        hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
+        hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
         triggerHpfNoiseBurst();
-
-        // Exact 1 beat pause, then start the crowd swell
-        clearTimeout(crowdTimer);
-        var skipBeatMs = Math.round((60 / bpm) * 1000);
-        crowdTimer = setTimeout(function() {
-          if (hpfActive && finaleActive) {
-            startCrowdSwell();
-          }
-        }, skipBeatMs);
+        startCrowdSwell(); // Synchronously attached directly to user tap!
       } else {
-        clearTimeout(crowdTimer);
-        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.08);
+        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
         masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
         hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
         stopCrowdSwell();
@@ -1789,7 +1787,6 @@
           return;
         }
 
-        // Synth: single-note entry only
         if (instId === 'synth') {
           var loS = Math.min(pianoLastStep, cell.step);
           var hiS = Math.max(pianoLastStep, cell.step);
@@ -1807,7 +1804,6 @@
           return;
         }
 
-        // Bassline: finger-swipe stitching into held notes
         if (cell.step === pianoLastStep) {
           if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
             track.steps[cell.step] = true;
@@ -2079,75 +2075,148 @@
       ctx.fill();
     }
 
-    // Pixel Pigeon: Slim body, cute 1px nose, headphones, cap, and hand pumped high on every other beat!
-    var PIGEON_DOWN = [
-      '................................',
-      '................................',
-      '................................',
-      '..........######................',
-      '.........########...............',
-      '.........###::###...............',
-      '........##########..............',
-      '.........########...............',
-      '.........########...............',
-      '.......##::####..#..............',
-      '.......##::######...............',
-      '.......##::######...............',
-      '.........#######................',
-      '...........####.................',
-      '...........####.................',
-      '........##########..............',
-      '.......############.............',
-      '......##############............',
-      '.....####.######.####...........',
-      '.....###..######..###...........',
-      '.....###..######..###...........',
-      '.....###..######..###...........',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '.........########...............',
-      '.........########...............',
-      '.........########...............',
-      '.........########...............',
-      '................................'
-    ];
-
-    var PIGEON_UP = [
-      '................................',
-      '................................',
-      '.....................###........',
-      '..........######.....###........',
-      '.........########.....##........',
-      '.........###::###....###........',
-      '........##########....##........',
-      '.........########....###........',
-      '.........########....##.........',
-      '.......##::####..#..###.........',
-      '.......##::######...##..........',
-      '.......##::######..###..........',
-      '.........#######...##...........',
-      '...........####...###...........',
-      '...........####...##............',
-      '........##########..............',
-      '.......############.............',
-      '......##############............',
-      '.....####.######................',
-      '.....###..######................',
-      '.....###..######................',
-      '.....###..######................',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '..........######................',
-      '.........########...............',
-      '.........########...............',
-      '.........########...............',
-      '.........########...............',
-      '................................'
+    // Original 4-Frame Pigeon Dancer (compact face profile with small, neat nose)
+    var PIGEON_FRAMES = [
+      // Frame 0: Rest pose
+      [
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '.........#########..............',
+        '........###########.............',
+        '........###:::::###.............',
+        '.......################.........',
+        '.......#################........',
+        '........##::#.########..........',
+        '........##::#.##..###...........',
+        '.......######.##..####..........',
+        '......########.######...........',
+        '......##::::##.#####............',
+        '......##::::##.#####............',
+        '......##::::##.######...........',
+        '......########.######...........',
+        '.......######.######............',
+        '.........#########..............',
+        '.........######.................',
+        '.........######.................',
+        '.........######.................',
+        '.........######.................',
+        '.......##########...............',
+        '.....##############.............',
+        '....################............',
+        '..####################..........',
+        '.######################.........',
+        '.#########..###########.........',
+        '.########....##########.........',
+        '.#######......#########.........',
+        '................................'
+      ],
+      // Frame 1: Leaning forward
+      [
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '............#########...........',
+        '...........###########..........',
+        '...........###:::::###..........',
+        '..........################......',
+        '..........#################.....',
+        '...........##::#.########.......',
+        '...........##::#.##..###........',
+        '..........######.##..####.......',
+        '.........########.######........',
+        '.........##::::##.#####.........',
+        '.........##::::##.#####.........',
+        '.........##::::##.######........',
+        '.........########.######........',
+        '..........######.######.........',
+        '............#########...........',
+        '...........#######..............',
+        '..........#######...............',
+        '.........########...............',
+        '.......###########..............',
+        '.....###############............',
+        '....#################...........',
+        '..#####################.........',
+        '.#######################........',
+        '.##########..###########........',
+        '.#########....##########........'
+      ],
+      // Frame 2: Forward peck
+      [
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '...............#########........',
+        '..............###########.......',
+        '..............###:::::###.......',
+        '.............################...',
+        '.............#################..',
+        '..............##::#.########....',
+        '..............##::#.##..###.....',
+        '.............######.##..####....',
+        '............########.######.....',
+        '............##::::##.#####......',
+        '............##::::##.#####......',
+        '............##::::##.######.....',
+        '............########.######.....',
+        '.............######.######......',
+        '...........############.........',
+        '.........###########............',
+        '.......############.............',
+        '.....################...........',
+        '...####################.........',
+        '..######################........',
+        '.########################.......',
+        '.###########..###########.......',
+        '.##########....##########.......'
+      ],
+      // Frame 3: Recoil snap-back
+      [
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '................................',
+        '........#########...............',
+        '.......###########..............',
+        '.......###:::::###..............',
+        '......################..........',
+        '......#################.........',
+        '.......##::#.########...........',
+        '.......##::#.##..###............',
+        '......######.##..####...........',
+        '.....########.######............',
+        '.....##::::##.#####.............',
+        '.....##::::##.#####.............',
+        '.....##::::##.######............',
+        '.....########.######............',
+        '......######.######.............',
+        '........#########...............',
+        '........######..................',
+        '........######..................',
+        '........######..................',
+        '......##########................',
+        '....##############..............',
+        '...################.............',
+        '..##################............',
+        '.####################...........',
+        '.######################.........',
+        '.#########..###########.........',
+        '.########....##########.........',
+        '.#######......#########.........'
+      ]
     ];
 
     var finaleStartMs = 0;
@@ -2211,39 +2280,31 @@
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, 32, 32);
 
-      // Raise hand on every other beat (beat % 2 === 1)
-      var currentBeat = Math.floor(((nowMs - finaleStartMs) / 1000) * (bpm / 60));
-      var isHandUp = (currentBeat % 2 === 1);
-      var sprite = isHandUp ? PIGEON_UP : PIGEON_DOWN;
-
-      // Pigeon head-bob offset when Bass Drum hits
-      var headShiftX = 0;
+      var frameIdx = 0;
       if (lastKickMs >= 0) {
         var dt = (nowMs - lastKickMs) / 1000;
-        var cycleDur = Math.min(0.40, (60 / bpm) * 0.85);
+        var cycleDur = Math.min(0.42, (60 / bpm) * 0.9);
         var t = dt / cycleDur;
+
         if (t < 0.22) {
-          headShiftX = 1;
-        } else if (t < 0.55) {
-          headShiftX = 2; // Forward peck
-        } else if (t < 0.85) {
-          headShiftX = 0;
+          frameIdx = 1;
+        } else if (t < 0.56) {
+          frameIdx = 2;
+        } else if (t < 0.86) {
+          frameIdx = 3;
+        } else {
+          frameIdx = 0;
         }
       }
 
+      var sprite = PIGEON_FRAMES[frameIdx];
       for (var y = 0; y < 32; y++) {
         var rowStr = sprite[y];
-        var isHeadRow = (y >= 3 && y <= 13);
-        var rowShift = isHeadRow ? headShiftX : 0;
-
         for (var x = 0; x < 32; x++) {
           var ch = rowStr.charAt(x);
           if (ch === '.') continue;
-          ctx.fillStyle = ch === '#' ? '#ffffff' : '#555555';
-
-          var actualX = x + rowShift;
-          if (actualX >= 32) actualX = 31;
-          var drawX = facingDir === 1 ? actualX : (31 - actualX);
+          ctx.fillStyle = ch === '#' ? '#ffffff' : '#666666';
+          var drawX = facingDir === 1 ? x : (31 - x);
           ctx.fillRect(drawX, y, 1, 1);
         }
       }
