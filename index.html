@@ -592,7 +592,7 @@
       { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.06, 0.45] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.012, 0.24] } // Single-note micro-to-short decay
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.015, 0.85] } // Extended decay with zero voice overlap
     ];
 
     var STEPS = 16;
@@ -640,6 +640,9 @@
     var dryMixGain = null;
 
     var snareGritShaper = null;
+
+    // Dedicated single-voice tracker for synth to guarantee zero overlap
+    var activeSynthVoice = null;
 
     var rewindProcessor = null;
     var rewindLPF = null;
@@ -932,8 +935,8 @@
 
       var g = audioCtx.createGain();
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.linearRampToValueAtTime(0.11, now + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+      g.linearRampToValueAtTime(0.11, now + 0.02);
+      g.exponentialRampToValueAtTime(0.0001, now + 0.34);
 
       src.connect(bp);
       bp.connect(g);
@@ -943,7 +946,7 @@
       src.stop(now + 0.36);
     }
 
-    // Stadium/Club Crowd Swell capped at half volume (0.27)
+    // Stadium Crowd Swell capped at half volume again (0.135)
     function startCrowdSwell() {
       stopCrowdSwell();
       if (!audioCtx || !noiseBuffer || !masterCompressor) return;
@@ -987,12 +990,12 @@
       toneLPF.type = 'lowpass';
       toneLPF.frequency.setValueAtTime(700, now);
       toneLPF.frequency.setValueAtTime(700, swellStart);
-      toneLPF.frequency.exponentialRampToValueAtTime(4000, swellStart + 5.5);
+      toneLPF.frequency.exponentialRampToValueAtTime(3600, swellStart + 5.5);
 
       var crowdGain = audioCtx.createGain();
       crowdGain.gain.setValueAtTime(0.0001, now);
       crowdGain.gain.setValueAtTime(0.0001, swellStart);
-      crowdGain.gain.exponentialRampToValueAtTime(0.27, swellStart + 4.8); // Capped at half volume (0.27)
+      crowdGain.gain.exponentialRampToValueAtTime(0.135, swellStart + 4.8); // Capped at half volume again (0.135)
 
       src1.connect(fLow);
       src2.connect(fMid);
@@ -1010,7 +1013,7 @@
       crowdGain.connect(masterCompressor);
       if (reverbConvolver) {
         var revSend = audioCtx.createGain();
-        revSend.gain.value = 0.45;
+        revSend.gain.value = 0.35;
         crowdGain.connect(revSend);
         revSend.connect(reverbConvolver);
       }
@@ -1269,7 +1272,6 @@
 
         var endTime;
         if (span > 1) {
-          // Clean controlled sub level and finishes 15ms BEFORE next step/bar so held notes never overlap & crackle
           var holdDur = Math.max(0.04, span * stepDur - 0.015);
           var rel = Math.min(0.045, holdDur * 0.25);
           bg.gain.linearRampToValueAtTime(0.26, time + 0.012);
@@ -1294,7 +1296,18 @@
         mainSine.stop(endTime);
         octSine.stop(endTime);
       } else if (inst.id === 'synth') {
-        // Single-note entry only (no held notes) with slightly longer available decay (12ms-240ms)
+        // Choke any previous active synth voice cleanly before starting the new one (ZERO OVERLAP!)
+        if (activeSynthVoice) {
+          var chokeTime = Math.max(audioCtx.currentTime, time);
+          try {
+            activeSynthVoice.gain.gain.cancelScheduledValues(chokeTime);
+            activeSynthVoice.gain.gain.setValueAtTime(activeSynthVoice.gain.gain.value, chokeTime);
+            activeSynthVoice.gain.gain.linearRampToValueAtTime(0.0, chokeTime + 0.005);
+            activeSynthVoice.osc.stop(chokeTime + 0.008);
+          } catch (err) {}
+          activeSynthVoice = null;
+        }
+
         var sNoteIdx = track.notes[stepIdx];
         if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
         var octShift = Math.round(pitchVal) * 12;
@@ -1305,7 +1318,7 @@
         sOsc.type = wave;
         sOsc.frequency.setValueAtTime(sFreq, time);
 
-        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.20 : 0.28;
+        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.19 : 0.26;
         var sG = audioCtx.createGain();
         sG.gain.setValueAtTime(0.0001, time);
         sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0025);
@@ -1316,6 +1329,13 @@
         sG.connect(lpf);
         sOsc.start(time);
         sOsc.stop(time + decayVal + 0.01);
+
+        activeSynthVoice = { osc: sOsc, gain: sG };
+        sOsc.onended = function() {
+          if (activeSynthVoice && activeSynthVoice.osc === sOsc) {
+            activeSynthVoice = null;
+          }
+        };
       }
     }
 
@@ -1368,6 +1388,14 @@
         masterGain.gain.setValueAtTime(0.82, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
+      if (activeSynthVoice && audioCtx) {
+        try {
+          activeSynthVoice.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+          activeSynthVoice.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+          activeSynthVoice.osc.stop(audioCtx.currentTime + 0.01);
+        } catch (e) {}
+        activeSynthVoice = null;
+      }
       setRewind(false);
       setHighPass(false);
       lastHitAudioTime = -1;
@@ -1387,6 +1415,14 @@
       clearInterval(schedulerId);
       schedulerId = null;
       visualQueue.length = 0;
+      if (activeSynthVoice && audioCtx) {
+        try {
+          activeSynthVoice.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+          activeSynthVoice.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+          activeSynthVoice.osc.stop(audioCtx.currentTime + 0.01);
+        } catch (e) {}
+        activeSynthVoice = null;
+      }
       setRewind(false);
       setHighPass(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
@@ -1727,7 +1763,7 @@
           return;
         }
 
-        // Synth: single-note entry only (no held/tied notes)
+        // Synth: single-note entry only
         if (instId === 'synth') {
           var loS = Math.min(pianoLastStep, cell.step);
           var hiS = Math.max(pianoLastStep, cell.step);
