@@ -176,6 +176,7 @@
       font-size: 10px;
       color: #aaaaaa;
       text-transform: uppercase;
+      font-weight: 700;
     }
 
     /* ---------- SEQUENCER SCREEN ---------- */
@@ -195,7 +196,7 @@
     .locked-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(2px);
       z-index: 50;
       display: flex;
@@ -210,7 +211,7 @@
     .locked-card {
       border: 1px solid #ffffff;
       background: #000000;
-      padding: 18px 24px;
+      padding: 20px 24px;
       max-width: 320px;
       width: 100%;
     }
@@ -224,33 +225,8 @@
       padding-bottom: 8px;
     }
 
-    .inst-nav {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .inst-btn {
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #444444;
-      width: 32px;
-      height: 38px;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .inst-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
     .inst-name {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.5px;
       text-transform: uppercase;
@@ -652,7 +628,7 @@
       <!-- BATTLE HEADER (ONLINE ONLY) -->
       <div class="battle-header mono hidden" id="battleHeader">
         <div class="battle-badge" id="playerBadge">P1 (YOU)</div>
-        <div class="battle-status-msg" id="roundBadge">ROUND 1</div>
+        <div class="battle-status-msg" id="roundBadge">1/7: BASS DRUM</div>
         <div class="battle-badge" id="turnIndicator">YOUR TURN</div>
       </div>
 
@@ -665,11 +641,7 @@
       </div>
 
       <div class="top-bar">
-        <div class="inst-nav">
-          <button type="button" class="inst-btn mono hidden" id="btnPrevInst">&lt;</button>
-          <h2 class="inst-name" id="instName">BASS DRUM</h2>
-          <button type="button" class="inst-btn mono hidden" id="btnNextInst">&gt;</button>
-        </div>
+        <h2 class="inst-name" id="instName">BASS DRUM</h2>
 
         <div class="bpm-box mono">
           <span>BPM</span>
@@ -726,7 +698,7 @@
       </div>
     </div>
 
-    <!-- 30-SECOND FINALE SCREEN (SOLO FINALE) -->
+    <!-- 30-SECOND FINALE SCREEN (SOLO & ONLINE FINALE) -->
     <div id="finaleScreen" class="finale-screen hidden">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
@@ -839,7 +811,6 @@
     var currentRoomId = null;
     var roomRef = null;
     var waitingQueueRef = null;
-    var currentRound = 1;
     var roomTurn = 'player1';
     var isReviewingMove = false;
     var reviewStepsRemaining = 0;
@@ -1726,8 +1697,6 @@
 
     var clearBtn = document.getElementById('clearBtn');
     var nextBtn = document.getElementById('nextBtn');
-    var btnPrevInst = document.getElementById('btnPrevInst');
-    var btnNextInst = document.getElementById('btnNextInst');
 
     var instName = document.getElementById('instName');
     var bpmSlider = document.getElementById('bpmSlider');
@@ -1790,26 +1759,33 @@
         return;
       }
 
+      var curInstName = INSTRUMENTS[turnIndex].name.toUpperCase();
       playerBadge.textContent = myRole === 'player1' ? 'P1 (YOU)' : 'P2 (YOU)';
-      roundBadge.textContent = 'ROUND ' + currentRound;
+      roundBadge.textContent = (turnIndex + 1) + '/7: ' + curInstName;
 
       if (isReviewingMove) {
+        var prevInstName = INSTRUMENTS[Math.max(0, turnIndex - 1)].name.toUpperCase();
         lockedOverlay.classList.remove('hidden');
         lockedTitle.textContent = "INCOMING BEAT...";
-        lockedSub.textContent = "LISTENING TO OPPONENT'S MOVE";
+        lockedSub.textContent = "LISTENING TO " + prevInstName;
         turnIndicator.textContent = "LISTENING";
         turnIndicator.classList.remove('active-turn');
-        nextBtn.textContent = 'LOCKED';
+        nextBtn.textContent = 'LISTENING...';
       } else if (isMyTurn()) {
         lockedOverlay.classList.add('hidden');
         turnIndicator.textContent = 'YOUR TURN';
         turnIndicator.classList.add('active-turn');
-        nextBtn.textContent = 'SEND BEAT →';
+        if (turnIndex < INSTRUMENTS.length - 1) {
+          nextBtn.textContent = INSTRUMENTS[turnIndex + 1].name + ' →';
+        } else {
+          nextBtn.textContent = 'Finale →';
+        }
       } else {
+        var activePlayerName = roomTurn === 'player1' ? 'PLAYER 1' : 'PLAYER 2';
         lockedOverlay.classList.remove('hidden');
         lockedTitle.textContent = "OPPONENT'S TURN...";
-        lockedSub.textContent = "WAITING FOR BEAT SUBMISSION";
-        turnIndicator.textContent = 'OPPONENT';
+        lockedSub.textContent = activePlayerName + " IS ADDING " + curInstName;
+        turnIndicator.textContent = 'WAITING';
         turnIndicator.classList.remove('active-turn');
         nextBtn.textContent = 'WAITING...';
       }
@@ -1846,17 +1822,18 @@
 
       for (var i = 0; i < moveData.tracks.length && i < tracks.length; i++) {
         var mt = moveData.tracks[i];
-        tracks[i].steps = mt.steps.slice();
-        tracks[i].notes = mt.notes.slice();
-        tracks[i].tied = mt.tied.slice();
+        tracks[i].steps = mt.steps ? mt.steps.slice() : tracks[i].steps;
+        tracks[i].notes = mt.notes ? mt.notes.slice() : tracks[i].notes;
+        tracks[i].tied = mt.tied ? mt.tied.slice() : tracks[i].tied;
         tracks[i].waveform = mt.waveform || 'sine';
-        tracks[i].params = {
-          pitch: mt.params.pitch,
-          decay: mt.params.decay,
-          filter: mt.params.filter
-        };
+        if (mt.params) {
+          tracks[i].params = {
+            pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch,
+            decay: mt.params.decay !== undefined ? mt.params.decay : tracks[i].params.decay,
+            filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter
+          };
+        }
       }
-      renderTurn();
     }
 
     function startOnlineMatchmaking() {
@@ -1864,6 +1841,7 @@
       gameMode = 'online';
       myRole = null;
       currentRoomId = null;
+      turnIndex = 0;
 
       startScreen.classList.add('hidden');
       waitingScreen.classList.remove('hidden');
@@ -1897,13 +1875,13 @@
         roomRef = db.ref('rooms/' + currentRoomId);
 
         if (myRole === 'player1') {
-          // Waiting for player 2
+          // Player 1 waits for Player 2
           waitingQueue.onDisconnect().remove();
 
           roomRef.set({
+            status: 'waiting',
             turn: 'player1',
-            round: 1,
-            scores: { player1: 0, player2: 0 },
+            instrumentIndex: 0,
             lastMove: null,
             players: {
               player1: { connected: true },
@@ -1913,7 +1891,7 @@
 
           roomRef.child('players/player1/connected').onDisconnect().set(false);
 
-          // Watch for player 2 joining
+          // Watch for Player 2 joining
           roomRef.child('players/player2/connected').on('value', function(snap) {
             if (snap.val() === true) {
               waitingQueue.onDisconnect().cancel();
@@ -1923,7 +1901,10 @@
         } else {
           // Player 2 joined existing room
           roomRef.child('players/player2/connected').onDisconnect().set(false);
-          roomRef.child('players/player2').update({ connected: true });
+          roomRef.update({
+            status: 'playing',
+            'players/player2/connected': true
+          });
           launchOnlineBattle();
         }
       });
@@ -1933,8 +1914,6 @@
       waitingScreen.classList.add('hidden');
       sequencerScreen.classList.remove('hidden');
       battleHeader.classList.remove('hidden');
-      btnPrevInst.classList.remove('hidden');
-      btnNextInst.classList.remove('hidden');
 
       turnIndex = 0;
       resetTracks();
@@ -1953,18 +1932,37 @@
           return;
         }
 
-        currentRound = data.round || 1;
+        // Both players enter the 30-second Finale!
+        if (data.status === 'finale' || (data.instrumentIndex && data.instrumentIndex >= INSTRUMENTS.length)) {
+          if (data.lastMove) {
+            applyOpponentMove(data.lastMove);
+          }
+          if (!finaleActive) {
+            startFinale();
+          }
+          return;
+        }
+
         roomTurn = data.turn || 'player1';
+        var newInstIndex = data.instrumentIndex !== undefined ? data.instrumentIndex : 0;
 
         // Detect new move sent by opponent
         if (data.lastMove && data.lastMove.sender !== myRole && data.lastMove.timestamp !== lastHandledMoveTimestamp) {
           lastHandledMoveTimestamp = data.lastMove.timestamp;
           applyOpponentMove(data.lastMove);
 
-          // If it is now our turn, play opponent's move for 2 bars (32 steps) before unlocking
+          turnIndex = newInstIndex;
+          renderTurn();
+
+          // If it is now our turn, play the opponent's beat for 2 bars (32 steps) before unlocking
           if (roomTurn === myRole) {
             isReviewingMove = true;
             reviewStepsRemaining = 32;
+          }
+        } else {
+          if (turnIndex !== newInstIndex) {
+            turnIndex = newInstIndex;
+            renderTurn();
           }
         }
 
@@ -1975,14 +1973,29 @@
     function sendOnlineMove() {
       if (!isMyTurn()) return;
       var move = serializeMove();
-      var nextTurn = myRole === 'player1' ? 'player2' : 'player1';
-      var nextRound = myRole === 'player2' ? currentRound + 1 : currentRound;
+      var nextInstIndex = turnIndex + 1;
 
-      roomRef.update({
-        lastMove: move,
-        turn: nextTurn,
-        round: nextRound
-      });
+      if (nextInstIndex < INSTRUMENTS.length) {
+        var nextTurn = myRole === 'player1' ? 'player2' : 'player1';
+
+        roomRef.update({
+          lastMove: move,
+          turn: nextTurn,
+          instrumentIndex: nextInstIndex
+        });
+
+        turnIndex = nextInstIndex;
+        renderTurn();
+      } else {
+        // All 7 instruments finished -> Start the 30-second finale for both!
+        move.instrumentIndex = INSTRUMENTS.length;
+        roomRef.update({
+          lastMove: move,
+          instrumentIndex: INSTRUMENTS.length,
+          status: 'finale'
+        });
+        startFinale();
+      }
     }
 
     function handleOpponentDisconnected() {
@@ -2021,8 +2034,6 @@
       initAndUnlockAudio();
       gameMode = 'solo';
       battleHeader.classList.add('hidden');
-      btnPrevInst.classList.add('hidden');
-      btnNextInst.classList.add('hidden');
       startGame();
     });
 
@@ -2036,16 +2047,6 @@
 
     bindTap(btnBackToMenu, function() {
       exitToMainMenu();
-    });
-
-    bindTap(btnPrevInst, function() {
-      turnIndex = (turnIndex - 1 + INSTRUMENTS.length) % INSTRUMENTS.length;
-      renderTurn();
-    });
-
-    bindTap(btnNextInst, function() {
-      turnIndex = (turnIndex + 1) % INSTRUMENTS.length;
-      renderTurn();
     });
 
     bindTap(clearBtn, function() {
@@ -2811,7 +2812,12 @@
 
       appEl.classList.remove('vanishing');
       finaleScreen.classList.add('hidden');
-      startScreen.classList.remove('hidden');
+
+      if (gameMode === 'online') {
+        exitToMainMenu();
+      } else {
+        startScreen.classList.remove('hidden');
+      }
     }
 
     function drawPixelPigeon(nowMs) {
