@@ -612,7 +612,6 @@
   </div>
 
   <script>
-    // Prevent iOS Safari pinch-zoom, double-tap zoom, and pull-to-refresh
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
     document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
     document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
@@ -655,6 +654,7 @@
 
     var STEPS = 16;
     var FINALE_SECONDS = 30;
+    var BASE_HPF_HZ = 35; // Cleans sub-sonic rumble so small phone speakers never fart
 
     var turnIndex = 0;
     var bpm = 118;
@@ -691,7 +691,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (iOS SAFARI TOUCHEND/CLICK UNLOCK)
+    // WEB AUDIO ENGINE (GAIN-STAGED + MASTER LIMITER)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -717,6 +717,7 @@
     var reverbConvolver = null;
     var reverbToneLPF = null;
     var hpfReverbWet = null;
+    var masterCompressor = null;
     var masterGain = null;
     var noiseBuffer = null;
 
@@ -741,7 +742,6 @@
     }
 
     function initAndUnlockAudio() {
-      // Allow playback even when iPhone ringer switch is muted (iOS 16.4+)
       if (navigator.audioSession) {
         try { navigator.audioSession.type = 'playback'; } catch (e) {}
       }
@@ -751,8 +751,9 @@
         if (!AC) return;
         audioCtx = new AC();
 
+        // Master headroom bus
         mixBus = audioCtx.createGain();
-        mixBus.gain.value = 1.0;
+        mixBus.gain.value = 0.65;
 
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
@@ -763,10 +764,10 @@
 
         padReverbLPF = audioCtx.createBiquadFilter();
         padReverbLPF.type = 'lowpass';
-        padReverbLPF.frequency.value = 3200;
+        padReverbLPF.frequency.value = 3000;
 
         padReverbWet = audioCtx.createGain();
-        padReverbWet.gain.value = 0.22;
+        padReverbWet.gain.value = 0.20;
 
         padReverbConvolver.connect(padReverbLPF);
         padReverbLPF.connect(padReverbWet);
@@ -774,7 +775,7 @@
 
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
-        masterHPF.frequency.value = 20;
+        masterHPF.frequency.value = BASE_HPF_HZ;
         masterHPF.Q.value = 0.7;
 
         hpfReverbSend = audioCtx.createGain();
@@ -785,18 +786,25 @@
 
         reverbToneLPF = audioCtx.createBiquadFilter();
         reverbToneLPF.type = 'lowpass';
-        reverbToneLPF.frequency.value = 5500;
+        reverbToneLPF.frequency.value = 5200;
 
         hpfReverbWet = audioCtx.createGain();
         hpfReverbWet.gain.value = 0.0;
 
+        // Master Bus Limiter / Compressor prevents digital clipping & speaker farting
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.setValueAtTime(-10, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.85;
+        masterGain.gain.value = 0.90;
 
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
-        // Ring-buffer Vinyl Slow-Down & Rewind Melt Processor
         try {
           ringLen = audioCtx.sampleRate * 6;
           ringBuf = new Float32Array(ringLen);
@@ -855,7 +863,7 @@
           meltLPF = audioCtx.createBiquadFilter();
           meltLPF.type = 'lowpass';
           meltLPF.frequency.value = 18000;
-          meltLPF.Q.value = 1.2;
+          meltLPF.Q.value = 0.8;
 
           meltOutGain = audioCtx.createGain();
           meltOutGain.gain.value = 0.0;
@@ -868,14 +876,15 @@
           meltProcessor = null;
         }
 
-        masterHPF.connect(masterGain);
+        masterHPF.connect(masterCompressor);
 
         masterHPF.connect(hpfReverbSend);
         hpfReverbSend.connect(reverbConvolver);
         reverbConvolver.connect(reverbToneLPF);
         reverbToneLPF.connect(hpfReverbWet);
-        hpfReverbWet.connect(masterGain);
+        hpfReverbWet.connect(masterCompressor);
 
+        masterCompressor.connect(masterGain);
         masterGain.connect(audioCtx.destination);
 
         var len = audioCtx.sampleRate;
@@ -894,7 +903,6 @@
         }).catch(function() {});
       }
 
-      // iOS Safari silent buffer unlock (must happen inside touchend/click gesture)
       if (!audioUnlocked) {
         try {
           var silentBuf = audioCtx.createBuffer(1, 1, 22050);
@@ -909,7 +917,6 @@
       }
     }
 
-    // Keep unlocking cleanly on any touchend or click if iOS suspended it
     function ensureAudioUnlocked() {
       if (audioCtx && audioCtx.state !== 'running') {
         initAndUnlockAudio();
@@ -966,7 +973,7 @@
 
       var g = audioCtx.createGain();
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.linearRampToValueAtTime(0.14, now + 0.02);
+      g.gain.linearRampToValueAtTime(0.11, now + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
 
       src.connect(bp);
@@ -985,16 +992,16 @@
 
       var now = audioCtx.currentTime;
       masterHPF.frequency.cancelScheduledValues(now);
-      masterHPF.frequency.setValueAtTime(Math.max(20, masterHPF.frequency.value), now);
+      masterHPF.frequency.setValueAtTime(Math.max(BASE_HPF_HZ, masterHPF.frequency.value), now);
 
       if (on) {
         masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
-        masterHPF.Q.setTargetAtTime(2.0, now, 0.04);
+        masterHPF.Q.setTargetAtTime(1.6, now, 0.04);
         hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
         hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
         triggerHpfNoiseBurst();
       } else {
-        masterHPF.frequency.exponentialRampToValueAtTime(20, now + 0.10);
+        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.10);
         masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
         hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
       }
@@ -1034,7 +1041,7 @@
       var lpf = audioCtx.createBiquadFilter();
       lpf.type = 'lowpass';
       lpf.frequency.setValueAtTime(cutoff, time);
-      lpf.Q.value = (inst.id === 'bassline' || inst.id === 'pad') ? 0.8 : 1.3;
+      lpf.Q.value = 0.7; // Flat Butterworth response prevents resonant clipping
       lpf.connect(mixBus);
 
       if (inst.id === 'kick') {
@@ -1043,8 +1050,10 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(pitchVal * 2.8, time);
         osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
-        g.gain.setValueAtTime(1.0, time);
+        g.gain.setValueAtTime(0.0001, time);
+        g.gain.linearRampToValueAtTime(0.68, time + 0.003);
         g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         osc.connect(g);
         g.connect(lpf);
         osc.start(time);
@@ -1058,17 +1067,19 @@
         var noise = audioCtx.createBufferSource();
         noise.buffer = noiseBuffer;
         var ng = audioCtx.createGain();
-        ng.gain.setValueAtTime(0.55, time);
+        ng.gain.setValueAtTime(0.30, time);
         ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         noise.connect(ng);
         ng.connect(hp);
         noise.start(time);
-        noise.stop(time + decayVal + 0.01);
+        noise.stop(time + decayVal + 0.012);
 
         var ratios = [2, 3.1, 4.2, 5.4, 6.8];
         var mg = audioCtx.createGain();
-        mg.gain.setValueAtTime(0.32, time);
+        mg.gain.setValueAtTime(0.14, time);
         mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         mg.connect(hp);
         for (var i = 0; i < ratios.length; i++) {
           var ho = audioCtx.createOscillator();
@@ -1076,7 +1087,7 @@
           ho.frequency.setValueAtTime(260 * pitchVal * ratios[i], time);
           ho.connect(mg);
           ho.start(time);
-          ho.stop(time + decayVal + 0.01);
+          ho.stop(time + decayVal + 0.012);
         }
       } else if (inst.id === 'tom') {
         var tosc = audioCtx.createOscillator();
@@ -1084,8 +1095,10 @@
         tosc.type = 'sine';
         tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
         tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
-        tg.gain.setValueAtTime(0.85, time);
+        tg.gain.setValueAtTime(0.0001, time);
+        tg.gain.linearRampToValueAtTime(0.52, time + 0.003);
         tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         tosc.connect(tg);
         tg.connect(lpf);
         tosc.start(time);
@@ -1098,8 +1111,9 @@
         r2.type = 'sine';
         r1.frequency.setValueAtTime(440 * pitchVal, time);
         r2.frequency.setValueAtTime(1650 * pitchVal, time);
-        rg.gain.setValueAtTime(0.8, time);
+        rg.gain.setValueAtTime(0.46, time);
         rg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        rg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         r1.connect(rg);
         r2.connect(rg);
         rg.connect(lpf);
@@ -1113,8 +1127,9 @@
         sosc.type = 'triangle';
         sosc.frequency.setValueAtTime(pitchVal * 1.4, time);
         sosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.05, decayVal * 0.6));
-        sg.gain.setValueAtTime(0.65, time);
+        sg.gain.setValueAtTime(0.38, time);
         sg.gain.exponentialRampToValueAtTime(0.001, time + decayVal * 0.65);
+        sg.gain.linearRampToValueAtTime(0.0, time + decayVal * 0.65 + 0.01);
         sosc.connect(sg);
         sg.connect(lpf);
         sosc.start(time);
@@ -1126,8 +1141,9 @@
         shp.type = 'highpass';
         shp.frequency.setValueAtTime(1100, time);
         var sng = audioCtx.createGain();
-        sng.gain.setValueAtTime(0.75, time);
+        sng.gain.setValueAtTime(0.42, time);
         sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         sn.connect(shp);
         shp.connect(sng);
         sng.connect(lpf);
@@ -1146,12 +1162,13 @@
         octSine.frequency.setValueAtTime(freq * 2, time);
 
         var octGain = audioCtx.createGain();
-        octGain.gain.value = 0.16;
+        octGain.gain.value = 0.22;
 
         var bg = audioCtx.createGain();
         bg.gain.setValueAtTime(0.0001, time);
-        bg.gain.linearRampToValueAtTime(0.85, time + 0.006);
-        bg.gain.exponentialRampToValueAtTime(0.0001, time + decayVal);
+        bg.gain.linearRampToValueAtTime(0.52, time + 0.008);
+        bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+        bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
 
         mainSine.connect(bg);
         octSine.connect(octGain);
@@ -1160,8 +1177,8 @@
 
         mainSine.start(time);
         octSine.start(time);
-        mainSine.stop(time + decayVal + 0.015);
-        octSine.stop(time + decayVal + 0.015);
+        mainSine.stop(time + decayVal + 0.018);
+        octSine.stop(time + decayVal + 0.018);
       } else if (inst.id === 'pad') {
         var padNoteIdx = tracks[instIdx].notes[stepIdx];
         if (padNoteIdx === undefined || padNoteIdx < 0 || padNoteIdx >= PAD_NOTES.length) padNoteIdx = 12;
@@ -1188,18 +1205,19 @@
         p8.frequency.setValueAtTime(rootHz * 2.002, time);
 
         var g5 = audioCtx.createGain();
-        g5.gain.value = 0.55;
+        g5.gain.value = 0.45;
         var g8 = audioCtx.createGain();
-        g8.gain.value = 0.35;
+        g8.gain.value = 0.28;
 
         var attack = Math.min(0.11, decayVal * 0.18);
-        var holdUntil = Math.max(time + attack + 0.005, time + decayVal * 0.80);
+        var holdUntil = Math.max(time + attack + 0.005, time + decayVal * 0.78);
 
         var pg = audioCtx.createGain();
         pg.gain.setValueAtTime(0.0001, time);
-        pg.gain.linearRampToValueAtTime(0.24, time + attack);
-        pg.gain.setValueAtTime(0.22, holdUntil);
-        pg.gain.exponentialRampToValueAtTime(0.0001, time + decayVal);
+        pg.gain.linearRampToValueAtTime(0.15, time + attack);
+        pg.gain.setValueAtTime(0.15, holdUntil);
+        pg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+        pg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
 
         p1.connect(pg);
         p2.connect(pg);
@@ -1258,7 +1276,7 @@
       if (isPlaying) return;
       if (audioCtx && masterGain) {
         masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-        masterGain.gain.setValueAtTime(0.85, audioCtx.currentTime);
+        masterGain.gain.setValueAtTime(0.90, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
       setMelt(false);
@@ -1342,9 +1360,8 @@
       });
     }
 
-    // IMPORTANT FOR iOS SAFARI: Unlock AudioContext on touchend / click (NOT pointerdown!)
     var lastStartAt = 0;
-    function handleStartTap(e) {
+    function handleStartTap() {
       var now = Date.now();
       if (now - lastStartAt < 350) return;
       lastStartAt = now;
