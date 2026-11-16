@@ -642,6 +642,8 @@
     var snareGritShaper = null;
     var softClipShaper = null;
 
+    var activeSynthVoice = null;
+
     var rewindProcessor = null;
     var rewindLPF = null;
     var rewindOutGain = null;
@@ -671,6 +673,7 @@
     var masterGain = null;
     var noiseBuffer = null;
 
+    var crowdTimer = null;
     var crowdNodes = null;
 
     var hpfActive = false;
@@ -967,16 +970,13 @@
       src.stop(now + 0.36);
     }
 
-    // High-Pass Stadium Crowd Swell: Skips 1 beat, then swells clearly & loudly up to 0.44
+    // High-Pass Stadium Crowd Swell: Starts after 1 beat, swells up loud & rich, cuts on release
     function startCrowdSwell() {
       stopCrowdSwell();
-      if (!audioCtx || !noiseBuffer || !masterCompressor) return;
+      if (!audioCtx || !noiseBuffer || !masterGain) return;
 
       var now = audioCtx.currentTime;
-      var skipBeatSec = Math.max(0.25, 60 / bpm);
-      var swellStart = now + skipBeatSec;
 
-      // 1. Dual noise sources
       var nSrc1 = audioCtx.createBufferSource();
       var nSrc2 = audioCtx.createBufferSource();
       nSrc1.buffer = noiseBuffer;
@@ -984,61 +984,52 @@
       nSrc1.loop = true;
       nSrc2.loop = true;
 
-      // 2. Tonal cheer formant layer (adds authentic human roar)
+      // Vocal crowd formant filters (gives human stadium cheer resonance)
+      var f1 = audioCtx.createBiquadFilter();
+      f1.type = 'peaking'; f1.frequency.value = 650; f1.Q.value = 2.0; f1.gain.value = 10;
+
+      var f2 = audioCtx.createBiquadFilter();
+      f2.type = 'peaking'; f2.frequency.value = 1400; f2.Q.value = 2.4; f2.gain.value = 12;
+
+      var toneLPF = audioCtx.createBiquadFilter();
+      toneLPF.type = 'lowpass';
+      toneLPF.frequency.setValueAtTime(800, now);
+      toneLPF.frequency.exponentialRampToValueAtTime(5500, now + 3.0);
+      toneLPF.Q.value = 1.4;
+
+      // Harmonic cheering vocal bed
       var vOsc1 = audioCtx.createOscillator();
       var vOsc2 = audioCtx.createOscillator();
       vOsc1.type = 'sawtooth';
       vOsc2.type = 'triangle';
-      vOsc1.frequency.setValueAtTime(145, now);
-      vOsc1.frequency.exponentialRampToValueAtTime(380, swellStart + 3.5);
-      vOsc2.frequency.setValueAtTime(218, now);
-      vOsc2.frequency.exponentialRampToValueAtTime(570, swellStart + 3.5);
+      vOsc1.frequency.setValueAtTime(160, now);
+      vOsc1.frequency.exponentialRampToValueAtTime(440, now + 3.5);
+      vOsc2.frequency.setValueAtTime(240, now);
+      vOsc2.frequency.exponentialRampToValueAtTime(660, now + 3.5);
 
       var vGain = audioCtx.createGain();
-      vGain.gain.value = 0.18;
+      vGain.gain.value = 0.22;
       vOsc1.connect(vGain);
       vOsc2.connect(vGain);
 
-      // 3. Serial vocal formant peaking filters (+8dB to +10dB peaks)
-      var f1 = audioCtx.createBiquadFilter();
-      f1.type = 'peaking'; f1.frequency.value = 620; f1.Q.value = 2.2; f1.gain.value = 8;
-
-      var f2 = audioCtx.createBiquadFilter();
-      f2.type = 'peaking'; f2.frequency.value = 1350; f2.Q.value = 2.5; f2.gain.value = 10;
-
-      var f3 = audioCtx.createBiquadFilter();
-      f3.type = 'peaking'; f3.frequency.value = 2800; f3.Q.value = 1.8; f3.gain.value = 7;
-
-      // 4. Low-pass filter that opens up as the crowd goes wild
-      var toneLPF = audioCtx.createBiquadFilter();
-      toneLPF.type = 'lowpass';
-      toneLPF.frequency.setValueAtTime(850, now);
-      toneLPF.frequency.setValueAtTime(850, swellStart);
-      toneLPF.frequency.exponentialRampToValueAtTime(5600, swellStart + 3.0);
-      toneLPF.Q.value = 1.2;
-
-      // 5. Crowd Master Gain: 1-beat pause, immediate entry (0.08), then swells up to 0.44
+      // Audible entrance (0.06) immediately swelling to huge crowd volume (0.48)
       var crowdGain = audioCtx.createGain();
-      crowdGain.gain.setValueAtTime(0.0001, now);
-      crowdGain.gain.setValueAtTime(0.0001, swellStart);
-      crowdGain.gain.linearRampToValueAtTime(0.08, swellStart + 0.18);
-      crowdGain.gain.linearRampToValueAtTime(0.44, swellStart + 2.6);
+      crowdGain.gain.setValueAtTime(0.06, now);
+      crowdGain.gain.linearRampToValueAtTime(0.48, now + 2.5);
 
       nSrc1.connect(f1);
       nSrc2.connect(f1);
       vGain.connect(f1);
       f1.connect(f2);
-      f2.connect(f3);
-      f3.connect(toneLPF);
+      f2.connect(toneLPF);
       toneLPF.connect(crowdGain);
 
-      // Route directly into master compressor + arena reverb
-      crowdGain.connect(masterCompressor);
+      crowdGain.connect(masterGain);
       if (reverbConvolver) {
-        var revSend = audioCtx.createGain();
-        revSend.gain.value = 0.42;
-        crowdGain.connect(revSend);
-        revSend.connect(reverbConvolver);
+        var rSend = audioCtx.createGain();
+        rSend.gain.value = 0.45;
+        crowdGain.connect(rSend);
+        rSend.connect(reverbConvolver);
       }
 
       nSrc1.start(now);
@@ -1046,13 +1037,7 @@
       vOsc1.start(now);
       vOsc2.start(now);
 
-      crowdNodes = {
-        nSrc1: nSrc1,
-        nSrc2: nSrc2,
-        vOsc1: vOsc1,
-        vOsc2: vOsc2,
-        gain: crowdGain
-      };
+      crowdNodes = { nSrc1: nSrc1, nSrc2: nSrc2, vOsc1: vOsc1, vOsc2: vOsc2, gain: crowdGain };
     }
 
     function stopCrowdSwell() {
@@ -1084,12 +1069,21 @@
       if (on) {
         masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
         masterHPF.Q.setTargetAtTime(1.6, now, 0.04);
-        hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
-        hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
+        hpfReverbWet.gain.setTargetAtTime(0.35, now, 0.03);
+        hpfReverbSend.gain.setTargetAtTime(0.45, now, 0.05);
         triggerHpfNoiseBurst();
-        startCrowdSwell();
+
+        // Exact 1 beat pause, then start the crowd swell
+        clearTimeout(crowdTimer);
+        var skipBeatMs = Math.round((60 / bpm) * 1000);
+        crowdTimer = setTimeout(function() {
+          if (hpfActive && finaleActive) {
+            startCrowdSwell();
+          }
+        }, skipBeatMs);
       } else {
-        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
+        clearTimeout(crowdTimer);
+        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.08);
         masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
         hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
         stopCrowdSwell();
@@ -1795,6 +1789,7 @@
           return;
         }
 
+        // Synth: single-note entry only
         if (instId === 'synth') {
           var loS = Math.min(pianoLastStep, cell.step);
           var hiS = Math.max(pianoLastStep, cell.step);
@@ -1812,6 +1807,7 @@
           return;
         }
 
+        // Bassline: finger-swipe stitching into held notes
         if (cell.step === pianoLastStep) {
           if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
             track.steps[cell.step] = true;
@@ -2083,143 +2079,75 @@
       ctx.fill();
     }
 
-    var PIGEON_FRAMES = [
-      [
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '.........#########..............',
-        '........###########.............',
-        '........###:::::###.............',
-        '.......################.........',
-        '.......#################........',
-        '........##::#.########..........',
-        '........##::#.##..####..........',
-        '.......######.##..#####.........',
-        '......########.##########.......',
-        '......##::::##.#######..........',
-        '......##::::##.#####..#.........',
-        '......##::::##.#######..........',
-        '......########.######...........',
-        '.......######.######............',
-        '.........#########..............',
-        '.........######.................',
-        '.........######.................',
-        '.........######.................',
-        '.........######.................',
-        '.......##########...............',
-        '.....##############.............',
-        '....################............',
-        '..####################..........',
-        '.######################.........',
-        '.#########..###########.........',
-        '.########....##########.........'
-      ],
-      [
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '............#########...........',
-        '...........###########..........',
-        '...........###:::::###..........',
-        '..........################......',
-        '..........#################.....',
-        '...........##::#.########.......',
-        '...........##::#.##..####.......',
-        '..........######.##..#####......',
-        '.........########.##########....',
-        '.........##::::##.#######.......',
-        '.........##::::##.#####..#......',
-        '.........##::::##.#######.......',
-        '.........########.######........',
-        '..........######.######.........',
-        '............#########...........',
-        '...........#######..............',
-        '..........#######...............',
-        '.........########...............',
-        '.......###########..............',
-        '.....###############............',
-        '....#################...........',
-        '..#####################.........',
-        '.#######################........',
-        '.##########..###########........',
-        '.#########....##########........'
-      ],
-      [
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '...............#########........',
-        '..............###########.......',
-        '..............###:::::###.......',
-        '.............################...',
-        '.............#################..',
-        '..............##::#.########....',
-        '..............##::#.##..####....',
-        '.............######.##..#####...',
-        '............########.##########.',
-        '............##::::##.#######....',
-        '............##::::##.#####..#...',
-        '............##::::##.#######....',
-        '............########.######.....',
-        '.............######.######......',
-        '...........############.........',
-        '.........###########............',
-        '.......############.............',
-        '.....################...........',
-        '...####################.........',
-        '..######################........',
-        '.########################.......',
-        '.###########..###########.......',
-        '.##########....##########.......'
-      ],
-      [
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '........#########...............',
-        '.......###########..............',
-        '.......###:::::###..............',
-        '......################..........',
-        '......#################.........',
-        '.......##::#.########...........',
-        '.......##::#.##..####...........',
-        '......######.##..#####..........',
-        '.....########.##########........',
-        '.....##::::##.#######...........',
-        '.....##::::##.#####..#..........',
-        '.....##::::##.#######...........',
-        '.....########.######............',
-        '......######.######.............',
-        '........#########...............',
-        '........######..................',
-        '........######..................',
-        '........######..................',
-        '......##########................',
-        '....##############..............',
-        '...################.............',
-        '..##################............',
-        '.####################...........',
-        '.######################.........',
-        '.#########..###########.........',
-        '.########....##########.........',
-        '.#######......#########.........'
-      ]
+    // Pixel Pigeon: Slim body, cute 1px nose, headphones, cap, and hand pumped high on every other beat!
+    var PIGEON_DOWN = [
+      '................................',
+      '................................',
+      '................................',
+      '..........######................',
+      '.........########...............',
+      '.........###::###...............',
+      '........##########..............',
+      '.........########...............',
+      '.........########...............',
+      '.......##::####..#..............',
+      '.......##::######...............',
+      '.......##::######...............',
+      '.........#######................',
+      '...........####.................',
+      '...........####.................',
+      '........##########..............',
+      '.......############.............',
+      '......##############............',
+      '.....####.######.####...........',
+      '.....###..######..###...........',
+      '.....###..######..###...........',
+      '.....###..######..###...........',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '.........########...............',
+      '.........########...............',
+      '.........########...............',
+      '.........########...............',
+      '................................'
+    ];
+
+    var PIGEON_UP = [
+      '................................',
+      '................................',
+      '.....................###........',
+      '..........######.....###........',
+      '.........########.....##........',
+      '.........###::###....###........',
+      '........##########....##........',
+      '.........########....###........',
+      '.........########....##.........',
+      '.......##::####..#..###.........',
+      '.......##::######...##..........',
+      '.......##::######..###..........',
+      '.........#######...##...........',
+      '...........####...###...........',
+      '...........####...##............',
+      '........##########..............',
+      '.......############.............',
+      '......##############............',
+      '.....####.######................',
+      '.....###..######................',
+      '.....###..######................',
+      '.....###..######................',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '..........######................',
+      '.........########...............',
+      '.........########...............',
+      '.........########...............',
+      '.........########...............',
+      '................................'
     ];
 
     var finaleStartMs = 0;
@@ -2283,31 +2211,39 @@
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, 32, 32);
 
-      var frameIdx = 0;
+      // Raise hand on every other beat (beat % 2 === 1)
+      var currentBeat = Math.floor(((nowMs - finaleStartMs) / 1000) * (bpm / 60));
+      var isHandUp = (currentBeat % 2 === 1);
+      var sprite = isHandUp ? PIGEON_UP : PIGEON_DOWN;
+
+      // Pigeon head-bob offset when Bass Drum hits
+      var headShiftX = 0;
       if (lastKickMs >= 0) {
         var dt = (nowMs - lastKickMs) / 1000;
-        var cycleDur = Math.min(0.42, (60 / bpm) * 0.9);
+        var cycleDur = Math.min(0.40, (60 / bpm) * 0.85);
         var t = dt / cycleDur;
-
         if (t < 0.22) {
-          frameIdx = 1;
-        } else if (t < 0.56) {
-          frameIdx = 2;
-        } else if (t < 0.86) {
-          frameIdx = 3;
-        } else {
-          frameIdx = 0;
+          headShiftX = 1;
+        } else if (t < 0.55) {
+          headShiftX = 2; // Forward peck
+        } else if (t < 0.85) {
+          headShiftX = 0;
         }
       }
 
-      var sprite = PIGEON_FRAMES[frameIdx];
       for (var y = 0; y < 32; y++) {
         var rowStr = sprite[y];
+        var isHeadRow = (y >= 3 && y <= 13);
+        var rowShift = isHeadRow ? headShiftX : 0;
+
         for (var x = 0; x < 32; x++) {
           var ch = rowStr.charAt(x);
           if (ch === '.') continue;
-          ctx.fillStyle = ch === '#' ? '#ffffff' : '#666666';
-          var drawX = facingDir === 1 ? x : (31 - x);
+          ctx.fillStyle = ch === '#' ? '#ffffff' : '#555555';
+
+          var actualX = x + rowShift;
+          if (actualX >= 32) actualX = 31;
+          var drawX = facingDir === 1 ? actualX : (31 - actualX);
           ctx.fillRect(drawX, y, 1, 1);
         }
       }
