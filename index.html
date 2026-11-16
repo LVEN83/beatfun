@@ -642,18 +642,18 @@
 
     var BASS_NOTES = buildNoteRange(24, 36); // C1 to C2
 
-    // 10 Minor Chords, all notes strictly between C2 (MIDI 36) and C4 (MIDI 60)
+    // 10 harmonious C Natural Minor chords, all notes strictly between C2 (36) and C4 (60)
     var MINOR_CHORDS = [
-      { name: 'Cm',  notes: [48, 51, 55] }, // C3, D#3, G3
-      { name: 'C#m', notes: [49, 52, 56] }, // C#3, E3, G#3
-      { name: 'Dm',  notes: [50, 53, 57] }, // D3, F3, A3
-      { name: 'D#m', notes: [51, 54, 58] }, // D#3, F#3, A#3
-      { name: 'Em',  notes: [52, 55, 59] }, // E3, G3, B3
-      { name: 'Fm',  notes: [53, 56, 60] }, // F3, G#3, C4
-      { name: 'Gm',  notes: [43, 46, 50] }, // G2, A#2, D3
-      { name: 'G#m', notes: [44, 47, 51] }, // G#2, B2, D#3
-      { name: 'Am',  notes: [45, 48, 52] }, // A2, C3, E3
-      { name: 'Bm',  notes: [47, 50, 54] }  // B2, D3, F#3
+      { name: 'Cm',    notes: [48, 51, 55, 48] }, // C3, Eb3, G3
+      { name: 'Cm7',   notes: [48, 51, 55, 58] }, // C3, Eb3, G3, Bb3
+      { name: 'Cm11',  notes: [46, 48, 51, 53] }, // Bb2, C3, Eb3, F3
+      { name: 'Cm/Eb', notes: [39, 43, 48, 51] }, // Eb2, G2, C3, Eb3
+      { name: 'Cm/G',  notes: [43, 48, 51, 55] }, // G2, C3, Eb3, G3
+      { name: 'Fm',    notes: [41, 44, 48, 53] }, // F2, Ab2, C3, F3
+      { name: 'Fm7',   notes: [41, 44, 48, 51] }, // F2, Ab2, C3, Eb3
+      { name: 'Fm9',   notes: [41, 44, 48, 55] }, // F2, Ab2, C3, G3
+      { name: 'Gm',    notes: [43, 46, 50, 55] }, // G2, Bb2, D3, G3
+      { name: 'Gm7',   notes: [43, 46, 50, 53] }  // G2, Bb2, D3, F3
     ];
 
     var INSTRUMENTS = [
@@ -663,21 +663,21 @@
       { id: 'rimshot',  name: 'Rimshots',   defaults: { pitch: 0.50, decay: 0.22, filter: 0.85 }, pitchRange: [0.65, 1.7], decayRange: [0.03, 0.22] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],  decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],   decayRange: [0.08, 0.60] },
-      { id: 'chords',   name: 'Chords',     defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-35, 35],   decayRange: [0.15, 2.0] } // Pitch = subtle cents fine-tune, fixed in C2-C4
+      { id: 'chords',   name: 'Chords',     defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-25, 25],   decayRange: [0.15, 2.0] }
     ];
 
     var STEPS = 16;
     var FINALE_SECONDS = 30;
     var BASE_HPF_HZ = 35;
-    var REWIND_SPEED = -1.25; // Instant constant reverse speed (no delay, no ramp-up)
+    var REWIND_SPEED = -0.5; // Musical half-time reverse (-1 octave in key, locked to BPM)
 
     var turnIndex = 0;
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
     var tracks = [];
-    var lastChosenBassNoteIdx = 0;  // C1
-    var lastChosenChordIdx    = 0;  // Cm
+    var lastChosenBassNoteIdx = 0;
+    var lastChosenChordIdx    = 0;
 
     function resetTracks() {
       tracks = [];
@@ -705,15 +705,22 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (GAIN-STAGED + MASTER LIMITER + INSTANT REWIND)
+    // WEB AUDIO ENGINE (HALF-TIME BPM-SYNCED REWIND)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
     var mixBus = null;
     var dryMixGain = null;
+
+    var chordOscs = [];
+    var chordLPF = null;
+    var chordGain = null;
+    var chordHasPlayed = false;
     var chordReverbConvolver = null;
     var chordReverbLPF = null;
     var chordReverbWet = null;
+
+    var snareGritShaper = null;
 
     var rewindProcessor = null;
     var rewindLPF = null;
@@ -721,7 +728,9 @@
     var ringBuf = null;
     var ringLen = 0;
     var ringWriteIdx = 0;
-    var ringReadPos = 0;
+    var rewindTopIdx = 0;
+    var rewindLoopSpan = 0;
+    var rewindCursor = 0;
     var rewindActive = false;
 
     var masterHPF = null;
@@ -753,6 +762,23 @@
       return impulse;
     }
 
+    function create909GritCurve() {
+      var n = 2048, curve = new Float32Array(n);
+      for (var i = 0; i < n; i++) {
+        var x = (i * 2) / (n - 1) - 1;
+        curve[i] = Math.round(x * 24) / 24;
+      }
+      return curve;
+    }
+
+    function readRingLinear(pos) {
+      var idx0 = Math.floor(pos);
+      var frac = pos - idx0;
+      var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
+      var i1 = (i0 + 1) % ringLen;
+      return ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
+    }
+
     function initAndUnlockAudio() {
       if (navigator.audioSession) {
         try { navigator.audioSession.type = 'playback'; } catch (e) {}
@@ -769,7 +795,10 @@
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
 
-        // Slight background reverb exclusively for Chords
+        snareGritShaper = audioCtx.createWaveShaper();
+        snareGritShaper.curve = create909GritCurve();
+        snareGritShaper.oversample = 'none';
+
         chordReverbConvolver = audioCtx.createConvolver();
         chordReverbConvolver.buffer = createReverbImpulse(audioCtx, 1.5, 2.7);
 
@@ -783,6 +812,32 @@
         chordReverbConvolver.connect(chordReverbLPF);
         chordReverbLPF.connect(chordReverbWet);
         chordReverbWet.connect(mixBus);
+
+        chordLPF = audioCtx.createBiquadFilter();
+        chordLPF.type = 'lowpass';
+        chordLPF.frequency.value = normToFilterHz(INSTRUMENTS[6].defaults.filter);
+        chordLPF.Q.value = 0.7;
+
+        chordGain = audioCtx.createGain();
+        chordGain.gain.value = 0.0;
+
+        chordGain.connect(chordLPF);
+        chordLPF.connect(mixBus);
+        chordLPF.connect(chordReverbConvolver);
+
+        chordOscs = [];
+        for (var v = 0; v < 4; v++) {
+          var osc = audioCtx.createOscillator();
+          osc.type = v === 0 ? 'triangle' : 'sine';
+          osc.frequency.value = midiToHz(MINOR_CHORDS[0].notes[v]);
+          osc.detune.value = (v - 1.5) * 4;
+          var vg = audioCtx.createGain();
+          vg.gain.value = 0.25;
+          osc.connect(vg);
+          vg.connect(chordGain);
+          osc.start(0);
+          chordOscs.push(osc);
+        }
 
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
@@ -815,12 +870,11 @@
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
-        // Instant reverse Rewind Ring-Buffer Processor (no delay, no ramp-up)
+        // Musical Half-Time BPM-Synced 1-Bar Reverse Loop Processor
         try {
           ringLen = audioCtx.sampleRate * 6;
           ringBuf = new Float32Array(ringLen);
           ringWriteIdx = 0;
-          ringReadPos = 0;
 
           rewindProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
           rewindProcessor.onaudioprocess = function(e) {
@@ -837,23 +891,26 @@
               return;
             }
 
-            // Immediately rewind backwards at steady REWIND_SPEED (write head frozen)
+            var fadeN = 256;
             for (var j = 0; j < len; j++) {
-              var idx0 = Math.floor(ringReadPos);
-              var frac = ringReadPos - idx0;
-              var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
-              var i1 = (i0 + 1) % ringLen;
-              out[j] = ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
+              var s = readRingLinear(rewindTopIdx - rewindLoopSpan + rewindCursor);
+              if (rewindCursor < fadeN) {
+                var mix = rewindCursor / fadeN;
+                var wrapS = readRingLinear(rewindTopIdx + rewindCursor);
+                s = wrapS * (1 - mix) + s * mix;
+              }
+              out[j] = s;
 
-              ringReadPos += REWIND_SPEED;
-              if (ringReadPos < 0) ringReadPos += ringLen;
-              if (ringReadPos >= ringLen) ringReadPos -= ringLen;
+              rewindCursor += REWIND_SPEED; // -0.5x exact half-time reverse
+              if (rewindCursor < 0) {
+                rewindCursor += rewindLoopSpan;
+              }
             }
           };
 
           rewindLPF = audioCtx.createBiquadFilter();
           rewindLPF.type = 'lowpass';
-          rewindLPF.frequency.value = 4800;
+          rewindLPF.frequency.value = 6000;
           rewindLPF.Q.value = 0.7;
 
           rewindOutGain = audioCtx.createGain();
@@ -921,6 +978,14 @@
       }
     });
 
+    function silenceChordSynth() {
+      if (!audioCtx || !chordGain) return;
+      var now = audioCtx.currentTime;
+      chordGain.gain.cancelScheduledValues(now);
+      chordGain.gain.setTargetAtTime(0.0, now, 0.02);
+      chordHasPlayed = false;
+    }
+
     function setRewind(on) {
       if (rewindActive === on) return;
       rewindActive = on;
@@ -929,9 +994,14 @@
 
       var now = audioCtx.currentTime;
       if (on) {
-        ringReadPos = (ringWriteIdx - 16 + ringLen) % ringLen;
-        dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
-        rewindOutGain.gain.setTargetAtTime(1.0, now, 0.005);
+        // Lock rewind loop to exact 1-bar (16 steps) at current BPM
+        var barSamples = Math.round((240 / bpm) * audioCtx.sampleRate);
+        rewindLoopSpan = Math.min(ringLen - 1024, Math.max(2048, barSamples));
+        rewindTopIdx = (ringWriteIdx - 256 + ringLen) % ringLen;
+        rewindCursor = rewindLoopSpan;
+
+        dryMixGain.gain.setTargetAtTime(0.0, now, 0.006);
+        rewindOutGain.gain.setTargetAtTime(1.0, now, 0.006);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
         dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
@@ -1018,6 +1088,34 @@
       var decayVal = getRawDecaySec(inst, p.decay);
       var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
 
+      if (inst.id === 'chords') {
+        var chordIdx = tracks[instIdx].notes[stepIdx] || 0;
+        if (chordIdx < 0 || chordIdx >= MINOR_CHORDS.length) chordIdx = 0;
+        var chordNotes = MINOR_CHORDS[chordIdx].notes;
+
+        chordLPF.frequency.setTargetAtTime(cutoff, time, 0.015);
+
+        var glideFromPrev = chordHasPlayed;
+        for (var v = 0; v < 4; v++) {
+          var targetHz = midiToHz(chordNotes[v]);
+          chordOscs[v].detune.setTargetAtTime(pitchVal + (v - 1.5) * 4, time, 0.015);
+          if (glideFromPrev) {
+            chordOscs[v].frequency.setTargetAtTime(targetHz, time, 0.045);
+          } else {
+            chordOscs[v].frequency.setValueAtTime(targetHz, time);
+          }
+        }
+        chordHasPlayed = true;
+
+        var sustainUntil = time + decayVal * 0.72;
+        var releaseTau = Math.max(0.025, decayVal * 0.10);
+
+        chordGain.gain.cancelScheduledValues(time);
+        chordGain.gain.setTargetAtTime(0.32, time, 0.028);
+        chordGain.gain.setTargetAtTime(0.0, sustainUntil, releaseTau);
+        return;
+      }
+
       var lpf = audioCtx.createBiquadFilter();
       lpf.type = 'lowpass';
       lpf.frequency.setValueAtTime(cutoff, time);
@@ -1084,48 +1182,99 @@
         tosc.start(time);
         tosc.stop(time + decayVal + 0.015);
       } else if (inst.id === 'rimshot') {
-        var r1 = audioCtx.createOscillator();
-        var r2 = audioCtx.createOscillator();
-        var rg = audioCtx.createGain();
-        r1.type = 'triangle';
-        r2.type = 'sine';
-        r1.frequency.setValueAtTime(440 * pitchVal, time);
-        r2.frequency.setValueAtTime(1650 * pitchVal, time);
-        rg.gain.setValueAtTime(0.46, time);
-        rg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        rg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
-        r1.connect(rg);
-        r2.connect(rg);
-        rg.connect(lpf);
-        r1.start(time);
-        r2.start(time);
-        r1.stop(time + decayVal + 0.015);
-        r2.stop(time + decayVal + 0.015);
+        var w1 = audioCtx.createOscillator();
+        var w2 = audioCtx.createOscillator();
+        w1.type = 'triangle';
+        w2.type = 'sine';
+        w1.frequency.setValueAtTime(520 * pitchVal, time);
+        w1.frequency.exponentialRampToValueAtTime(375 * pitchVal, time + 0.014);
+        w2.frequency.setValueAtTime(980 * pitchVal, time);
+        w2.frequency.exponentialRampToValueAtTime(810 * pitchVal, time + 0.012);
+
+        var wg1 = audioCtx.createGain();
+        var wg2 = audioCtx.createGain();
+        var woodDecay = Math.min(0.095, decayVal * 0.8);
+        wg1.gain.setValueAtTime(0.50, time);
+        wg1.gain.exponentialRampToValueAtTime(0.001, time + woodDecay);
+        wg1.gain.linearRampToValueAtTime(0.0, time + woodDecay + 0.006);
+
+        wg2.gain.setValueAtTime(0.28, time);
+        wg2.gain.exponentialRampToValueAtTime(0.001, time + woodDecay * 0.65);
+        wg2.gain.linearRampToValueAtTime(0.0, time + woodDecay * 0.65 + 0.006);
+
+        w1.connect(wg1);
+        w2.connect(wg2);
+        wg1.connect(lpf);
+        wg2.connect(lpf);
+        w1.start(time);
+        w2.start(time);
+        w1.stop(time + woodDecay + 0.01);
+        w2.stop(time + woodDecay + 0.01);
+
+        var stickNoise = audioCtx.createBufferSource();
+        stickNoise.buffer = noiseBuffer;
+        var stickBP = audioCtx.createBiquadFilter();
+        stickBP.type = 'bandpass';
+        stickBP.frequency.setValueAtTime(1250 * pitchVal, time);
+        stickBP.Q.value = 2.6;
+        var stickG = audioCtx.createGain();
+        stickG.gain.setValueAtTime(0.32, time);
+        stickG.gain.exponentialRampToValueAtTime(0.001, time + 0.018);
+        stickG.gain.linearRampToValueAtTime(0.0, time + 0.022);
+        stickNoise.connect(stickBP);
+        stickBP.connect(stickG);
+        stickG.connect(lpf);
+        stickNoise.start(time);
+        stickNoise.stop(time + 0.025);
       } else if (inst.id === 'snare') {
-        var sosc = audioCtx.createOscillator();
-        var sg = audioCtx.createGain();
-        sosc.type = 'triangle';
-        sosc.frequency.setValueAtTime(pitchVal * 1.4, time);
-        sosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.05, decayVal * 0.6));
-        sg.gain.setValueAtTime(0.38, time);
-        sg.gain.exponentialRampToValueAtTime(0.001, time + decayVal * 0.65);
-        sg.gain.linearRampToValueAtTime(0.0, time + decayVal * 0.65 + 0.01);
-        sosc.connect(sg);
-        sg.connect(lpf);
-        sosc.start(time);
-        sosc.stop(time + decayVal + 0.015);
+        var b1 = audioCtx.createOscillator();
+        var b2 = audioCtx.createOscillator();
+        b1.type = 'triangle';
+        b2.type = 'sine';
+        b1.frequency.setValueAtTime(pitchVal * 1.9, time);
+        b1.frequency.exponentialRampToValueAtTime(pitchVal * 0.95, time + 0.025);
+        b2.frequency.setValueAtTime(pitchVal * 2.8, time);
+        b2.frequency.exponentialRampToValueAtTime(pitchVal * 1.65, time + 0.022);
+
+        var bg1 = audioCtx.createGain();
+        var bg2 = audioCtx.createGain();
+        var bodyDec = Math.min(0.14, decayVal * 0.45);
+        bg1.gain.setValueAtTime(0.34, time);
+        bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
+        bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
+        bg2.gain.setValueAtTime(0.24, time);
+        bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
+        bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
+
+        b1.connect(bg1);
+        b2.connect(bg2);
+        bg1.connect(lpf);
+        bg2.connect(lpf);
+        b1.start(time);
+        b2.start(time);
+        b1.stop(time + bodyDec + 0.012);
+        b2.stop(time + bodyDec + 0.012);
 
         var sn = audioCtx.createBufferSource();
         sn.buffer = noiseBuffer;
         var shp = audioCtx.createBiquadFilter();
         shp.type = 'highpass';
-        shp.frequency.setValueAtTime(1100, time);
+        shp.frequency.setValueAtTime(1650, time);
+        var sPeak = audioCtx.createBiquadFilter();
+        sPeak.type = 'peaking';
+        sPeak.frequency.setValueAtTime(4200, time);
+        sPeak.Q.value = 1.2;
+        sPeak.gain.value = 5;
+
         var sng = audioCtx.createGain();
         sng.gain.setValueAtTime(0.42, time);
         sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
+
         sn.connect(shp);
-        shp.connect(sng);
+        shp.connect(sPeak);
+        sPeak.connect(snareGritShaper);
+        snareGritShaper.connect(sng);
         sng.connect(lpf);
         sn.start(time);
         sn.stop(time + decayVal + 0.015);
@@ -1159,36 +1308,6 @@
         octSine.start(time);
         mainSine.stop(time + decayVal + 0.018);
         octSine.stop(time + decayVal + 0.018);
-      } else if (inst.id === 'chords') {
-        var chordIdx = tracks[instIdx].notes[stepIdx] || 0;
-        if (chordIdx < 0 || chordIdx >= MINOR_CHORDS.length) chordIdx = 0;
-        var chordNotes = MINOR_CHORDS[chordIdx].notes;
-        var centsDetune = pitchVal; // Fixed C2-C4 chord pitch, subtle +-35 cents fine tune
-
-        if (chordReverbConvolver) {
-          lpf.connect(chordReverbConvolver);
-        }
-
-        var attack = Math.min(0.09, decayVal * 0.16);
-        var holdUntil = Math.max(time + attack + 0.005, time + decayVal * 0.78);
-
-        var cg = audioCtx.createGain();
-        cg.gain.setValueAtTime(0.0001, time);
-        cg.gain.linearRampToValueAtTime(0.14, time + attack);
-        cg.gain.setValueAtTime(0.14, holdUntil);
-        cg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-        cg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
-        cg.connect(lpf);
-
-        for (var n = 0; n < chordNotes.length; n++) {
-          var cOsc = audioCtx.createOscillator();
-          cOsc.type = n === 0 ? 'triangle' : 'sine';
-          cOsc.frequency.setValueAtTime(midiToHz(chordNotes[n]), time);
-          cOsc.detune.setValueAtTime(centsDetune + (n - 1) * 4, time);
-          cOsc.connect(cg);
-          cOsc.start(time);
-          cOsc.stop(time + decayVal + 0.02);
-        }
       }
     }
 
@@ -1233,6 +1352,7 @@
         masterGain.gain.setValueAtTime(0.90, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
+      silenceChordSynth();
       setRewind(false);
       setHighPass(false);
       if (ringBuf) ringBuf.fill(0);
@@ -1250,6 +1370,7 @@
       clearInterval(schedulerId);
       schedulerId = null;
       visualQueue.length = 0;
+      silenceChordSynth();
       setRewind(false);
       setHighPass(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
@@ -1329,6 +1450,9 @@
 
     bindTap(clearBtn, function() {
       tracks[turnIndex].steps.fill(false);
+      if (INSTRUMENTS[turnIndex].id === 'chords') {
+        silenceChordSynth();
+      }
       renderStepPads();
     });
 
@@ -1577,7 +1701,11 @@
     });
 
     filterSlider.addEventListener('input', function(e) {
-      tracks[turnIndex].params.filter = parseFloat(e.target.value);
+      var val = parseFloat(e.target.value);
+      tracks[turnIndex].params.filter = val;
+      if (INSTRUMENTS[turnIndex].id === 'chords' && chordLPF && audioCtx) {
+        chordLPF.frequency.setTargetAtTime(normToFilterHz(val), audioCtx.currentTime, 0.015);
+      }
       updateParamText();
     });
 
