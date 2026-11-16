@@ -286,7 +286,7 @@
       color: #ffffff;
     }
 
-    /* ---------- NOTE PICKER POPUP ---------- */
+    /* ---------- NOTE / CHORD PICKER POPUP ---------- */
     .note-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -340,9 +340,9 @@
       margin-bottom: 10px;
     }
 
-    .note-grid.pad-mode {
-      grid-template-columns: repeat(6, 1fr);
-      gap: 4px;
+    .note-grid.chords-mode {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
     }
 
     .note-btn {
@@ -357,9 +357,10 @@
       text-align: center;
     }
 
-    .note-grid.pad-mode .note-btn {
-      min-height: 48px;
-      font-size: 11px;
+    .note-grid.chords-mode .note-btn {
+      min-height: 50px;
+      font-size: 14px;
+      letter-spacing: 1px;
     }
 
     .note-btn:active {
@@ -599,7 +600,7 @@
     </div>
   </div>
 
-  <!-- NOTE PICKER MODAL -->
+  <!-- NOTE / CHORD PICKER MODAL -->
   <div id="noteModalBackdrop" class="note-modal-backdrop hidden">
     <div class="note-modal" id="noteModal">
       <div class="note-modal-head mono">
@@ -640,7 +641,20 @@
     }
 
     var BASS_NOTES = buildNoteRange(24, 36); // C1 to C2
-    var PAD_NOTES  = buildNoteRange(36, 72); // C2 to C5
+
+    // 10 Minor Chords, all notes strictly between C2 (MIDI 36) and C4 (MIDI 60)
+    var MINOR_CHORDS = [
+      { name: 'Cm',  notes: [48, 51, 55] }, // C3, D#3, G3
+      { name: 'C#m', notes: [49, 52, 56] }, // C#3, E3, G#3
+      { name: 'Dm',  notes: [50, 53, 57] }, // D3, F3, A3
+      { name: 'D#m', notes: [51, 54, 58] }, // D#3, F#3, A#3
+      { name: 'Em',  notes: [52, 55, 59] }, // E3, G3, B3
+      { name: 'Fm',  notes: [53, 56, 60] }, // F3, G#3, C4
+      { name: 'Gm',  notes: [43, 46, 50] }, // G2, A#2, D3
+      { name: 'G#m', notes: [44, 47, 51] }, // G#2, B2, D#3
+      { name: 'Am',  notes: [45, 48, 52] }, // A2, C3, E3
+      { name: 'Bm',  notes: [47, 50, 54] }  // B2, D3, F#3
+    ];
 
     var INSTRUMENTS = [
       { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],   decayRange: [0.12, 0.75] },
@@ -649,20 +663,21 @@
       { id: 'rimshot',  name: 'Rimshots',   defaults: { pitch: 0.50, decay: 0.22, filter: 0.85 }, pitchRange: [0.65, 1.7], decayRange: [0.03, 0.22] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],  decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],   decayRange: [0.08, 0.60] },
-      { id: 'pad',      name: 'Pad',        defaults: { pitch: 0.50, decay: 0.70, filter: 0.58 }, pitchRange: [-12, 12],   decayRange: [0.15, 2.0] }
+      { id: 'chords',   name: 'Chords',     defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-35, 35],   decayRange: [0.15, 2.0] } // Pitch = subtle cents fine-tune, fixed in C2-C4
     ];
 
     var STEPS = 16;
     var FINALE_SECONDS = 30;
-    var BASE_HPF_HZ = 35; // Cleans sub-sonic rumble so small phone speakers never fart
+    var BASE_HPF_HZ = 35;
+    var REWIND_SPEED = -1.25; // Instant constant reverse speed (no delay, no ramp-up)
 
     var turnIndex = 0;
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
     var tracks = [];
-    var lastChosenBassNoteIdx = 0;
-    var lastChosenPadNoteIdx  = 12;
+    var lastChosenBassNoteIdx = 0;  // C1
+    var lastChosenChordIdx    = 0;  // Cm
 
     function resetTracks() {
       tracks = [];
@@ -670,10 +685,9 @@
         var inst = INSTRUMENTS[i];
         var arr = [];
         var noteArr = [];
-        var defaultNote = inst.id === 'pad' ? 12 : 0;
         for (var s = 0; s < STEPS; s++) {
           arr.push(false);
-          noteArr.push(defaultNote);
+          noteArr.push(0);
         }
         tracks.push({
           steps: arr,
@@ -686,31 +700,29 @@
         });
       }
       lastChosenBassNoteIdx = 0;
-      lastChosenPadNoteIdx = 12;
+      lastChosenChordIdx = 0;
     }
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (GAIN-STAGED + MASTER LIMITER)
+    // WEB AUDIO ENGINE (GAIN-STAGED + MASTER LIMITER + INSTANT REWIND)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
     var mixBus = null;
     var dryMixGain = null;
-    var padReverbConvolver = null;
-    var padReverbLPF = null;
-    var padReverbWet = null;
+    var chordReverbConvolver = null;
+    var chordReverbLPF = null;
+    var chordReverbWet = null;
 
-    var meltProcessor = null;
-    var meltLPF = null;
-    var meltOutGain = null;
+    var rewindProcessor = null;
+    var rewindLPF = null;
+    var rewindOutGain = null;
     var ringBuf = null;
     var ringLen = 0;
     var ringWriteIdx = 0;
     var ringReadPos = 0;
-    var meltActive = false;
-    var meltStartCtxTime = 0;
-    var currentVinylSpeed = 1.0;
+    var rewindActive = false;
 
     var masterHPF = null;
     var hpfReverbSend = null;
@@ -751,27 +763,26 @@
         if (!AC) return;
         audioCtx = new AC();
 
-        // Master headroom bus
         mixBus = audioCtx.createGain();
         mixBus.gain.value = 0.65;
 
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
 
-        // Slight Pad Reverb
-        padReverbConvolver = audioCtx.createConvolver();
-        padReverbConvolver.buffer = createReverbImpulse(audioCtx, 1.5, 2.7);
+        // Slight background reverb exclusively for Chords
+        chordReverbConvolver = audioCtx.createConvolver();
+        chordReverbConvolver.buffer = createReverbImpulse(audioCtx, 1.5, 2.7);
 
-        padReverbLPF = audioCtx.createBiquadFilter();
-        padReverbLPF.type = 'lowpass';
-        padReverbLPF.frequency.value = 3000;
+        chordReverbLPF = audioCtx.createBiquadFilter();
+        chordReverbLPF.type = 'lowpass';
+        chordReverbLPF.frequency.value = 3000;
 
-        padReverbWet = audioCtx.createGain();
-        padReverbWet.gain.value = 0.20;
+        chordReverbWet = audioCtx.createGain();
+        chordReverbWet.gain.value = 0.20;
 
-        padReverbConvolver.connect(padReverbLPF);
-        padReverbLPF.connect(padReverbWet);
-        padReverbWet.connect(mixBus);
+        chordReverbConvolver.connect(chordReverbLPF);
+        chordReverbLPF.connect(chordReverbWet);
+        chordReverbWet.connect(mixBus);
 
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
@@ -791,7 +802,6 @@
         hpfReverbWet = audioCtx.createGain();
         hpfReverbWet.gain.value = 0.0;
 
-        // Master Bus Limiter / Compressor prevents digital clipping & speaker farting
         masterCompressor = audioCtx.createDynamicsCompressor();
         masterCompressor.threshold.setValueAtTime(-10, audioCtx.currentTime);
         masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
@@ -805,75 +815,56 @@
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
+        // Instant reverse Rewind Ring-Buffer Processor (no delay, no ramp-up)
         try {
           ringLen = audioCtx.sampleRate * 6;
           ringBuf = new Float32Array(ringLen);
           ringWriteIdx = 0;
           ringReadPos = 0;
 
-          meltProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
-          meltProcessor.onaudioprocess = function(e) {
+          rewindProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
+          rewindProcessor.onaudioprocess = function(e) {
             var inp = e.inputBuffer.getChannelData(0);
             var out = e.outputBuffer.getChannelData(0);
             var len = inp.length;
-            var sr = audioCtx.sampleRate;
 
-            if (!meltActive) {
+            if (!rewindActive) {
               for (var i = 0; i < len; i++) {
                 ringBuf[ringWriteIdx] = inp[i];
                 ringWriteIdx = (ringWriteIdx + 1) % ringLen;
                 out[i] = 0;
               }
-              currentVinylSpeed = 1.0;
               return;
             }
 
-            var elapsed = Math.max(0, audioCtx.currentTime - meltStartCtxTime);
+            // Immediately rewind backwards at steady REWIND_SPEED (write head frozen)
             for (var j = 0; j < len; j++) {
-              var t = elapsed + j / sr;
-              var speed;
-              if (t < 0.42) {
-                var p = t / 0.42;
-                speed = 1.0 - p * p * (3 - 2 * p);
-              } else if (t < 1.05) {
-                var q = (t - 0.42) / 0.63;
-                speed = -1.35 * (q * q);
-              } else {
-                speed = -1.15 + Math.sin((t - 1.05) * 4.2) * 0.35;
-              }
-              currentVinylSpeed = speed;
-
-              if (speed > 0) {
-                ringBuf[ringWriteIdx] = inp[j];
-                ringWriteIdx = (ringWriteIdx + 1) % ringLen;
-              }
-
               var idx0 = Math.floor(ringReadPos);
               var frac = ringReadPos - idx0;
               var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
               var i1 = (i0 + 1) % ringLen;
               out[j] = ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
 
-              ringReadPos += speed;
+              ringReadPos += REWIND_SPEED;
               if (ringReadPos < 0) ringReadPos += ringLen;
               if (ringReadPos >= ringLen) ringReadPos -= ringLen;
             }
           };
 
-          meltLPF = audioCtx.createBiquadFilter();
-          meltLPF.type = 'lowpass';
-          meltLPF.frequency.value = 18000;
-          meltLPF.Q.value = 0.8;
+          rewindLPF = audioCtx.createBiquadFilter();
+          rewindLPF.type = 'lowpass';
+          rewindLPF.frequency.value = 4800;
+          rewindLPF.Q.value = 0.7;
 
-          meltOutGain = audioCtx.createGain();
-          meltOutGain.gain.value = 0.0;
+          rewindOutGain = audioCtx.createGain();
+          rewindOutGain.gain.value = 0.0;
 
-          mixBus.connect(meltProcessor);
-          meltProcessor.connect(meltLPF);
-          meltLPF.connect(meltOutGain);
-          meltOutGain.connect(masterHPF);
+          mixBus.connect(rewindProcessor);
+          rewindProcessor.connect(rewindLPF);
+          rewindLPF.connect(rewindOutGain);
+          rewindOutGain.connect(masterHPF);
         } catch (err) {
-          meltProcessor = null;
+          rewindProcessor = null;
         }
 
         masterHPF.connect(masterCompressor);
@@ -930,31 +921,20 @@
       }
     });
 
-    function setMelt(on) {
-      if (meltActive === on) return;
-      meltActive = on;
+    function setRewind(on) {
+      if (rewindActive === on) return;
+      rewindActive = on;
       leftVinylLabel.classList.toggle('active', on);
-      if (!audioCtx || !dryMixGain || !meltOutGain || !meltProcessor) return;
+      if (!audioCtx || !dryMixGain || !rewindOutGain || !rewindProcessor) return;
 
       var now = audioCtx.currentTime;
       if (on) {
-        meltStartCtxTime = now;
-        currentVinylSpeed = 1.0;
         ringReadPos = (ringWriteIdx - 16 + ringLen) % ringLen;
-
-        dryMixGain.gain.setTargetAtTime(0.0, now, 0.012);
-        meltOutGain.gain.setTargetAtTime(1.0, now, 0.012);
-
-        meltLPF.frequency.cancelScheduledValues(now);
-        meltLPF.frequency.setValueAtTime(16000, now);
-        meltLPF.frequency.exponentialRampToValueAtTime(1050, now + 0.9);
+        dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
+        rewindOutGain.gain.setTargetAtTime(1.0, now, 0.005);
       } else {
-        currentVinylSpeed = 1.0;
-        meltOutGain.gain.setTargetAtTime(0.0, now, 0.015);
-        dryMixGain.gain.setTargetAtTime(1.0, now, 0.015);
-
-        meltLPF.frequency.cancelScheduledValues(now);
-        meltLPF.frequency.setTargetAtTime(18000, now, 0.05);
+        rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
+        dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
       }
     }
 
@@ -1019,13 +999,13 @@
       return 45 * Math.pow(900 / 45, t);
     }
 
-    function getMaxPadDecaySec() {
+    function getMaxChordsDecaySec() {
       return 240 / bpm;
     }
 
     function getRawDecaySec(inst, decayParam) {
-      if (inst.id === 'pad') {
-        return lerp(0.15, getMaxPadDecaySec(), decayParam);
+      if (inst.id === 'chords') {
+        return lerp(0.15, getMaxChordsDecaySec(), decayParam);
       }
       return lerp(inst.decayRange[0], inst.decayRange[1], decayParam);
     }
@@ -1041,7 +1021,7 @@
       var lpf = audioCtx.createBiquadFilter();
       lpf.type = 'lowpass';
       lpf.frequency.setValueAtTime(cutoff, time);
-      lpf.Q.value = 0.7; // Flat Butterworth response prevents resonant clipping
+      lpf.Q.value = 0.7;
       lpf.connect(mixBus);
 
       if (inst.id === 'kick') {
@@ -1179,62 +1159,36 @@
         octSine.start(time);
         mainSine.stop(time + decayVal + 0.018);
         octSine.stop(time + decayVal + 0.018);
-      } else if (inst.id === 'pad') {
-        var padNoteIdx = tracks[instIdx].notes[stepIdx];
-        if (padNoteIdx === undefined || padNoteIdx < 0 || padNoteIdx >= PAD_NOTES.length) padNoteIdx = 12;
-        var padSemitones = Math.round(pitchVal);
-        var rootHz = midiToHz(PAD_NOTES[padNoteIdx].midi + padSemitones);
+      } else if (inst.id === 'chords') {
+        var chordIdx = tracks[instIdx].notes[stepIdx] || 0;
+        if (chordIdx < 0 || chordIdx >= MINOR_CHORDS.length) chordIdx = 0;
+        var chordNotes = MINOR_CHORDS[chordIdx].notes;
+        var centsDetune = pitchVal; // Fixed C2-C4 chord pitch, subtle +-35 cents fine tune
 
-        if (padReverbConvolver) {
-          lpf.connect(padReverbConvolver);
+        if (chordReverbConvolver) {
+          lpf.connect(chordReverbConvolver);
         }
 
-        var p1 = audioCtx.createOscillator();
-        var p2 = audioCtx.createOscillator();
-        var p5 = audioCtx.createOscillator();
-        var p8 = audioCtx.createOscillator();
-
-        p1.type = 'triangle';
-        p2.type = 'sine';
-        p5.type = 'sine';
-        p8.type = 'sine';
-
-        p1.frequency.setValueAtTime(rootHz * 0.996, time);
-        p2.frequency.setValueAtTime(rootHz * 1.004, time);
-        p5.frequency.setValueAtTime(rootHz * 1.498, time);
-        p8.frequency.setValueAtTime(rootHz * 2.002, time);
-
-        var g5 = audioCtx.createGain();
-        g5.gain.value = 0.45;
-        var g8 = audioCtx.createGain();
-        g8.gain.value = 0.28;
-
-        var attack = Math.min(0.11, decayVal * 0.18);
+        var attack = Math.min(0.09, decayVal * 0.16);
         var holdUntil = Math.max(time + attack + 0.005, time + decayVal * 0.78);
 
-        var pg = audioCtx.createGain();
-        pg.gain.setValueAtTime(0.0001, time);
-        pg.gain.linearRampToValueAtTime(0.15, time + attack);
-        pg.gain.setValueAtTime(0.15, holdUntil);
-        pg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-        pg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
+        var cg = audioCtx.createGain();
+        cg.gain.setValueAtTime(0.0001, time);
+        cg.gain.linearRampToValueAtTime(0.14, time + attack);
+        cg.gain.setValueAtTime(0.14, holdUntil);
+        cg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+        cg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.012);
+        cg.connect(lpf);
 
-        p1.connect(pg);
-        p2.connect(pg);
-        p5.connect(g5);
-        g5.connect(pg);
-        p8.connect(g8);
-        g8.connect(pg);
-        pg.connect(lpf);
-
-        p1.start(time);
-        p2.start(time);
-        p5.start(time);
-        p8.start(time);
-        p1.stop(time + decayVal + 0.02);
-        p2.stop(time + decayVal + 0.02);
-        p5.stop(time + decayVal + 0.02);
-        p8.stop(time + decayVal + 0.02);
+        for (var n = 0; n < chordNotes.length; n++) {
+          var cOsc = audioCtx.createOscillator();
+          cOsc.type = n === 0 ? 'triangle' : 'sine';
+          cOsc.frequency.setValueAtTime(midiToHz(chordNotes[n]), time);
+          cOsc.detune.setValueAtTime(centsDetune + (n - 1) * 4, time);
+          cOsc.connect(cg);
+          cOsc.start(time);
+          cOsc.stop(time + decayVal + 0.02);
+        }
       }
     }
 
@@ -1279,7 +1233,7 @@
         masterGain.gain.setValueAtTime(0.90, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
-      setMelt(false);
+      setRewind(false);
       setHighPass(false);
       if (ringBuf) ringBuf.fill(0);
       if (audioCtx && hpfReverbWet) {
@@ -1296,7 +1250,7 @@
       clearInterval(schedulerId);
       schedulerId = null;
       visualQueue.length = 0;
-      setMelt(false);
+      setRewind(false);
       setHighPass(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
         hpfReverbSend.gain.setValueAtTime(0.0, audioCtx.currentTime);
@@ -1349,8 +1303,8 @@
     var leftPointerId = null;
     var rightPointerId = null;
 
-    function isNoteInstrument(instId) {
-      return instId === 'bassline' || instId === 'pad';
+    function isPickerInstrument(instId) {
+      return instId === 'bassline' || instId === 'chords';
     }
 
     function bindTap(el, handler) {
@@ -1423,10 +1377,10 @@
             e.preventDefault();
             ensureAudioUnlocked();
             var instId = INSTRUMENTS[turnIndex].id;
-            if (isNoteInstrument(instId)) {
+            if (isPickerInstrument(instId)) {
               if (!tracks[turnIndex].steps[stepIdx]) {
                 tracks[turnIndex].steps[stepIdx] = true;
-                tracks[turnIndex].notes[stepIdx] = instId === 'pad' ? lastChosenPadNoteIdx : lastChosenBassNoteIdx;
+                tracks[turnIndex].notes[stepIdx] = instId === 'chords' ? lastChosenChordIdx : lastChosenBassNoteIdx;
               }
               renderStepPads();
               openNoteModal(stepIdx);
@@ -1447,7 +1401,7 @@
 
     window.addEventListener('pointermove', function(e) {
       if (dragPointerId === null || e.pointerId !== dragPointerId) return;
-      if (isNoteInstrument(INSTRUMENTS[turnIndex].id)) return;
+      if (isPickerInstrument(INSTRUMENTS[turnIndex].id)) return;
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
         var s = Number(hitEl.getAttribute('data-step'));
@@ -1463,7 +1417,7 @@
       }
       if (e.pointerId === leftPointerId) {
         leftPointerId = null;
-        setMelt(false);
+        setRewind(false);
       }
       if (e.pointerId === rightPointerId) {
         rightPointerId = null;
@@ -1478,7 +1432,7 @@
         dragPointerId = null;
         leftPointerId = null;
         rightPointerId = null;
-        setMelt(false);
+        setRewind(false);
         setHighPass(false);
       }
     });
@@ -1486,7 +1440,7 @@
     leftVinyl.addEventListener('pointerdown', function(e) {
       e.preventDefault();
       leftPointerId = e.pointerId;
-      setMelt(true);
+      setRewind(true);
     });
     leftVinyl.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
@@ -1499,17 +1453,17 @@
 
     function renderStepPads() {
       var instId = INSTRUMENTS[turnIndex].id;
-      var hasNotes = isNoteInstrument(instId);
-      var noteList = instId === 'pad' ? PAD_NOTES : BASS_NOTES;
+      var hasPicker = isPickerInstrument(instId);
+      var list = instId === 'chords' ? MINOR_CHORDS : BASS_NOTES;
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
         var on = track.steps[i];
         pads[i].classList.toggle('active', on);
-        if (hasNotes && on) {
+        if (hasPicker && on) {
           var nIdx = track.notes[i];
-          if (nIdx < 0 || nIdx >= noteList.length) nIdx = 0;
-          pads[i].textContent = noteList[nIdx].name;
+          if (nIdx < 0 || nIdx >= list.length) nIdx = 0;
+          pads[i].textContent = list[nIdx].name;
         } else {
           pads[i].textContent = i + 1;
         }
@@ -1519,29 +1473,29 @@
     function openNoteModal(stepIdx) {
       editingStepIdx = stepIdx;
       var instId = INSTRUMENTS[turnIndex].id;
-      var isPad = instId === 'pad';
-      var noteList = isPad ? PAD_NOTES : BASS_NOTES;
+      var isChords = instId === 'chords';
+      var list = isChords ? MINOR_CHORDS : BASS_NOTES;
 
       var sLabel = (stepIdx + 1) < 10 ? '0' + (stepIdx + 1) : '' + (stepIdx + 1);
-      noteModalTitle.textContent = 'STEP ' + sLabel + ' — NOTE';
-      noteGrid.classList.toggle('pad-mode', isPad);
+      noteModalTitle.textContent = 'STEP ' + sLabel + (isChords ? ' — CHORD' : ' — NOTE');
+      noteGrid.classList.toggle('chords-mode', isChords);
 
-      var currentNoteIdx = tracks[turnIndex].notes[stepIdx];
+      var currentIdx = tracks[turnIndex].notes[stepIdx];
       noteGrid.innerHTML = '';
-      for (var i = 0; i < noteList.length; i++) {
-        (function(noteIdx) {
+      for (var i = 0; i < list.length; i++) {
+        (function(itemIdx) {
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'note-btn mono' + (noteIdx === currentNoteIdx ? ' selected' : '');
-          btn.textContent = noteList[noteIdx].name;
+          btn.className = 'note-btn mono' + (itemIdx === currentIdx ? ' selected' : '');
+          btn.textContent = list[itemIdx].name;
           btn.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             tracks[turnIndex].steps[editingStepIdx] = true;
-            tracks[turnIndex].notes[editingStepIdx] = noteIdx;
-            if (isPad) {
-              lastChosenPadNoteIdx = noteIdx;
+            tracks[turnIndex].notes[editingStepIdx] = itemIdx;
+            if (isChords) {
+              lastChosenChordIdx = itemIdx;
             } else {
-              lastChosenBassNoteIdx = noteIdx;
+              lastChosenBassNoteIdx = itemIdx;
             }
             renderStepPads();
             closeNoteModal();
@@ -1565,15 +1519,18 @@
     function updateParamText() {
       var inst = INSTRUMENTS[turnIndex];
       var p = tracks[turnIndex].params;
-      if (inst.id === 'bassline' || inst.id === 'pad') {
+      if (inst.id === 'bassline') {
         var st = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
         pitchVal.textContent = (st > 0 ? '+' + st : st) + ' st';
+      } else if (inst.id === 'chords') {
+        var ct = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
+        pitchVal.textContent = (ct > 0 ? '+' + ct : ct) + ' ct';
       } else {
         pitchVal.textContent = Math.round(p.pitch * 100) + '%';
       }
 
       var rawDecay = getRawDecaySec(inst, p.decay);
-      if (inst.id === 'pad') {
+      if (inst.id === 'chords') {
         var stepCount = (rawDecay / (60 / bpm / 4)).toFixed(1);
         decayVal.textContent = stepCount + ' stp';
       } else {
@@ -1885,7 +1842,7 @@
       leftPointerId = null;
       rightPointerId = null;
       progressFill.style.width = '0%';
-      setMelt(false);
+      setRewind(false);
 
       sequencerScreen.classList.add('hidden');
       finaleScreen.classList.remove('hidden');
@@ -1950,7 +1907,7 @@
         while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
           var ev = visualQueue.shift();
           activePlayStep = ev.step;
-          if (finaleActive && ev.kickHit && !meltActive) {
+          if (finaleActive && ev.kickHit && !rewindActive) {
             lastKickMs = nowMs;
             kickCount++;
             if (kickCount % 4 === 1 && kickCount > 1) {
@@ -1978,10 +1935,10 @@
       if (finaleActive) {
         drawPixelPigeon(nowMs);
 
-        vinylAngleL += frameDt * 2.6 * (meltActive ? currentVinylSpeed * 2.5 : 1.0);
+        vinylAngleL += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
         vinylAngleR += frameDt * (hpfActive ? 5.2 : 2.6);
 
-        drawVinyl(leftVinyl, vinylAngleL, meltActive);
+        drawVinyl(leftVinyl, vinylAngleL, rewindActive);
         drawVinyl(rightVinyl, vinylAngleR, hpfActive);
 
         var elapsed = (nowMs - finaleStartMs) / 1000;
