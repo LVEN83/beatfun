@@ -132,7 +132,6 @@
       letter-spacing: 1px;
     }
 
-    /* 32-step Page Switcher for Chords (1-16 / 17-32) */
     .page-bar {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -590,7 +589,6 @@
         </div>
       </div>
 
-      <!-- 32-STEP BAR SWITCHER (CHORDS ONLY) -->
       <div class="page-bar hidden" id="chordPageBar">
         <button type="button" class="page-btn mono active" id="pageBtn0">
           <span class="page-dot"></span><span>1 – 16</span>
@@ -704,7 +702,6 @@
 
     var BASS_NOTES = buildNoteRange(24, 36); // C1 to C2
 
-    // 10 harmonious mixed chords (Maj7, 6/9, m7, m9, Sus4) in C Major / A Minor, all between C2 (36) and C4 (60)
     var CHORDS = [
       { name: 'Cmaj7', notes: [48, 52, 55, 59] },
       { name: 'C6/9',  notes: [48, 52, 55, 57] },
@@ -722,19 +719,19 @@
       { id: 'kick',     name: 'Bass Drum',  steps: 16, defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
       { id: 'hihat',    name: 'Hi-Hats',    steps: 16, defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
       { id: 'tom',      name: 'Toms',       steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
-      { id: 'maracas',  name: 'Maracas',    steps: 16, defaults: { pitch: 0.50, decay: 0.38, filter: 0.88 }, pitchRange: [0.65, 1.55], decayRange: [0.045, 0.24] },
+      { id: 'shakers',  name: 'Shakers',    steps: 16, defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
       { id: 'snare',    name: 'Snare Drum', steps: 16, defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.08, 0.60] },
       { id: 'chords',   name: 'Chords',     steps: 32, defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-25, 25],    decayRange: [0.15, 2.0] }
     ];
 
-    var CYCLE_STEPS = 32; // Master clock runs 32 steps so Chords spans 2 bars while 16-step instruments loop twice
+    var CYCLE_STEPS = 32;
     var FINALE_SECONDS = 30;
     var BASE_HPF_HZ = 35;
     var REWIND_SPEED = -0.5;
 
     var turnIndex = 0;
-    var chordPage = 0; // 0 = steps 1..16, 1 = steps 17..32
+    var chordPage = 0;
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
@@ -796,6 +793,12 @@
     var rewindLoopSpan = 0;
     var rewindCursor = 0;
     var rewindActive = false;
+
+    // Very short initial stutter state before half-time rewind
+    var rewindStutterBaseIdx = 0;
+    var rewindStutterSlice = 0;
+    var rewindStutterTotal = 0;
+    var rewindElapsedSamples = 0;
 
     var lastHitAudioTime = -1;
     var prevHitAudioTime = -1;
@@ -959,25 +962,39 @@
 
             var fadeN = 256;
             for (var j = 0; j < len; j++) {
-              var s = readRingLinear(rewindTopIdx - rewindLoopSpan + rewindCursor);
-              if (rewindCursor < fadeN) {
-                var mix = rewindCursor / fadeN;
-                var wrapS = readRingLinear(rewindTopIdx + rewindCursor);
-                s = wrapS * (1 - mix) + s * mix;
-              }
-              out[j] = s;
+              // Very short 3-hit micro-stutter right on the closest hit, then half-time rewind
+              if (rewindElapsedSamples < rewindStutterTotal) {
+                var posInSlice = rewindElapsedSamples % rewindStutterSlice;
+                var env = 1.0;
+                if (posInSlice < 96) {
+                  env = posInSlice / 96;
+                } else if (posInSlice > rewindStutterSlice * 0.70) {
+                  env = Math.max(0, 1 - (posInSlice - rewindStutterSlice * 0.70) / (rewindStutterSlice * 0.30));
+                }
+                out[j] = readRingLinear(rewindStutterBaseIdx + posInSlice) * env;
+                rewindElapsedSamples++;
+              } else {
+                var s = readRingLinear(rewindTopIdx - rewindLoopSpan + rewindCursor);
+                if (rewindCursor < fadeN) {
+                  var mix = rewindCursor / fadeN;
+                  var wrapS = readRingLinear(rewindTopIdx + rewindCursor);
+                  s = wrapS * (1 - mix) + s * mix;
+                }
+                out[j] = s;
 
-              rewindCursor += REWIND_SPEED;
-              if (rewindCursor < 0) {
-                rewindCursor += rewindLoopSpan;
+                rewindCursor += REWIND_SPEED;
+                if (rewindCursor < 0) {
+                  rewindCursor += rewindLoopSpan;
+                }
               }
             }
           };
 
+          // Deeper lowpass on rewind for a warm melted reverse sound
           rewindLPF = audioCtx.createBiquadFilter();
           rewindLPF.type = 'lowpass';
-          rewindLPF.frequency.value = 6000;
-          rewindLPF.Q.value = 0.7;
+          rewindLPF.frequency.value = 950;
+          rewindLPF.Q.value = 1.0;
 
           rewindOutGain = audioCtx.createGain();
           rewindOutGain.gain.value = 0.0;
@@ -1001,7 +1018,8 @@
         masterCompressor.connect(masterGain);
         masterGain.connect(audioCtx.destination);
 
-        var len = audioCtx.sampleRate;
+        // 2 seconds of noise so random buffer offsets have plenty of length
+        var len = audioCtx.sampleRate * 2;
         noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
         var ch = noiseBuffer.getChannelData(0);
         for (var i = 0; i < len; i++) {
@@ -1065,21 +1083,29 @@
         rewindLoopSpan = Math.min(ringLen - 1024, Math.max(2048, barSamples));
         rewindTopIdx = (ringWriteIdx - 256 + ringLen) % ringLen;
 
+        // Locate closest recent hit (with enough forward tail for the initial micro-stutter)
         var refHit = lastHitAudioTime;
-        if (refHit > now - 0.035 && prevHitAudioTime > 0) {
+        if (refHit > now - 0.055 && prevHitAudioTime > 0) {
           refHit = prevHitAudioTime;
         }
-        var backSamples = 0;
+        var hitAgeSamples = Math.round(0.14 * sr);
         if (refHit > 0 && (now - refHit) < (rewindLoopSpan / sr)) {
-          var hitAgeSamples = Math.round((now - refHit) * sr);
-          var tailOffset = Math.round(0.11 * sr);
-          backSamples = Math.max(0, Math.min(rewindLoopSpan - 512, hitAgeSamples - tailOffset));
+          hitAgeSamples = Math.max(Math.round(0.05 * sr), Math.min(rewindLoopSpan - 512, Math.round((now - refHit) * sr)));
         }
 
+        // Very short 3 x 38ms stutter right on the closest hit
+        rewindStutterSlice = Math.round(0.038 * sr);
+        rewindStutterTotal = rewindStutterSlice * 3;
+        rewindElapsedSamples = 0;
+        rewindStutterBaseIdx = (rewindTopIdx - hitAgeSamples + ringLen) % ringLen;
+
+        // Right after the ~114ms micro-stutter, rewind backwards across that hit at -0.5x
+        var tailOffset = Math.round(0.11 * sr);
+        var backSamples = Math.max(0, Math.min(rewindLoopSpan - 512, hitAgeSamples - tailOffset));
         rewindCursor = Math.max(256, rewindLoopSpan - backSamples);
 
         dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
-        rewindOutGain.gain.setTargetAtTime(1.12, now, 0.005);
+        rewindOutGain.gain.setTargetAtTime(1.18, now, 0.005);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
         dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
@@ -1259,41 +1285,35 @@
         tg.connect(lpf);
         tosc.start(time);
         tosc.stop(time + decayVal + 0.015);
-      } else if (inst.id === 'maracas') {
-        var mNoise = audioCtx.createBufferSource();
-        mNoise.buffer = noiseBuffer;
+      } else if (inst.id === 'shakers') {
+        // Silky analog shaker: smooth ~20ms brush swell, clean bandpass/highpass noise, buffer offset in 2nd arg
+        var sNoise = audioCtx.createBufferSource();
+        sNoise.buffer = noiseBuffer;
 
-        var mHP = audioCtx.createBiquadFilter();
-        mHP.type = 'highpass';
-        mHP.frequency.setValueAtTime(3200 * pitchVal, time);
+        var sHP = audioCtx.createBiquadFilter();
+        sHP.type = 'highpass';
+        sHP.frequency.setValueAtTime(2400 * pitchVal, time);
 
-        var mBP = audioCtx.createBiquadFilter();
-        mBP.type = 'bandpass';
-        mBP.frequency.setValueAtTime(6200 * pitchVal, time);
-        mBP.Q.value = 1.6;
+        var sBP = audioCtx.createBiquadFilter();
+        sBP.type = 'bandpass';
+        sBP.frequency.setValueAtTime(5200 * pitchVal, time);
+        sBP.Q.value = 1.1;
 
-        var mPeak = audioCtx.createBiquadFilter();
-        mPeak.type = 'peaking';
-        mPeak.frequency.setValueAtTime(8800 * pitchVal, time);
-        mPeak.Q.value = 1.4;
-        mPeak.gain.value = 3.5;
+        var swellTime = Math.min(0.024, decayVal * 0.28);
+        var sEnv = audioCtx.createGain();
+        sEnv.gain.setValueAtTime(0.0001, time);
+        sEnv.gain.linearRampToValueAtTime(0.10, time + swellTime * 0.45);
+        sEnv.gain.linearRampToValueAtTime(0.42, time + swellTime);
+        sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+        sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
 
-        var attackPeak = Math.min(0.013, decayVal * 0.25);
-        var mgEnv = audioCtx.createGain();
-        mgEnv.gain.setValueAtTime(0.0001, time);
-        mgEnv.gain.linearRampToValueAtTime(0.18, time + 0.003);
-        mgEnv.gain.linearRampToValueAtTime(0.46, time + attackPeak);
-        mgEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        mgEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+        sNoise.connect(sHP);
+        sHP.connect(sBP);
+        sBP.connect(sEnv);
+        sEnv.connect(lpf);
 
-        mNoise.connect(mHP);
-        mHP.connect(mBP);
-        mBP.connect(mPeak);
-        mPeak.connect(mgEnv);
-        mgEnv.connect(lpf);
-
-        mNoise.start(time + Math.random() * 0.2);
-        mNoise.stop(time + decayVal + 0.015);
+        sNoise.start(time, Math.random() * 0.8);
+        sNoise.stop(time + decayVal + 0.015);
       } else if (inst.id === 'snare') {
         var b1 = audioCtx.createOscillator();
         var b2 = audioCtx.createOscillator();
