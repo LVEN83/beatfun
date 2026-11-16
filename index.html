@@ -592,12 +592,12 @@
       { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
       { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.06, 0.45] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] } // Crisp micro-tonal decay
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] }
     ];
 
     var STEPS = 16;
     var FINALE_SECONDS = 30;
-    var BASE_HPF_HZ = 35;
+    var BASE_HPF_HZ = 44; // Tuned 44Hz cut protects phone speaker excursion without thinning headphones
     var REWIND_SPEED = -0.5;
 
     var turnIndex = 0;
@@ -632,7 +632,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE
+    // WEB AUDIO ENGINE (HEADPHONE & PHONE SPEAKER CALIBRATED)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -640,6 +640,9 @@
     var dryMixGain = null;
 
     var snareGritShaper = null;
+    var softClipShaper = null;
+
+    var activeSynthVoice = null;
 
     var rewindProcessor = null;
     var rewindLPF = null;
@@ -661,6 +664,7 @@
     var prevHitAudioTime = -1;
 
     var masterHPF = null;
+    var masterEQ = null;
     var hpfReverbSend = null;
     var reverbConvolver = null;
     var reverbToneLPF = null;
@@ -700,6 +704,17 @@
       return curve;
     }
 
+    // Analog-style soft-knee saturation curve: prevents harsh digital clipping and limiter pumping
+    function createSoftClipCurve() {
+      var n = 4096;
+      var curve = new Float32Array(n);
+      for (var i = 0; i < n; i++) {
+        var x = (i * 2) / (n - 1) - 1;
+        curve[i] = (3 * x - Math.pow(x, 3)) / 2; // Classic tape-style soft saturation
+      }
+      return curve;
+    }
+
     function readRingLinear(pos) {
       var idx0 = Math.floor(pos);
       var frac = pos - idx0;
@@ -719,7 +734,7 @@
         audioCtx = new AC();
 
         mixBus = audioCtx.createGain();
-        mixBus.gain.value = 0.60;
+        mixBus.gain.value = 0.62;
 
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
@@ -728,10 +743,22 @@
         snareGritShaper.curve = create909GritCurve();
         snareGritShaper.oversample = 'none';
 
+        softClipShaper = audioCtx.createWaveShaper();
+        softClipShaper.curve = createSoftClipCurve();
+        softClipShaper.oversample = '2x';
+
+        // Master sub protection: protects phone speaker drivers, tightens bass on headphones
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
         masterHPF.frequency.value = BASE_HPF_HZ;
         masterHPF.Q.value = 0.7;
+
+        // Presence & warmth compensation: gives body on mobile speakers, removes fatigue on earbuds
+        masterEQ = audioCtx.createBiquadFilter();
+        masterEQ.type = 'peaking';
+        masterEQ.frequency.value = 180;
+        masterEQ.Q.value = 0.9;
+        masterEQ.gain.value = 1.2;
 
         hpfReverbSend = audioCtx.createGain();
         hpfReverbSend.gain.value = 0.0;
@@ -746,15 +773,16 @@
         hpfReverbWet = audioCtx.createGain();
         hpfReverbWet.gain.value = 0.0;
 
+        // Transparent master compression: tames transients cleanly
         masterCompressor = audioCtx.createDynamicsCompressor();
-        masterCompressor.threshold.setValueAtTime(-14, audioCtx.currentTime);
-        masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
-        masterCompressor.ratio.setValueAtTime(16, audioCtx.currentTime);
-        masterCompressor.attack.setValueAtTime(0.001, audioCtx.currentTime);
-        masterCompressor.release.setValueAtTime(0.14, audioCtx.currentTime);
+        masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(8, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(5, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.09, audioCtx.currentTime);
 
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.85;
+        masterGain.gain.value = 0.88;
 
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
@@ -824,14 +852,17 @@
           rewindProcessor = null;
         }
 
-        masterHPF.connect(masterCompressor);
+        // Processing order: Filter -> EQ -> Reverb split -> Soft Clipper -> Compressor -> Master
+        masterHPF.connect(masterEQ);
+        masterEQ.connect(softClipShaper);
 
         masterHPF.connect(hpfReverbSend);
         hpfReverbSend.connect(reverbConvolver);
         reverbConvolver.connect(reverbToneLPF);
         reverbToneLPF.connect(hpfReverbWet);
-        hpfReverbWet.connect(masterCompressor);
+        hpfReverbWet.connect(softClipShaper);
 
+        softClipShaper.connect(masterCompressor);
         masterCompressor.connect(masterGain);
         masterGain.connect(audioCtx.destination);
 
@@ -910,7 +941,7 @@
         rewindCursor = Math.max(256, rewindLoopSpan - backSamples);
 
         dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
-        rewindOutGain.gain.setTargetAtTime(1.12, now, 0.005);
+        rewindOutGain.gain.setTargetAtTime(1.15, now, 0.005);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
         dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
@@ -927,7 +958,7 @@
       var bp = audioCtx.createBiquadFilter();
       bp.type = 'bandpass';
       bp.frequency.setValueAtTime(900, now);
-      bp.frequency.exponentialRampToValueAtTime(3400, now + 0.28);
+      bp.frequency.exponentialRampToValueAtTime(3200, now + 0.28);
       bp.Q.value = 1.1;
 
       var g = audioCtx.createGain();
@@ -943,13 +974,13 @@
       src.stop(now + 0.36);
     }
 
-    // High Pass Crowd Swell: skips 1 beat, then ramps audibly and smoothly up to 0.38
+    // High-Pass Stadium Crowd Swell: 1-beat pause, then swells clearly up to 0.38
     function startCrowdSwell() {
       stopCrowdSwell();
       if (!audioCtx || !noiseBuffer || !masterCompressor) return;
 
       var now = audioCtx.currentTime;
-      var skipBeatSec = 60 / bpm; // Skip 1 beat
+      var skipBeatSec = 60 / bpm;
       var swellStart = now + skipBeatSec;
 
       var src1 = audioCtx.createBufferSource();
@@ -969,7 +1000,7 @@
       fHigh.type = 'bandpass'; fHigh.frequency.value = 1600; fHigh.Q.value = 2.2;
 
       var fAir = audioCtx.createBiquadFilter();
-      fAir.type = 'bandpass'; fAir.frequency.value = 3200; fAir.Q.value = 1.5;
+      fAir.type = 'bandpass'; fAir.frequency.value = 3000; fAir.Q.value = 1.5;
 
       var sumGain = audioCtx.createGain();
       sumGain.gain.value = 1.0;
@@ -978,12 +1009,11 @@
       toneLPF.type = 'lowpass';
       toneLPF.frequency.setValueAtTime(800, now);
       toneLPF.frequency.setValueAtTime(800, swellStart);
-      toneLPF.frequency.exponentialRampToValueAtTime(5000, swellStart + 3.0);
+      toneLPF.frequency.exponentialRampToValueAtTime(4500, swellStart + 3.0);
 
       var crowdGain = audioCtx.createGain();
       crowdGain.gain.setValueAtTime(0.0001, now);
       crowdGain.gain.setValueAtTime(0.0001, swellStart);
-      // Audible, steady linear swell right on time
       crowdGain.gain.linearRampToValueAtTime(0.38, swellStart + 2.5);
 
       src1.connect(fLow);
@@ -1002,7 +1032,7 @@
       crowdGain.connect(masterCompressor);
       if (reverbConvolver) {
         var revSend = audioCtx.createGain();
-        revSend.gain.value = 0.40;
+        revSend.gain.value = 0.38;
         crowdGain.connect(revSend);
         revSend.connect(reverbConvolver);
       }
@@ -1098,29 +1128,52 @@
       lpf.connect(mixBus);
 
       if (inst.id === 'kick') {
+        // Deep sine fundamental (headphones)
         var osc = audioCtx.createOscillator();
         var g = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(pitchVal * 2.8, time);
         osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
         g.gain.setValueAtTime(0.0001, time);
-        g.gain.linearRampToValueAtTime(0.68, time + 0.003);
+        g.gain.linearRampToValueAtTime(0.66, time + 0.003);
         g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         osc.connect(g);
         g.connect(lpf);
         osc.start(time);
         osc.stop(time + decayVal + 0.015);
+
+        // Acoustic beater click (cuts through iPhone speakers effortlessly)
+        var clickOsc = audioCtx.createOscillator();
+        var clickGain = audioCtx.createGain();
+        clickOsc.type = 'triangle';
+        clickOsc.frequency.setValueAtTime(1400, time);
+        clickOsc.frequency.exponentialRampToValueAtTime(180, time + 0.006);
+        clickGain.gain.setValueAtTime(0.18, time);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.008);
+        clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
+        clickOsc.connect(clickGain);
+        clickGain.connect(lpf);
+        clickOsc.start(time);
+        clickOsc.stop(time + 0.012);
       } else if (inst.id === 'hihat') {
         var hp = audioCtx.createBiquadFilter();
         hp.type = 'highpass';
         hp.frequency.setValueAtTime(4500 * pitchVal, time);
-        hp.connect(lpf);
+
+        // Smooth high shelf to prevent headphone ear fatigue
+        var hatTame = audioCtx.createBiquadFilter();
+        hatTame.type = 'highshelf';
+        hatTame.frequency.value = 11000;
+        hatTame.gain.value = -3.5;
+
+        hp.connect(hatTame);
+        hatTame.connect(lpf);
 
         var noise = audioCtx.createBufferSource();
         noise.buffer = noiseBuffer;
         var ng = audioCtx.createGain();
-        ng.gain.setValueAtTime(0.30, time);
+        ng.gain.setValueAtTime(0.28, time);
         ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         noise.connect(ng);
@@ -1130,7 +1183,7 @@
 
         var ratios = [2, 3.1, 4.2, 5.4, 6.8];
         var mg = audioCtx.createGain();
-        mg.gain.setValueAtTime(0.14, time);
+        mg.gain.setValueAtTime(0.11, time);
         mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
         mg.connect(hp);
@@ -1149,7 +1202,7 @@
         tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
         tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
         tg.gain.setValueAtTime(0.0001, time);
-        tg.gain.linearRampToValueAtTime(0.52, time + 0.003);
+        tg.gain.linearRampToValueAtTime(0.50, time + 0.003);
         tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
         tosc.connect(tg);
@@ -1169,17 +1222,24 @@
         sBP.frequency.setValueAtTime(5200 * pitchVal, time);
         sBP.Q.value = 1.1;
 
+        // Smooth high shelf protects earbuds
+        var sTame = audioCtx.createBiquadFilter();
+        sTame.type = 'highshelf';
+        sTame.frequency.value = 9500;
+        sTame.gain.value = -3.0;
+
         var swellTime = Math.min(0.024, decayVal * 0.28);
         var sEnv = audioCtx.createGain();
         sEnv.gain.setValueAtTime(0.0001, time);
-        sEnv.gain.linearRampToValueAtTime(0.10, time + swellTime * 0.45);
-        sEnv.gain.linearRampToValueAtTime(0.42, time + swellTime);
+        sEnv.gain.linearRampToValueAtTime(0.09, time + swellTime * 0.45);
+        sEnv.gain.linearRampToValueAtTime(0.38, time + swellTime);
         sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
 
         sNoise.connect(sHP);
         sHP.connect(sBP);
-        sBP.connect(sEnv);
+        sBP.connect(sTame);
+        sTame.connect(sEnv);
         sEnv.connect(lpf);
 
         sNoise.start(time, Math.random() * 0.8);
@@ -1197,10 +1257,10 @@
         var bg1 = audioCtx.createGain();
         var bg2 = audioCtx.createGain();
         var bodyDec = Math.min(0.14, decayVal * 0.45);
-        bg1.gain.setValueAtTime(0.34, time);
+        bg1.gain.setValueAtTime(0.32, time);
         bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
         bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
-        bg2.gain.setValueAtTime(0.24, time);
+        bg2.gain.setValueAtTime(0.22, time);
         bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
         bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
 
@@ -1225,7 +1285,7 @@
         sPeak.gain.value = 5;
 
         var sng = audioCtx.createGain();
-        sng.gain.setValueAtTime(0.42, time);
+        sng.gain.setValueAtTime(0.38, time);
         sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
         sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
 
@@ -1243,15 +1303,25 @@
         var semitones = Math.round(pitchVal);
         var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
 
+        // Pure fundamental sine (deep sub on headphones)
         var mainSine = audioCtx.createOscillator();
-        var octSine = audioCtx.createOscillator();
         mainSine.type = 'sine';
-        octSine.type = 'sine';
         mainSine.frequency.setValueAtTime(freq, time);
+
+        // Octave + gentle 3rd harmonic saturation (audible on small iPhone speakers)
+        var octSine = audioCtx.createOscillator();
+        octSine.type = 'sine';
         octSine.frequency.setValueAtTime(freq * 2, time);
 
+        var midSine = audioCtx.createOscillator();
+        midSine.type = 'triangle';
+        midSine.frequency.setValueAtTime(freq * 3, time);
+
         var octGain = audioCtx.createGain();
-        octGain.gain.value = 0.22;
+        octGain.gain.value = 0.26;
+
+        var midGain = audioCtx.createGain();
+        midGain.gain.value = 0.08;
 
         var bg = audioCtx.createGain();
         bg.gain.setValueAtTime(0.0001, time);
@@ -1260,13 +1330,13 @@
         if (span > 1) {
           var holdDur = Math.max(0.04, span * stepDur - 0.015);
           var rel = Math.min(0.045, holdDur * 0.25);
-          bg.gain.linearRampToValueAtTime(0.26, time + 0.012);
-          bg.gain.setValueAtTime(0.26, time + Math.max(0.014, holdDur - rel));
+          bg.gain.linearRampToValueAtTime(0.28, time + 0.012);
+          bg.gain.setValueAtTime(0.28, time + Math.max(0.014, holdDur - rel));
           bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
           bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
           endTime = time + holdDur + 0.008;
         } else {
-          bg.gain.linearRampToValueAtTime(0.34, time + 0.008);
+          bg.gain.linearRampToValueAtTime(0.36, time + 0.008);
           bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
           bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
           endTime = time + decayVal + 0.012;
@@ -1275,14 +1345,18 @@
         mainSine.connect(bg);
         octSine.connect(octGain);
         octGain.connect(bg);
+        midSine.connect(midGain);
+        midGain.connect(bg);
         bg.connect(lpf);
 
         mainSine.start(time);
         octSine.start(time);
+        midSine.start(time);
         mainSine.stop(endTime);
         octSine.stop(endTime);
+        midSine.stop(endTime);
       } else if (inst.id === 'synth') {
-        // Restored punchy, crisp single-note synth with zero envelope lag
+        // Restored crisp single-note synth (instant punchy attack, zero overlap, calibrated 8-110ms decay)
         var sNoteIdx = track.notes[stepIdx];
         if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
         var octShift = Math.round(pitchVal) * 12;
@@ -1293,7 +1367,13 @@
         sOsc.type = wave;
         sOsc.frequency.setValueAtTime(sFreq, time);
 
-        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.32 : 0.44;
+        // Smooth high shelf protects headphones from harsh raw square/saw buzz
+        var sTame = audioCtx.createBiquadFilter();
+        sTame.type = 'highshelf';
+        sTame.frequency.value = 7500;
+        sTame.gain.value = (wave === 'sawtooth' || wave === 'square') ? -4.5 : 0;
+
+        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.30 : 0.42;
         var sG = audioCtx.createGain();
         sG.gain.setValueAtTime(0.0001, time);
         sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
@@ -1301,7 +1381,8 @@
         sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
 
         sOsc.connect(sG);
-        sG.connect(lpf);
+        sG.connect(sTame);
+        sTame.connect(lpf);
         sOsc.start(time);
         sOsc.stop(time + decayVal + 0.008);
       }
@@ -1353,7 +1434,7 @@
       if (isPlaying) return;
       if (audioCtx && masterGain) {
         masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-        masterGain.gain.setValueAtTime(0.85, audioCtx.currentTime);
+        masterGain.gain.setValueAtTime(0.88, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
       setRewind(false);
@@ -1714,7 +1795,6 @@
           return;
         }
 
-        // Synth: single-note entry only
         if (instId === 'synth') {
           var loS = Math.min(pianoLastStep, cell.step);
           var hiS = Math.max(pianoLastStep, cell.step);
@@ -1732,7 +1812,6 @@
           return;
         }
 
-        // Bassline: finger-swipe stitching into held notes
         if (cell.step === pianoLastStep) {
           if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
             track.steps[cell.step] = true;
@@ -2077,234 +2156,4 @@
         '................................',
         '................................',
         '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '...............#########........',
-        '..............###########.......',
-        '..............###:::::###.......',
-        '.............################...',
-        '.............#################..',
-        '..............##::#.########....',
-        '..............##::#.##..####....',
-        '.............######.##..#####...',
-        '............########.##########.',
-        '............##::::##.#######....',
-        '............##::::##.#####..#...',
-        '............##::::##.#######....',
-        '............########.######.....',
-        '.............######.######......',
-        '...........############.........',
-        '.........###########............',
-        '.......############.............',
-        '.....################...........',
-        '...####################.........',
-        '..######################........',
-        '.########################.......',
-        '.###########..###########.......',
-        '.##########....##########.......'
-      ],
-      [
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '................................',
-        '........#########...............',
-        '.......###########..............',
-        '.......###:::::###..............',
-        '......################..........',
-        '......#################.........',
-        '.......##::#.########...........',
-        '.......##::#.##..####...........',
-        '......######.##..#####..........',
-        '.....########.##########........',
-        '.....##::::##.#######...........',
-        '.....##::::##.#####..#..........',
-        '.....##::::##.#######...........',
-        '.....########.######............',
-        '......######.######.............',
-        '........#########...............',
-        '........######..................',
-        '........######..................',
-        '........######..................',
-        '......##########................',
-        '....##############..............',
-        '...################.............',
-        '..##################............',
-        '.####################...........',
-        '.######################.........',
-        '.#########..###########.........',
-        '.########....##########.........',
-        '.#######......#########.........'
-      ]
-    ];
-
-    var finaleStartMs = 0;
-    var fadeTriggered = false;
-    var lastKickMs = -1;
-    var kickCount = 0;
-    var facingDir = 1;
-
-    function buildMatrix() {
-      matrix.innerHTML = '';
-      for (var i = 0; i < INSTRUMENTS.length; i++) {
-        var row = document.createElement('div');
-        row.className = 'matrix-row';
-
-        var label = document.createElement('div');
-        label.className = 'matrix-name mono';
-        label.textContent = INSTRUMENTS[i].name;
-        row.appendChild(label);
-
-        for (var s = 0; s < STEPS; s++) {
-          var cell = document.createElement('div');
-          cell.className = 'matrix-cell' + (tracks[i].steps[s] ? ' on' : '');
-          cell.setAttribute('data-step', s);
-          row.appendChild(cell);
-        }
-        matrix.appendChild(row);
-      }
-    }
-
-    function startFinale() {
-      finaleActive = true;
-      fadeTriggered = false;
-      finaleStartMs = performance.now();
-      lastKickMs = -1;
-      kickCount = 0;
-      facingDir = 1;
-      leftPointerId = null;
-      rightPointerId = null;
-      progressFill.style.width = '0%';
-      setRewind(false);
-
-      sequencerScreen.classList.add('hidden');
-      finaleScreen.classList.remove('hidden');
-
-      buildMatrix();
-    }
-
-    function resetToNewRound() {
-      stopSequencer();
-      finaleActive = false;
-      leftPointerId = null;
-      rightPointerId = null;
-
-      appEl.classList.remove('vanishing');
-      finaleScreen.classList.add('hidden');
-      startScreen.classList.remove('hidden');
-    }
-
-    function drawPixelPigeon(nowMs) {
-      var ctx = pixelCanvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0, 0, 32, 32);
-
-      var frameIdx = 0;
-      if (lastKickMs >= 0) {
-        var dt = (nowMs - lastKickMs) / 1000;
-        var cycleDur = Math.min(0.42, (60 / bpm) * 0.9);
-        var t = dt / cycleDur;
-
-        if (t < 0.22) {
-          frameIdx = 1;
-        } else if (t < 0.56) {
-          frameIdx = 2;
-        } else if (t < 0.86) {
-          frameIdx = 3;
-        } else {
-          frameIdx = 0;
-        }
-      }
-
-      var sprite = PIGEON_FRAMES[frameIdx];
-      for (var y = 0; y < 32; y++) {
-        var rowStr = sprite[y];
-        for (var x = 0; x < 32; x++) {
-          var ch = rowStr.charAt(x);
-          if (ch === '.') continue;
-          ctx.fillStyle = ch === '#' ? '#ffffff' : '#666666';
-          var drawX = facingDir === 1 ? x : (31 - x);
-          ctx.fillRect(drawX, y, 1, 1);
-        }
-      }
-    }
-
-    var lastVisualStep = -1;
-    var prevFrameMs = performance.now();
-
-    function loop(nowMs) {
-      var frameDt = Math.min(0.05, (nowMs - prevFrameMs) / 1000);
-      prevFrameMs = nowMs;
-
-      if (isPlaying && audioCtx) {
-        while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
-          var ev = visualQueue.shift();
-          activePlayStep = ev.step;
-          if (finaleActive && ev.kickHit && !rewindActive) {
-            lastKickMs = nowMs;
-            kickCount++;
-            if (kickCount % 4 === 1 && kickCount > 1) {
-              facingDir *= -1;
-            }
-          }
-        }
-
-        if (activePlayStep !== lastVisualStep) {
-          lastVisualStep = activePlayStep;
-          if (!finaleActive) {
-            if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-              drawPianoRoll();
-            } else {
-              var bars = stepGrid.querySelectorAll('.playhead-bar');
-              for (var i = 0; i < bars.length; i++) {
-                bars[i].classList.toggle('now', i === activePlayStep);
-              }
-            }
-          } else {
-            var cells = matrix.querySelectorAll('.matrix-cell');
-            for (var c = 0; c < cells.length; c++) {
-              cells[c].classList.toggle('now', Number(cells[c].getAttribute('data-step')) === activePlayStep);
-            }
-          }
-        }
-      }
-
-      if (finaleActive) {
-        drawPixelPigeon(nowMs);
-
-        vinylAngleL += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
-        vinylAngleR += frameDt * (hpfActive ? 5.2 : 2.6);
-
-        drawVinyl(leftVinyl, vinylAngleL, rewindActive);
-        drawVinyl(rightVinyl, vinylAngleR, hpfActive);
-
-        var elapsed = (nowMs - finaleStartMs) / 1000;
-        var progress = Math.min(1, elapsed / FINALE_SECONDS);
-        progressFill.style.width = (progress * 100) + '%';
-
-        if (elapsed >= FINALE_SECONDS - 1.2 && !fadeTriggered) {
-          fadeTriggered = true;
-          appEl.classList.add('vanishing');
-          if (masterGain && audioCtx) {
-            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
-            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.1);
-          }
-        }
-
-        if (elapsed >= FINALE_SECONDS) {
-          resetToNewRound();
-        }
-      }
-
-      requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
-  </script>
-</body>
-</html>
+        '.................
