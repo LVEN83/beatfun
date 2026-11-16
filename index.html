@@ -101,6 +101,7 @@
       border: 1px solid #ffffff;
       padding: 12px 14px;
       min-height: 0;
+      gap: 6px;
     }
 
     .top-bar {
@@ -130,48 +131,6 @@
       height: 48px;
       font-size: 11px;
       letter-spacing: 1px;
-    }
-
-    .page-bar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .page-btn {
-      min-height: 48px;
-      background-color: #000000;
-      color: #777777;
-      border: 1px solid #333333;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .page-btn.active {
-      background-color: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    .page-dot {
-      width: 6px;
-      height: 6px;
-      background-color: transparent;
-    }
-
-    .page-btn.playing .page-dot {
-      background-color: #ffffff;
-    }
-
-    .page-btn.active.playing .page-dot {
-      background-color: #000000;
     }
 
     .step-grid {
@@ -205,10 +164,6 @@
       touch-action: none;
     }
 
-    .seq-screen.chords-32 .step-pad {
-      height: clamp(48px, 6.2dvh, 56px);
-    }
-
     .step-pad.beat-mark {
       border-left: 3px solid #777777;
     }
@@ -229,6 +184,49 @@
       background-color: #ffffff;
     }
 
+    /* ---------- SYNTH WAVEFORM SELECTOR & ABLETON PIANO ROLL ---------- */
+    .wave-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .wave-btn {
+      min-height: 44px;
+      background-color: #000000;
+      color: #777777;
+      border: 1px solid #333333;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .wave-btn.active {
+      background-color: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .piano-roll-wrap {
+      flex: 1;
+      min-height: 170px;
+      border: 1px solid #444444;
+      background-color: #000000;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .piano-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* ---------- PARAMETERS ---------- */
     .params-grid {
       display: flex;
       flex-direction: column;
@@ -237,8 +235,8 @@
 
     .param-box {
       border: 1px solid #333333;
-      padding: 5px 12px;
-      min-height: 48px;
+      padding: 4px 12px;
+      min-height: 46px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -293,7 +291,7 @@
       display: grid;
       grid-template-columns: 1fr 1.5fr;
       gap: 10px;
-      padding-top: 4px;
+      padding-top: 2px;
     }
 
     .btn-secondary {
@@ -332,7 +330,7 @@
       color: #ffffff;
     }
 
-    /* ---------- NOTE / CHORD PICKER POPUP ---------- */
+    /* ---------- BASSLINE NOTE PICKER POPUP ---------- */
     .note-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -386,11 +384,6 @@
       margin-bottom: 10px;
     }
 
-    .note-grid.chords-mode {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
     .note-btn {
       background-color: #000000;
       color: #ffffff;
@@ -401,12 +394,6 @@
       font-weight: 700;
       cursor: pointer;
       text-align: center;
-    }
-
-    .note-grid.chords-mode .note-btn {
-      min-height: 50px;
-      font-size: 14px;
-      letter-spacing: 1px;
     }
 
     .note-btn:active {
@@ -531,11 +518,6 @@
       align-items: center;
     }
 
-    .matrix-row.row-32 {
-      grid-template-columns: 74px repeat(32, 1fr);
-      gap: 1px;
-    }
-
     .matrix-name {
       font-size: 9px;
       letter-spacing: 0.5px;
@@ -563,6 +545,7 @@
     @media (hover: hover) {
       .btn-lets-go:hover { background-color: #ffffff; color: #000000; }
       .step-pad:hover { border-color: #ffffff; }
+      .wave-btn:hover { border-color: #ffffff; }
       .btn-secondary:hover { border-color: #ffffff; }
       .btn-next:hover { background-color: #000000; color: #ffffff; }
       .note-btn:hover { border-color: #ffffff; }
@@ -589,21 +572,25 @@
         </div>
       </div>
 
-      <div class="page-bar hidden" id="chordPageBar">
-        <button type="button" class="page-btn mono active" id="pageBtn0">
-          <span class="page-dot"></span><span>1 – 16</span>
-        </button>
-        <button type="button" class="page-btn mono" id="pageBtn1">
-          <span class="page-dot"></span><span>17 – 32</span>
-        </button>
+      <!-- Standard 4x4 step pads (Drums & Bassline) -->
+      <div class="step-grid" id="stepGrid"></div>
+
+      <!-- Synth Waveform Selector + Ableton 1-Octave Piano Roll -->
+      <div class="wave-bar hidden" id="waveBar">
+        <button type="button" class="wave-btn mono active" data-wave="sine">SINE</button>
+        <button type="button" class="wave-btn mono" data-wave="sawtooth">SAW</button>
+        <button type="button" class="wave-btn mono" data-wave="square">SQR</button>
+        <button type="button" class="wave-btn mono" data-wave="triangle">TRI</button>
       </div>
 
-      <div class="step-grid" id="stepGrid"></div>
+      <div class="piano-roll-wrap hidden" id="pianoRollWrap">
+        <canvas class="piano-canvas" id="pianoCanvas"></canvas>
+      </div>
 
       <div class="params-grid">
         <div class="param-box">
           <div class="param-top mono">
-            <span class="param-label">Pitch</span>
+            <span class="param-label" id="pitchLabel">Pitch</span>
             <span class="param-value" id="pitchVal">50%</span>
           </div>
           <input type="range" id="pitchSlider" min="0" max="1" step="0.01" value="0.5" />
@@ -660,11 +647,11 @@
     </div>
   </div>
 
-  <!-- NOTE / CHORD PICKER MODAL -->
+  <!-- BASSLINE NOTE PICKER MODAL -->
   <div id="noteModalBackdrop" class="note-modal-backdrop hidden">
-    <div class="note-modal" id="noteModal">
+    <div class="note-modal">
       <div class="note-modal-head mono">
-        <span id="noteModalTitle">STEP 01</span>
+        <span id="noteModalTitle">STEP 01 — NOTE</span>
         <button type="button" class="note-close-btn" id="noteCloseBtn">×</button>
       </div>
       <div class="note-grid" id="noteGrid"></div>
@@ -682,6 +669,7 @@
     }, { passive: false });
 
     var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    var IS_SHARP   = [false, true, false, true, false, false, true, false, true, false, true, false];
 
     function midiToHz(midi) {
       return 440 * Math.pow(2, (midi - 69) / 12);
@@ -695,49 +683,35 @@
     function buildNoteRange(startMidi, endMidi) {
       var list = [];
       for (var m = startMidi; m <= endMidi; m++) {
-        list.push({ name: midiToLabel(m), midi: m });
+        list.push({ name: midiToLabel(m), midi: m, sharp: IS_SHARP[((m % 12) + 12) % 12] });
       }
       return list;
     }
 
-    var BASS_NOTES = buildNoteRange(24, 36); // C1 to C2
-
-    var CHORDS = [
-      { name: 'Cmaj7', notes: [48, 52, 55, 59] },
-      { name: 'C6/9',  notes: [48, 52, 55, 57] },
-      { name: 'Dm7',   notes: [50, 53, 57, 60] },
-      { name: 'Dm9',   notes: [38, 48, 53, 57] },
-      { name: 'Em7',   notes: [40, 47, 50, 55] },
-      { name: 'Fmaj7', notes: [41, 48, 52, 57] },
-      { name: 'F6/9',  notes: [41, 45, 48, 55] },
-      { name: 'G6',    notes: [43, 47, 50, 52] },
-      { name: 'Gsus4', notes: [43, 48, 50, 55] },
-      { name: 'Am9',   notes: [45, 52, 55, 59] }
-    ];
+    var BASS_NOTES  = buildNoteRange(24, 36); // C1 to C2
+    var SYNTH_NOTES = buildNoteRange(60, 72); // C4 to C5 (1 octave, transposed +-1 oct via Transpose)
 
     var INSTRUMENTS = [
-      { id: 'kick',     name: 'Bass Drum',  steps: 16, defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
-      { id: 'hihat',    name: 'Hi-Hats',    steps: 16, defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
-      { id: 'tom',      name: 'Toms',       steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
-      { id: 'shakers',  name: 'Shakers',    steps: 16, defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
-      { id: 'snare',    name: 'Snare Drum', steps: 16, defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
-      { id: 'bassline', name: 'Bassline',   steps: 16, defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.08, 0.60] },
-      { id: 'chords',   name: 'Chords',     steps: 32, defaults: { pitch: 0.50, decay: 0.70, filter: 0.62 }, pitchRange: [-25, 25],    decayRange: [0.15, 2.0] }
+      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
+      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
+      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
+      { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
+      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
+      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.08, 0.60] },
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.105] } // Transpose (-1,0,+1 oct) & mega-short decay
     ];
 
-    var CYCLE_STEPS = 32;
+    var STEPS = 16;
     var FINALE_SECONDS = 30;
     var BASE_HPF_HZ = 35;
     var REWIND_SPEED = -0.5;
 
     var turnIndex = 0;
-    var chordPage = 0;
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
     var tracks = [];
     var lastChosenBassNoteIdx = 0;
-    var lastChosenChordIdx    = 0;
 
     function resetTracks() {
       tracks = [];
@@ -745,13 +719,14 @@
         var inst = INSTRUMENTS[i];
         var arr = [];
         var noteArr = [];
-        for (var s = 0; s < inst.steps; s++) {
+        for (var s = 0; s < STEPS; s++) {
           arr.push(false);
           noteArr.push(0);
         }
         tracks.push({
           steps: arr,
           notes: noteArr,
+          waveform: 'sine',
           params: {
             pitch: inst.defaults.pitch,
             decay: inst.defaults.decay,
@@ -760,8 +735,6 @@
         });
       }
       lastChosenBassNoteIdx = 0;
-      lastChosenChordIdx = 0;
-      chordPage = 0;
     }
     resetTracks();
 
@@ -772,14 +745,6 @@
     var audioUnlocked = false;
     var mixBus = null;
     var dryMixGain = null;
-
-    var chordOscs = [];
-    var chordLPF = null;
-    var chordGain = null;
-    var chordHasPlayed = false;
-    var chordReverbConvolver = null;
-    var chordReverbLPF = null;
-    var chordReverbWet = null;
 
     var snareGritShaper = null;
 
@@ -794,7 +759,6 @@
     var rewindCursor = 0;
     var rewindActive = false;
 
-    // Very short initial stutter state before half-time rewind
     var rewindStutterBaseIdx = 0;
     var rewindStutterSlice = 0;
     var rewindStutterTotal = 0;
@@ -869,46 +833,6 @@
         snareGritShaper.curve = create909GritCurve();
         snareGritShaper.oversample = 'none';
 
-        chordReverbConvolver = audioCtx.createConvolver();
-        chordReverbConvolver.buffer = createReverbImpulse(audioCtx, 1.5, 2.7);
-
-        chordReverbLPF = audioCtx.createBiquadFilter();
-        chordReverbLPF.type = 'lowpass';
-        chordReverbLPF.frequency.value = 3000;
-
-        chordReverbWet = audioCtx.createGain();
-        chordReverbWet.gain.value = 0.20;
-
-        chordReverbConvolver.connect(chordReverbLPF);
-        chordReverbLPF.connect(chordReverbWet);
-        chordReverbWet.connect(mixBus);
-
-        chordLPF = audioCtx.createBiquadFilter();
-        chordLPF.type = 'lowpass';
-        chordLPF.frequency.value = normToFilterHz(INSTRUMENTS[6].defaults.filter);
-        chordLPF.Q.value = 0.7;
-
-        chordGain = audioCtx.createGain();
-        chordGain.gain.value = 0.0;
-
-        chordGain.connect(chordLPF);
-        chordLPF.connect(mixBus);
-        chordLPF.connect(chordReverbConvolver);
-
-        chordOscs = [];
-        for (var v = 0; v < 4; v++) {
-          var osc = audioCtx.createOscillator();
-          osc.type = v === 0 ? 'triangle' : 'sine';
-          osc.frequency.value = midiToHz(CHORDS[0].notes[v]);
-          osc.detune.value = (v - 1.5) * 4;
-          var vg = audioCtx.createGain();
-          vg.gain.value = 0.25;
-          osc.connect(vg);
-          vg.connect(chordGain);
-          osc.start(0);
-          chordOscs.push(osc);
-        }
-
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
         masterHPF.frequency.value = BASE_HPF_HZ;
@@ -962,7 +886,6 @@
 
             var fadeN = 256;
             for (var j = 0; j < len; j++) {
-              // Very short 3-hit micro-stutter right on the closest hit, then half-time rewind
               if (rewindElapsedSamples < rewindStutterTotal) {
                 var posInSlice = rewindElapsedSamples % rewindStutterSlice;
                 var env = 1.0;
@@ -990,7 +913,6 @@
             }
           };
 
-          // Deeper lowpass on rewind for a warm melted reverse sound
           rewindLPF = audioCtx.createBiquadFilter();
           rewindLPF.type = 'lowpass';
           rewindLPF.frequency.value = 950;
@@ -1018,7 +940,6 @@
         masterCompressor.connect(masterGain);
         masterGain.connect(audioCtx.destination);
 
-        // 2 seconds of noise so random buffer offsets have plenty of length
         var len = audioCtx.sampleRate * 2;
         noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
         var ch = noiseBuffer.getChannelData(0);
@@ -1062,14 +983,6 @@
       }
     });
 
-    function silenceChordSynth() {
-      if (!audioCtx || !chordGain) return;
-      var now = audioCtx.currentTime;
-      chordGain.gain.cancelScheduledValues(now);
-      chordGain.gain.setTargetAtTime(0.0, now, 0.02);
-      chordHasPlayed = false;
-    }
-
     function setRewind(on) {
       if (rewindActive === on) return;
       rewindActive = on;
@@ -1083,7 +996,6 @@
         rewindLoopSpan = Math.min(ringLen - 1024, Math.max(2048, barSamples));
         rewindTopIdx = (ringWriteIdx - 256 + ringLen) % ringLen;
 
-        // Locate closest recent hit (with enough forward tail for the initial micro-stutter)
         var refHit = lastHitAudioTime;
         if (refHit > now - 0.055 && prevHitAudioTime > 0) {
           refHit = prevHitAudioTime;
@@ -1093,13 +1005,11 @@
           hitAgeSamples = Math.max(Math.round(0.05 * sr), Math.min(rewindLoopSpan - 512, Math.round((now - refHit) * sr)));
         }
 
-        // Very short 3 x 38ms stutter right on the closest hit
         rewindStutterSlice = Math.round(0.038 * sr);
         rewindStutterTotal = rewindStutterSlice * 3;
         rewindElapsedSamples = 0;
         rewindStutterBaseIdx = (rewindTopIdx - hitAgeSamples + ringLen) % ringLen;
 
-        // Right after the ~114ms micro-stutter, rewind backwards across that hit at -0.5x
         var tailOffset = Math.round(0.11 * sr);
         var backSamples = Math.max(0, Math.min(rewindLoopSpan - 512, hitAgeSamples - tailOffset));
         rewindCursor = Math.max(256, rewindLoopSpan - backSamples);
@@ -1173,52 +1083,13 @@
       return 45 * Math.pow(900 / 45, t);
     }
 
-    function getMaxChordsDecaySec() {
-      return 240 / bpm;
-    }
-
-    function getRawDecaySec(inst, decayParam) {
-      if (inst.id === 'chords') {
-        return lerp(0.15, getMaxChordsDecaySec(), decayParam);
-      }
-      return lerp(inst.decayRange[0], inst.decayRange[1], decayParam);
-    }
-
     function triggerSound(instIdx, stepIdx, time) {
       if (!audioCtx || audioCtx.state !== 'running') return;
       var inst = INSTRUMENTS[instIdx];
       var p = tracks[instIdx].params;
-      var pitchVal = lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
-      var decayVal = getRawDecaySec(inst, p.decay);
+      var pitchVal = inst.id === 'synth' ? Math.round(p.pitch) : lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
+      var decayVal = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
       var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
-
-      if (inst.id === 'chords') {
-        var chordIdx = tracks[instIdx].notes[stepIdx] || 0;
-        if (chordIdx < 0 || chordIdx >= CHORDS.length) chordIdx = 0;
-        var chordNotes = CHORDS[chordIdx].notes;
-
-        chordLPF.frequency.setTargetAtTime(cutoff, time, 0.015);
-
-        var glideFromPrev = chordHasPlayed;
-        for (var v = 0; v < 4; v++) {
-          var targetHz = midiToHz(chordNotes[v]);
-          chordOscs[v].detune.setTargetAtTime(pitchVal + (v - 1.5) * 4, time, 0.015);
-          if (glideFromPrev) {
-            chordOscs[v].frequency.setTargetAtTime(targetHz, time, 0.045);
-          } else {
-            chordOscs[v].frequency.setValueAtTime(targetHz, time);
-          }
-        }
-        chordHasPlayed = true;
-
-        var sustainUntil = time + decayVal * 0.72;
-        var releaseTau = Math.max(0.025, decayVal * 0.10);
-
-        chordGain.gain.cancelScheduledValues(time);
-        chordGain.gain.setTargetAtTime(0.32, time, 0.028);
-        chordGain.gain.setTargetAtTime(0.0, sustainUntil, releaseTau);
-        return;
-      }
 
       var lpf = audioCtx.createBiquadFilter();
       lpf.type = 'lowpass';
@@ -1286,7 +1157,6 @@
         tosc.start(time);
         tosc.stop(time + decayVal + 0.015);
       } else if (inst.id === 'shakers') {
-        // Silky analog shaker: smooth ~20ms brush swell, clean bandpass/highpass noise, buffer offset in 2nd arg
         var sNoise = audioCtx.createBufferSource();
         sNoise.buffer = noiseBuffer;
 
@@ -1396,6 +1266,28 @@
         octSine.start(time);
         mainSine.stop(time + decayVal + 0.018);
         octSine.stop(time + decayVal + 0.018);
+      } else if (inst.id === 'synth') {
+        var sNoteIdx = tracks[instIdx].notes[stepIdx];
+        if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
+        var octShift = Math.round(pitchVal) * 12; // -12, 0, or +12 semitones
+        var sFreq = midiToHz(SYNTH_NOTES[sNoteIdx].midi + octShift);
+        var wave = tracks[instIdx].waveform || 'sine';
+
+        var sOsc = audioCtx.createOscillator();
+        sOsc.type = wave;
+        sOsc.frequency.setValueAtTime(sFreq, time);
+
+        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.34 : 0.46;
+        var sG = audioCtx.createGain();
+        sG.gain.setValueAtTime(0.0001, time);
+        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
+        sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+        sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
+
+        sOsc.connect(sG);
+        sG.connect(lpf);
+        sOsc.start(time);
+        sOsc.stop(time + decayVal + 0.008);
       }
     }
 
@@ -1404,10 +1296,9 @@
       var anyHit = false;
       var maxIdx = finaleActive ? INSTRUMENTS.length - 1 : turnIndex;
       for (var i = 0; i <= maxIdx; i++) {
-        var sIdx = step % tracks[i].steps.length;
-        if (tracks[i].steps[sIdx]) {
+        if (tracks[i].steps[step]) {
           anyHit = true;
-          triggerSound(i, sIdx, time);
+          triggerSound(i, step, time);
           if (INSTRUMENTS[i].id === 'kick') {
             kickHit = true;
           }
@@ -1433,7 +1324,7 @@
       while (nextNoteTime < audioCtx.currentTime + 0.1) {
         scheduleStep(currentStep, nextNoteTime);
         nextNoteTime += stepDur;
-        currentStep = (currentStep + 1) % CYCLE_STEPS;
+        currentStep = (currentStep + 1) % STEPS;
       }
     }
 
@@ -1447,7 +1338,6 @@
         masterGain.gain.setValueAtTime(0.90, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
-      silenceChordSynth();
       setRewind(false);
       setHighPass(false);
       lastHitAudioTime = -1;
@@ -1467,7 +1357,6 @@
       clearInterval(schedulerId);
       schedulerId = null;
       visualQueue.length = 0;
-      silenceChordSynth();
       setRewind(false);
       setHighPass(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
@@ -1491,11 +1380,12 @@
     var instName = document.getElementById('instName');
     var bpmSlider = document.getElementById('bpmSlider');
     var bpmValue = document.getElementById('bpmValue');
-    var chordPageBar = document.getElementById('chordPageBar');
-    var pageBtn0 = document.getElementById('pageBtn0');
-    var pageBtn1 = document.getElementById('pageBtn1');
     var stepGrid = document.getElementById('stepGrid');
+    var waveBar = document.getElementById('waveBar');
+    var pianoRollWrap = document.getElementById('pianoRollWrap');
+    var pianoCanvas = document.getElementById('pianoCanvas');
 
+    var pitchLabel = document.getElementById('pitchLabel');
     var pitchSlider = document.getElementById('pitchSlider');
     var decaySlider = document.getElementById('decaySlider');
     var filterSlider = document.getElementById('filterSlider');
@@ -1521,16 +1411,10 @@
 
     var dragPointerId = null;
     var dragPaint = true;
+    var pianoPointerId = null;
+    var pianoDrawMode = 'draw'; // 'draw' or 'erase'
     var leftPointerId = null;
     var rightPointerId = null;
-
-    function isPickerInstrument(instId) {
-      return instId === 'bassline' || instId === 'chords';
-    }
-
-    function getStepOffset() {
-      return INSTRUMENTS[turnIndex].id === 'chords' ? chordPage * 16 : 0;
-    }
 
     function bindTap(el, handler) {
       el.addEventListener('pointerdown', function(e) {
@@ -1554,26 +1438,14 @@
 
     bindTap(clearBtn, function() {
       tracks[turnIndex].steps.fill(false);
-      if (INSTRUMENTS[turnIndex].id === 'chords') {
-        silenceChordSynth();
-      }
       renderStepPads();
+      if (INSTRUMENTS[turnIndex].id === 'synth') {
+        drawPianoRoll();
+      }
     });
 
     bindTap(nextBtn, function() {
       nextTurn();
-    });
-
-    bindTap(pageBtn0, function() {
-      chordPage = 0;
-      renderChordPageButtons();
-      renderStepPads();
-    });
-
-    bindTap(pageBtn1, function() {
-      chordPage = 1;
-      renderChordPageButtons();
-      renderStepPads();
     });
 
     bindTap(noteCloseBtn, function() {
@@ -1591,30 +1463,189 @@
       }
     });
 
-    function renderChordPageButtons() {
-      pageBtn0.classList.toggle('active', chordPage === 0);
-      pageBtn1.classList.toggle('active', chordPage === 1);
+    // Waveform selector buttons for Synth
+    var waveBtns = waveBar.querySelectorAll('.wave-btn');
+    for (var wb = 0; wb < waveBtns.length; wb++) {
+      (function(btn) {
+        bindTap(btn, function() {
+          ensureAudioUnlocked();
+          var wave = btn.getAttribute('data-wave');
+          tracks[turnIndex].waveform = wave;
+          renderWaveButtons();
+        });
+      })(waveBtns[wb]);
     }
 
-    function paintStepPad(localIdx, state) {
-      var actualStep = getStepOffset() + localIdx;
-      tracks[turnIndex].steps[actualStep] = state;
-      var pad = stepGrid.querySelector('.step-pad[data-local="' + localIdx + '"]');
+    function renderWaveButtons() {
+      var curWave = tracks[turnIndex].waveform || 'sine';
+      for (var i = 0; i < waveBtns.length; i++) {
+        waveBtns[i].classList.toggle('active', waveBtns[i].getAttribute('data-wave') === curWave);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // ABLETON-STYLE 1-OCTAVE PIANO ROLL (16 STEPS x 13 NOTES C4-C5)
+    // ---------------------------------------------------------
+    var PIANO_KEY_W = 28;
+
+    function getPianoCellAt(clientX, clientY) {
+      var rect = pianoCanvas.getBoundingClientRect();
+      var x = clientX - rect.left;
+      var y = clientY - rect.top;
+      var gridW = rect.width - PIANO_KEY_W;
+      var step = Math.floor(((x - PIANO_KEY_W) / gridW) * STEPS);
+      if (step < 0) step = 0;
+      if (step >= STEPS) step = STEPS - 1;
+
+      var numRows = SYNTH_NOTES.length; // 13 (top = C5 = idx 12, bottom = C4 = idx 0)
+      var rowFromTop = Math.floor((y / rect.height) * numRows);
+      if (rowFromTop < 0) rowFromTop = 0;
+      if (rowFromTop >= numRows) rowFromTop = numRows - 1;
+      var noteIdx = (numRows - 1) - rowFromTop;
+      return { step: step, noteIdx: noteIdx };
+    }
+
+    pianoCanvas.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      ensureAudioUnlocked();
+      pianoPointerId = e.pointerId;
+      var cell = getPianoCellAt(e.clientX, e.clientY);
+      var track = tracks[turnIndex];
+      if (track.steps[cell.step] && track.notes[cell.step] === cell.noteIdx) {
+        pianoDrawMode = 'erase';
+        track.steps[cell.step] = false;
+      } else {
+        pianoDrawMode = 'draw';
+        track.steps[cell.step] = true;
+        track.notes[cell.step] = cell.noteIdx;
+      }
+      drawPianoRoll();
+    });
+
+    function drawPianoRoll() {
+      var rect = pianoCanvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      var dpr = window.devicePixelRatio || 1;
+      var targetW = Math.round(rect.width * dpr);
+      var targetH = Math.round(rect.height * dpr);
+      if (pianoCanvas.width !== targetW || pianoCanvas.height !== targetH) {
+        pianoCanvas.width = targetW;
+        pianoCanvas.height = targetH;
+      }
+
+      var ctx = pianoCanvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      var w = rect.width;
+      var h = rect.height;
+      var numRows = SYNTH_NOTES.length; // 13
+      var rowH = h / numRows;
+      var gridW = w - PIANO_KEY_W;
+      var colW = gridW / STEPS;
+
+      ctx.clearRect(0, 0, w, h);
+
+      var track = tracks[turnIndex];
+      var octShift = Math.round(track.params.pitch) * 12;
+
+      // 1. Draw rows (dark tint for sharp/black keys, black for white keys)
+      for (var r = 0; r < numRows; r++) {
+        var noteIdx = (numRows - 1) - r;
+        var noteObj = SYNTH_NOTES[noteIdx];
+        var y = r * rowH;
+
+        // Grid background
+        ctx.fillStyle = noteObj.sharp ? '#0f0f0f' : '#000000';
+        ctx.fillRect(PIANO_KEY_W, y, gridW, rowH);
+
+        // Left piano key strip
+        ctx.fillStyle = noteObj.sharp ? '#1c1c1c' : '#d8d8d8';
+        ctx.fillRect(0, y, PIANO_KEY_W - 1, rowH - 0.5);
+
+        // Key label on C notes and F/G/A for clean orientation
+        if (!noteObj.sharp) {
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 8px "Courier New", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(midiToLabel(noteObj.midi + octShift), (PIANO_KEY_W - 1) / 2, y + rowH / 2 + 0.5);
+        }
+
+        // Horizontal grid line
+        ctx.strokeStyle = '#222222';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(PIANO_KEY_W, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // 2. Vertical step grid lines (brighter on beats 1, 5, 9, 13)
+      for (var s = 0; s <= STEPS; s++) {
+        var x = PIANO_KEY_W + s * colW;
+        ctx.strokeStyle = (s % 4 === 0) ? '#444444' : '#1b1b1b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      // 3. Active playhead column highlight
+      if (isPlaying) {
+        var px = PIANO_KEY_W + activePlayStep * colW;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+        ctx.fillRect(px, 0, colW, h);
+      }
+
+      // 4. Drawn notes (crisp white blocks)
+      for (var st = 0; st < STEPS; st++) {
+        if (!track.steps[st]) continue;
+        var nIdx = track.notes[st];
+        if (nIdx < 0 || nIdx >= numRows) nIdx = 0;
+        var rowFromTop = (numRows - 1) - nIdx;
+        var nx = PIANO_KEY_W + st * colW + 1.5;
+        var ny = rowFromTop * rowH + 1.5;
+        var nw = Math.max(4, colW - 3);
+        var nh = Math.max(4, rowH - 3);
+
+        ctx.fillStyle = (isPlaying && st === activePlayStep) ? '#ffffff' : '#dddddd';
+        ctx.fillRect(nx, ny, nw, nh);
+      }
+
+      // 5. Sharp vertical playhead line
+      if (isPlaying) {
+        var lineX = PIANO_KEY_W + activePlayStep * colW;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(lineX, 0);
+        ctx.lineTo(lineX, h);
+        ctx.stroke();
+      }
+    }
+
+    // ---------------------------------------------------------
+    // STANDARD STEP GRID (DRUMS & BASSLINE)
+    // ---------------------------------------------------------
+    function paintStepPad(stepIdx, state) {
+      tracks[turnIndex].steps[stepIdx] = state;
+      var pad = stepGrid.querySelector('.step-pad[data-step="' + stepIdx + '"]');
       if (pad) pad.classList.toggle('active', state);
     }
 
     function buildStepGrid() {
       stepGrid.innerHTML = '';
-      for (var i = 0; i < 16; i++) {
-        (function(localIdx) {
+      for (var i = 0; i < STEPS; i++) {
+        (function(stepIdx) {
           var wrap = document.createElement('div');
           wrap.className = 'step-wrap';
 
           var pad = document.createElement('button');
           pad.type = 'button';
-          pad.className = 'step-pad mono' + (localIdx % 4 === 0 ? ' beat-mark' : '');
-          pad.setAttribute('data-local', localIdx);
-          pad.textContent = localIdx + 1;
+          pad.className = 'step-pad mono' + (stepIdx % 4 === 0 ? ' beat-mark' : '');
+          pad.setAttribute('data-step', stepIdx);
+          pad.textContent = stepIdx + 1;
 
           var bar = document.createElement('div');
           bar.className = 'playhead-bar';
@@ -1623,18 +1654,17 @@
             e.preventDefault();
             ensureAudioUnlocked();
             var instId = INSTRUMENTS[turnIndex].id;
-            var actualStep = getStepOffset() + localIdx;
-            if (isPickerInstrument(instId)) {
-              if (!tracks[turnIndex].steps[actualStep]) {
-                tracks[turnIndex].steps[actualStep] = true;
-                tracks[turnIndex].notes[actualStep] = instId === 'chords' ? lastChosenChordIdx : lastChosenBassNoteIdx;
+            if (instId === 'bassline') {
+              if (!tracks[turnIndex].steps[stepIdx]) {
+                tracks[turnIndex].steps[stepIdx] = true;
+                tracks[turnIndex].notes[stepIdx] = lastChosenBassNoteIdx;
               }
               renderStepPads();
-              openNoteModal(actualStep);
+              openNoteModal(stepIdx);
             } else {
               dragPointerId = e.pointerId;
-              dragPaint = !tracks[turnIndex].steps[actualStep];
-              paintStepPad(localIdx, dragPaint);
+              dragPaint = !tracks[turnIndex].steps[stepIdx];
+              paintStepPad(stepIdx, dragPaint);
             }
           });
 
@@ -1647,30 +1677,40 @@
     buildStepGrid();
 
     window.addEventListener('pointermove', function(e) {
+      if (pianoPointerId !== null && e.pointerId === pianoPointerId) {
+        var cell = getPianoCellAt(e.clientX, e.clientY);
+        var track = tracks[turnIndex];
+        if (pianoDrawMode === 'draw') {
+          if (!track.steps[cell.step] || track.notes[cell.step] !== cell.noteIdx) {
+            track.steps[cell.step] = true;
+            track.notes[cell.step] = cell.noteIdx;
+            drawPianoRoll();
+          }
+        } else {
+          if (track.steps[cell.step]) {
+            track.steps[cell.step] = false;
+            drawPianoRoll();
+          }
+        }
+        return;
+      }
+
       if (dragPointerId === null || e.pointerId !== dragPointerId) return;
-      if (isPickerInstrument(INSTRUMENTS[turnIndex].id)) return;
+      if (INSTRUMENTS[turnIndex].id === 'bassline' || INSTRUMENTS[turnIndex].id === 'synth') return;
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
-        var localIdx = Number(hitEl.getAttribute('data-local'));
-        var actualStep = getStepOffset() + localIdx;
-        if (!isNaN(localIdx) && tracks[turnIndex].steps[actualStep] !== dragPaint) {
-          paintStepPad(localIdx, dragPaint);
+        var s = Number(hitEl.getAttribute('data-step'));
+        if (!isNaN(s) && tracks[turnIndex].steps[s] !== dragPaint) {
+          paintStepPad(s, dragPaint);
         }
       }
     });
 
     function handlePointerRelease(e) {
-      if (e.pointerId === dragPointerId) {
-        dragPointerId = null;
-      }
-      if (e.pointerId === leftPointerId) {
-        leftPointerId = null;
-        setRewind(false);
-      }
-      if (e.pointerId === rightPointerId) {
-        rightPointerId = null;
-        setHighPass(false);
-      }
+      if (e.pointerId === dragPointerId) dragPointerId = null;
+      if (e.pointerId === pianoPointerId) pianoPointerId = null;
+      if (e.pointerId === leftPointerId) { leftPointerId = null; setRewind(false); }
+      if (e.pointerId === rightPointerId) { rightPointerId = null; setHighPass(false); }
     }
 
     window.addEventListener('pointerup', handlePointerRelease);
@@ -1678,6 +1718,7 @@
     window.addEventListener('touchend', function(e) {
       if (e.touches && e.touches.length === 0) {
         dragPointerId = null;
+        pianoPointerId = null;
         leftPointerId = null;
         rightPointerId = null;
         setRewind(false);
@@ -1700,53 +1741,39 @@
     rightVinyl.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     function renderStepPads() {
-      var instId = INSTRUMENTS[turnIndex].id;
-      var hasPicker = isPickerInstrument(instId);
-      var list = instId === 'chords' ? CHORDS : BASS_NOTES;
-      var offset = getStepOffset();
+      var isBass = INSTRUMENTS[turnIndex].id === 'bassline';
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
-        var actualStep = offset + i;
-        var on = track.steps[actualStep];
+        var on = track.steps[i];
         pads[i].classList.toggle('active', on);
-        if (hasPicker && on) {
-          var nIdx = track.notes[actualStep];
-          if (nIdx < 0 || nIdx >= list.length) nIdx = 0;
-          pads[i].textContent = list[nIdx].name;
+        if (isBass && on) {
+          var nIdx = track.notes[i];
+          if (nIdx < 0 || nIdx >= BASS_NOTES.length) nIdx = 0;
+          pads[i].textContent = BASS_NOTES[nIdx].name;
         } else {
-          pads[i].textContent = actualStep + 1;
+          pads[i].textContent = i + 1;
         }
       }
     }
 
     function openNoteModal(stepIdx) {
       editingStepIdx = stepIdx;
-      var instId = INSTRUMENTS[turnIndex].id;
-      var isChords = instId === 'chords';
-      var list = isChords ? CHORDS : BASS_NOTES;
-
       var sLabel = (stepIdx + 1) < 10 ? '0' + (stepIdx + 1) : '' + (stepIdx + 1);
-      noteModalTitle.textContent = 'STEP ' + sLabel + (isChords ? ' — CHORD' : ' — NOTE');
-      noteGrid.classList.toggle('chords-mode', isChords);
-
+      noteModalTitle.textContent = 'STEP ' + sLabel + ' — NOTE';
       var currentIdx = tracks[turnIndex].notes[stepIdx];
       noteGrid.innerHTML = '';
-      for (var i = 0; i < list.length; i++) {
+      for (var i = 0; i < BASS_NOTES.length; i++) {
         (function(itemIdx) {
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'note-btn mono' + (itemIdx === currentIdx ? ' selected' : '');
-          btn.textContent = list[itemIdx].name;
+          btn.textContent = BASS_NOTES[itemIdx].name;
           btn.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             tracks[turnIndex].steps[editingStepIdx] = true;
             tracks[turnIndex].notes[editingStepIdx] = itemIdx;
-            if (isChords) {
-              lastChosenChordIdx = itemIdx;
-            } else {
-              lastChosenBassNoteIdx = itemIdx;
-            }
+            lastChosenBassNoteIdx = itemIdx;
             renderStepPads();
             closeNoteModal();
           });
@@ -1772,20 +1799,15 @@
       if (inst.id === 'bassline') {
         var st = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
         pitchVal.textContent = (st > 0 ? '+' + st : st) + ' st';
-      } else if (inst.id === 'chords') {
-        var ct = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
-        pitchVal.textContent = (ct > 0 ? '+' + ct : ct) + ' ct';
+      } else if (inst.id === 'synth') {
+        var oct = Math.round(p.pitch);
+        pitchVal.textContent = (oct > 0 ? '+' + oct : oct) + ' oct';
       } else {
         pitchVal.textContent = Math.round(p.pitch * 100) + '%';
       }
 
-      var rawDecay = getRawDecaySec(inst, p.decay);
-      if (inst.id === 'chords') {
-        var stepCount = (rawDecay / (60 / bpm / 4)).toFixed(1);
-        decayVal.textContent = stepCount + ' stp';
-      } else {
-        decayVal.textContent = Math.round(rawDecay * 1000) + ' ms';
-      }
+      var rawDecay = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
+      decayVal.textContent = Math.round(rawDecay * 1000) + ' ms';
 
       var hz = Math.round(inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter));
       filterVal.textContent = hz >= 1000 ? (hz / 1000).toFixed(1) + ' kHz' : hz + ' Hz';
@@ -1794,14 +1816,28 @@
     function renderTurn() {
       var inst = INSTRUMENTS[turnIndex];
       var track = tracks[turnIndex];
-      var isChords = inst.id === 'chords';
+      var isSynth = inst.id === 'synth';
 
       instName.textContent = inst.name;
-      chordPage = 0;
-      chordPageBar.classList.toggle('hidden', !isChords);
-      sequencerScreen.classList.toggle('chords-32', isChords);
-      renderChordPageButtons();
-      renderStepPads();
+
+      stepGrid.classList.toggle('hidden', isSynth);
+      waveBar.classList.toggle('hidden', !isSynth);
+      pianoRollWrap.classList.toggle('hidden', !isSynth);
+
+      if (isSynth) {
+        pitchLabel.textContent = 'Transpose';
+        pitchSlider.min = '-1';
+        pitchSlider.max = '1';
+        pitchSlider.step = '1';
+        renderWaveButtons();
+        requestAnimationFrame(drawPianoRoll);
+      } else {
+        pitchLabel.textContent = 'Pitch';
+        pitchSlider.min = '0';
+        pitchSlider.max = '1';
+        pitchSlider.step = '0.01';
+        renderStepPads();
+      }
 
       pitchSlider.value = track.params.pitch;
       decaySlider.value = track.params.decay;
@@ -1824,6 +1860,9 @@
     pitchSlider.addEventListener('input', function(e) {
       tracks[turnIndex].params.pitch = parseFloat(e.target.value);
       updateParamText();
+      if (INSTRUMENTS[turnIndex].id === 'synth') {
+        drawPianoRoll();
+      }
     });
 
     decaySlider.addEventListener('input', function(e) {
@@ -1832,11 +1871,7 @@
     });
 
     filterSlider.addEventListener('input', function(e) {
-      var val = parseFloat(e.target.value);
-      tracks[turnIndex].params.filter = val;
-      if (INSTRUMENTS[turnIndex].id === 'chords' && chordLPF && audioCtx) {
-        chordLPF.frequency.setTargetAtTime(normToFilterHz(val), audioCtx.currentTime, 0.015);
-      }
+      tracks[turnIndex].params.filter = parseFloat(e.target.value);
       updateParamText();
     });
 
@@ -1845,6 +1880,7 @@
       turnIndex = 0;
       finaleActive = false;
       dragPointerId = null;
+      pianoPointerId = null;
 
       startScreen.classList.add('hidden');
       finaleScreen.classList.add('hidden');
@@ -1857,6 +1893,7 @@
     function nextTurn() {
       closeNoteModal();
       dragPointerId = null;
+      pianoPointerId = null;
       if (turnIndex < INSTRUMENTS.length - 1) {
         turnIndex++;
         renderTurn();
@@ -2073,19 +2110,17 @@
     function buildMatrix() {
       matrix.innerHTML = '';
       for (var i = 0; i < INSTRUMENTS.length; i++) {
-        var len = INSTRUMENTS[i].steps;
         var row = document.createElement('div');
-        row.className = 'matrix-row' + (len === 32 ? ' row-32' : '');
+        row.className = 'matrix-row';
 
         var label = document.createElement('div');
         label.className = 'matrix-name mono';
         label.textContent = INSTRUMENTS[i].name;
         row.appendChild(label);
 
-        for (var s = 0; s < len; s++) {
+        for (var s = 0; s < STEPS; s++) {
           var cell = document.createElement('div');
           cell.className = 'matrix-cell' + (tracks[i].steps[s] ? ' on' : '');
-          cell.setAttribute('data-len', len);
           cell.setAttribute('data-step', s);
           row.appendChild(cell);
         }
@@ -2180,28 +2215,18 @@
         if (activePlayStep !== lastVisualStep) {
           lastVisualStep = activePlayStep;
           if (!finaleActive) {
-            var isChords = INSTRUMENTS[turnIndex].id === 'chords';
-            var bars = stepGrid.querySelectorAll('.playhead-bar');
-            if (isChords) {
-              var playingBar = Math.floor(activePlayStep / 16);
-              pageBtn0.classList.toggle('playing', playingBar === 0);
-              pageBtn1.classList.toggle('playing', playingBar === 1);
-              var pageStart = chordPage * 16;
-              for (var i = 0; i < bars.length; i++) {
-                bars[i].classList.toggle('now', activePlayStep === pageStart + i);
-              }
+            if (INSTRUMENTS[turnIndex].id === 'synth') {
+              drawPianoRoll();
             } else {
-              var localStep = activePlayStep % 16;
-              for (var j = 0; j < bars.length; j++) {
-                bars[j].classList.toggle('now', j === localStep);
+              var bars = stepGrid.querySelectorAll('.playhead-bar');
+              for (var i = 0; i < bars.length; i++) {
+                bars[i].classList.toggle('now', i === activePlayStep);
               }
             }
           } else {
             var cells = matrix.querySelectorAll('.matrix-cell');
             for (var c = 0; c < cells.length; c++) {
-              var cLen = Number(cells[c].getAttribute('data-len'));
-              var cStep = Number(cells[c].getAttribute('data-step'));
-              cells[c].classList.toggle('now', cStep === (activePlayStep % cLen));
+              cells[c].classList.toggle('now', Number(cells[c].getAttribute('data-step')) === activePlayStep);
             }
           }
         }
