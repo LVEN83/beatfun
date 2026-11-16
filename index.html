@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <title>LET'S GO</title>
+  <title>LET'S GO - BEAT BATTLE</title>
+
+  <!-- Firebase Compat SDKs (App and Realtime Database) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -64,32 +69,113 @@
       outline: none;
     }
 
-    /* ---------- START SCREEN ---------- */
+    /* ---------- START SCREEN & WAITING SCREEN ---------- */
     .start-screen {
       flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       border: 1px solid #ffffff;
+      padding: 24px 16px;
+      gap: 28px;
+      text-align: center;
+    }
+
+    .title-logo {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 5px;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .sub-logo {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #888888;
+      margin-top: 6px;
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 290px;
     }
 
     .btn-lets-go {
       background-color: #000000;
       color: #ffffff;
       border: 1px solid #ffffff;
-      min-width: 220px;
-      min-height: 68px;
-      padding: 20px 44px;
-      font-size: 24px;
+      min-height: 60px;
+      padding: 16px 20px;
+      font-size: 14px;
       font-weight: 800;
-      letter-spacing: 4px;
+      letter-spacing: 2.5px;
       text-transform: uppercase;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-lets-go.primary {
+      background-color: #ffffff;
+      color: #000000;
     }
 
     .btn-lets-go:active {
-      background-color: #ffffff;
+      background-color: #333333;
+      color: #ffffff;
+    }
+
+    .btn-lets-go.primary:active {
+      background-color: #cccccc;
       color: #000000;
+    }
+
+    .waiting-radar {
+      font-size: 13px;
+      letter-spacing: 3px;
+      animation: blink 1.2s infinite;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    /* ---------- BATTLE HEADER (ONLINE MODE) ---------- */
+    .battle-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      border: 1px solid #333333;
+      background: #0a0a0a;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+    }
+
+    .battle-badge {
+      font-weight: 800;
+      padding: 2px 6px;
+      border: 1px solid #ffffff;
+    }
+
+    .battle-badge.active-turn {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .battle-status-msg {
+      font-size: 10px;
+      color: #aaaaaa;
+      text-transform: uppercase;
     }
 
     /* ---------- SEQUENCER SCREEN ---------- */
@@ -102,24 +188,76 @@
       padding: 12px 14px;
       min-height: 0;
       gap: 6px;
+      position: relative;
+    }
+
+    /* Locked overlay for opponent's turn or playback */
+    .locked-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(2px);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .locked-card {
+      border: 1px solid #ffffff;
+      background: #000000;
+      padding: 18px 24px;
+      max-width: 320px;
+      width: 100%;
     }
 
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       border-bottom: 1px solid #333333;
       padding-bottom: 8px;
     }
 
+    .inst-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .inst-btn {
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #444444;
+      width: 32px;
+      height: 38px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .inst-btn:active {
+      background: #ffffff;
+      color: #000000;
+    }
+
     .inst-name {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: -0.5px;
       text-transform: uppercase;
       margin: 0;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .bpm-box {
@@ -131,6 +269,7 @@
       height: 48px;
       font-size: 11px;
       letter-spacing: 1px;
+      flex-shrink: 0;
     }
 
     .step-grid {
@@ -448,8 +587,33 @@
       outline: 1.5px solid #ffffff;
     }
 
+    /* Modal dialogs */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      border: 1px solid #ffffff;
+      background: #000000;
+      padding: 24px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     @media (hover: hover) {
       .btn-lets-go:hover { background-color: #ffffff; color: #000000; }
+      .btn-lets-go.primary:hover { background-color: #dddddd; color: #000000; }
       .step-pad:hover { border-color: #ffffff; }
       .wave-btn:hover { border-color: #ffffff; }
       .btn-secondary:hover { border-color: #ffffff; }
@@ -462,17 +626,54 @@
   <div class="app" id="app">
     <!-- START SCREEN -->
     <div id="startScreen" class="start-screen">
-      <button type="button" class="btn-lets-go" id="startBtn">LET'S GO</button>
+      <div>
+        <h1 class="title-logo mono">LET'S GO</h1>
+        <div class="sub-logo mono">TOUCH-DRIVEN BEAT BATTLE</div>
+      </div>
+      <div class="menu-buttons">
+        <button type="button" class="btn-lets-go primary" id="btnSoloMode">LOCAL / SOLO</button>
+        <button type="button" class="btn-lets-go" id="btnOnlineMode">ONLINE BATTLE (2P)</button>
+      </div>
+    </div>
+
+    <!-- MATCHMAKING WAITING SCREEN -->
+    <div id="waitingScreen" class="start-screen hidden">
+      <div>
+        <div class="waiting-radar mono" id="waitingStatusText">WAITING FOR OPPONENT...</div>
+        <div class="sub-logo mono" style="margin-top: 14px;">FIREBASE REALTIME DB</div>
+      </div>
+      <div class="menu-buttons">
+        <button type="button" class="btn-secondary" id="btnCancelMatchmaking">CANCEL</button>
+      </div>
     </div>
 
     <!-- SEQUENCER SCREEN -->
     <div id="sequencerScreen" class="seq-screen hidden">
+      <!-- BATTLE HEADER (ONLINE ONLY) -->
+      <div class="battle-header mono hidden" id="battleHeader">
+        <div class="battle-badge" id="playerBadge">P1 (YOU)</div>
+        <div class="battle-status-msg" id="roundBadge">ROUND 1</div>
+        <div class="battle-badge" id="turnIndicator">YOUR TURN</div>
+      </div>
+
+      <!-- Turn Locked / Reviewing Overlay -->
+      <div class="locked-overlay hidden" id="lockedOverlay">
+        <div class="locked-card mono">
+          <div class="waiting-radar" id="lockedTitle">OPPONENT'S TURN...</div>
+          <div class="sub-logo" id="lockedSub" style="margin-top: 8px;">WAITING FOR NEXT MOVE</div>
+        </div>
+      </div>
+
       <div class="top-bar">
-        <h2 class="inst-name" id="instName">BASS DRUM</h2>
+        <div class="inst-nav">
+          <button type="button" class="inst-btn mono hidden" id="btnPrevInst">&lt;</button>
+          <h2 class="inst-name" id="instName">BASS DRUM</h2>
+          <button type="button" class="inst-btn mono hidden" id="btnNextInst">&gt;</button>
+        </div>
 
         <div class="bpm-box mono">
           <span>BPM</span>
-          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 82px;" />
+          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 74px;" />
           <span id="bpmValue">118</span>
         </div>
       </div>
@@ -525,7 +726,7 @@
       </div>
     </div>
 
-    <!-- 30-SECOND FINALE SCREEN -->
+    <!-- 30-SECOND FINALE SCREEN (SOLO FINALE) -->
     <div id="finaleScreen" class="finale-screen hidden">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
@@ -551,9 +752,35 @@
 
       <div class="matrix" id="matrix"></div>
     </div>
+
+    <!-- OPPONENT DISCONNECTED / LEAVE MODAL -->
+    <div id="disconnectModal" class="modal-overlay hidden">
+      <div class="modal-card mono">
+        <div style="font-size: 15px; font-weight: 800; letter-spacing: 2px;">OPPONENT LEFT</div>
+        <div style="font-size: 11px; color: #aaaaaa; line-height: 1.5;">The opponent disconnected from the battle.</div>
+        <button type="button" class="btn-next" id="btnBackToMenu">MAIN MENU</button>
+      </div>
+    </div>
   </div>
 
   <script>
+    // ---------------------------------------------------------
+    // FIREBASE INITIALIZATION (Compat SDK)
+    // ---------------------------------------------------------
+    var firebaseConfig = {
+      apiKey: "AIzaSyBkr_Q4BSYiMqQP-CehLJkcqR9oWThqZIE",
+      authDomain: "beatfun-online.firebaseapp.com",
+      databaseURL: "https://beatfun-online-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "beatfun-online",
+      storageBucket: "beatfun-online.firebasestorage.app",
+      messagingSenderId: "1081244117702",
+      appId: "1:1081244117702:web:9dd780428fae15d49445c7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    // Prevent Safari gesture zoom and accidental scrolling
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
     document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
     document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
@@ -605,6 +832,18 @@
     var isPlaying = false;
     var finaleActive = false;
     var tracks = [];
+
+    // Online game state
+    var gameMode = 'solo'; // 'solo' or 'online'
+    var myRole = null;     // 'player1' or 'player2'
+    var currentRoomId = null;
+    var roomRef = null;
+    var waitingQueueRef = null;
+    var currentRound = 1;
+    var roomTurn = 'player1';
+    var isReviewingMove = false;
+    var reviewStepsRemaining = 0;
+    var lastHandledMoveTimestamp = 0;
 
     function resetTracks() {
       tracks = [];
@@ -1380,7 +1619,7 @@
     function scheduleStep(step, time) {
       var kickHit = false;
       var anyHit = false;
-      var maxIdx = finaleActive ? INSTRUMENTS.length - 1 : turnIndex;
+      var maxIdx = (finaleActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
       for (var i = 0; i <= maxIdx; i++) {
         if (tracks[i].steps[step]) {
           if (!tracks[i].tied[step]) {
@@ -1397,6 +1636,15 @@
         lastHitAudioTime = time;
       }
       visualQueue.push({ step: step, time: time, kickHit: kickHit });
+
+      // Handle automatic opponent move playback duration
+      if (isReviewingMove) {
+        reviewStepsRemaining--;
+        if (reviewStepsRemaining <= 0) {
+          isReviewingMove = false;
+          updateTurnStatusUI();
+        }
+      }
     }
 
     function scheduler() {
@@ -1458,12 +1706,28 @@
     // ---------------------------------------------------------
     var appEl = document.getElementById('app');
     var startScreen = document.getElementById('startScreen');
+    var waitingScreen = document.getElementById('waitingScreen');
     var sequencerScreen = document.getElementById('sequencerScreen');
     var finaleScreen = document.getElementById('finaleScreen');
+    var disconnectModal = document.getElementById('disconnectModal');
 
-    var startBtn = document.getElementById('startBtn');
+    var btnSoloMode = document.getElementById('btnSoloMode');
+    var btnOnlineMode = document.getElementById('btnOnlineMode');
+    var btnCancelMatchmaking = document.getElementById('btnCancelMatchmaking');
+    var btnBackToMenu = document.getElementById('btnBackToMenu');
+
+    var battleHeader = document.getElementById('battleHeader');
+    var playerBadge = document.getElementById('playerBadge');
+    var roundBadge = document.getElementById('roundBadge');
+    var turnIndicator = document.getElementById('turnIndicator');
+    var lockedOverlay = document.getElementById('lockedOverlay');
+    var lockedTitle = document.getElementById('lockedTitle');
+    var lockedSub = document.getElementById('lockedSub');
+
     var clearBtn = document.getElementById('clearBtn');
     var nextBtn = document.getElementById('nextBtn');
+    var btnPrevInst = document.getElementById('btnPrevInst');
+    var btnNextInst = document.getElementById('btnNextInst');
 
     var instName = document.getElementById('instName');
     var bpmSlider = document.getElementById('bpmSlider');
@@ -1513,20 +1777,279 @@
       });
     }
 
-    var lastStartAt = 0;
-    function handleStartTap() {
-      var now = Date.now();
-      if (now - lastStartAt < 350) return;
-      lastStartAt = now;
-      initAndUnlockAudio();
-      if (!isPlaying) {
-        startGame();
+    // ---------------------------------------------------------
+    // ONLINE BATTLE MATCHMAKING & STATE MACHINE
+    // ---------------------------------------------------------
+    function isMyTurn() {
+      return gameMode === 'online' && myRole === roomTurn && !isReviewingMove;
+    }
+
+    function updateTurnStatusUI() {
+      if (gameMode !== 'online') {
+        lockedOverlay.classList.add('hidden');
+        return;
+      }
+
+      playerBadge.textContent = myRole === 'player1' ? 'P1 (YOU)' : 'P2 (YOU)';
+      roundBadge.textContent = 'ROUND ' + currentRound;
+
+      if (isReviewingMove) {
+        lockedOverlay.classList.remove('hidden');
+        lockedTitle.textContent = "INCOMING BEAT...";
+        lockedSub.textContent = "LISTENING TO OPPONENT'S MOVE";
+        turnIndicator.textContent = "LISTENING";
+        turnIndicator.classList.remove('active-turn');
+        nextBtn.textContent = 'LOCKED';
+      } else if (isMyTurn()) {
+        lockedOverlay.classList.add('hidden');
+        turnIndicator.textContent = 'YOUR TURN';
+        turnIndicator.classList.add('active-turn');
+        nextBtn.textContent = 'SEND BEAT →';
+      } else {
+        lockedOverlay.classList.remove('hidden');
+        lockedTitle.textContent = "OPPONENT'S TURN...";
+        lockedSub.textContent = "WAITING FOR BEAT SUBMISSION";
+        turnIndicator.textContent = 'OPPONENT';
+        turnIndicator.classList.remove('active-turn');
+        nextBtn.textContent = 'WAITING...';
       }
     }
-    startBtn.addEventListener('touchend', handleStartTap);
-    startBtn.addEventListener('click', handleStartTap);
+
+    function serializeMove() {
+      var compactTracks = [];
+      for (var i = 0; i < tracks.length; i++) {
+        compactTracks.push({
+          steps: tracks[i].steps.slice(),
+          notes: tracks[i].notes.slice(),
+          tied: tracks[i].tied.slice(),
+          waveform: tracks[i].waveform,
+          params: {
+            pitch: tracks[i].params.pitch,
+            decay: tracks[i].params.decay,
+            filter: tracks[i].params.filter
+          }
+        });
+      }
+      return {
+        bpm: bpm,
+        tracks: compactTracks,
+        sender: myRole,
+        timestamp: Date.now()
+      };
+    }
+
+    function applyOpponentMove(moveData) {
+      if (!moveData || !moveData.tracks) return;
+      bpm = moveData.bpm || 118;
+      bpmSlider.value = bpm;
+      bpmValue.textContent = bpm;
+
+      for (var i = 0; i < moveData.tracks.length && i < tracks.length; i++) {
+        var mt = moveData.tracks[i];
+        tracks[i].steps = mt.steps.slice();
+        tracks[i].notes = mt.notes.slice();
+        tracks[i].tied = mt.tied.slice();
+        tracks[i].waveform = mt.waveform || 'sine';
+        tracks[i].params = {
+          pitch: mt.params.pitch,
+          decay: mt.params.decay,
+          filter: mt.params.filter
+        };
+      }
+      renderTurn();
+    }
+
+    function startOnlineMatchmaking() {
+      initAndUnlockAudio();
+      gameMode = 'online';
+      myRole = null;
+      currentRoomId = null;
+
+      startScreen.classList.add('hidden');
+      waitingScreen.classList.remove('hidden');
+      document.getElementById('waitingStatusText').textContent = 'SEARCHING FOR OPPONENT...';
+
+      var waitingQueue = db.ref('queue/waiting');
+      waitingQueueRef = waitingQueue;
+
+      var targetRoomId = null;
+      var roleToAssign = null;
+
+      waitingQueue.transaction(function(curr) {
+        if (curr && curr.roomId) {
+          targetRoomId = curr.roomId;
+          roleToAssign = 'player2';
+          return null; // Claim and clear the waiting queue
+        } else {
+          var newRoomKey = db.ref('rooms').push().key;
+          targetRoomId = newRoomKey;
+          roleToAssign = 'player1';
+          return { roomId: newRoomKey, createdAt: firebase.database.ServerValue.TIMESTAMP };
+        }
+      }, function(err, committed, snapshot) {
+        if (err || !committed) {
+          document.getElementById('waitingStatusText').textContent = 'CONNECTION ERROR';
+          return;
+        }
+
+        myRole = roleToAssign;
+        currentRoomId = targetRoomId;
+        roomRef = db.ref('rooms/' + currentRoomId);
+
+        if (myRole === 'player1') {
+          // Waiting for player 2
+          waitingQueue.onDisconnect().remove();
+
+          roomRef.set({
+            turn: 'player1',
+            round: 1,
+            scores: { player1: 0, player2: 0 },
+            lastMove: null,
+            players: {
+              player1: { connected: true },
+              player2: { connected: false }
+            }
+          });
+
+          roomRef.child('players/player1/connected').onDisconnect().set(false);
+
+          // Watch for player 2 joining
+          roomRef.child('players/player2/connected').on('value', function(snap) {
+            if (snap.val() === true) {
+              waitingQueue.onDisconnect().cancel();
+              launchOnlineBattle();
+            }
+          });
+        } else {
+          // Player 2 joined existing room
+          roomRef.child('players/player2/connected').onDisconnect().set(false);
+          roomRef.child('players/player2').update({ connected: true });
+          launchOnlineBattle();
+        }
+      });
+    }
+
+    function launchOnlineBattle() {
+      waitingScreen.classList.add('hidden');
+      sequencerScreen.classList.remove('hidden');
+      battleHeader.classList.remove('hidden');
+      btnPrevInst.classList.remove('hidden');
+      btnNextInst.classList.remove('hidden');
+
+      turnIndex = 0;
+      resetTracks();
+      renderTurn();
+      startSequencer();
+
+      // Setup room synchronizer
+      roomRef.on('value', function(snap) {
+        var data = snap.val();
+        if (!data) return;
+
+        // Check opponent connection
+        var opp = myRole === 'player1' ? 'player2' : 'player1';
+        if (data.players && data.players[opp] && data.players[opp].connected === false) {
+          handleOpponentDisconnected();
+          return;
+        }
+
+        currentRound = data.round || 1;
+        roomTurn = data.turn || 'player1';
+
+        // Detect new move sent by opponent
+        if (data.lastMove && data.lastMove.sender !== myRole && data.lastMove.timestamp !== lastHandledMoveTimestamp) {
+          lastHandledMoveTimestamp = data.lastMove.timestamp;
+          applyOpponentMove(data.lastMove);
+
+          // If it is now our turn, play opponent's move for 2 bars (32 steps) before unlocking
+          if (roomTurn === myRole) {
+            isReviewingMove = true;
+            reviewStepsRemaining = 32;
+          }
+        }
+
+        updateTurnStatusUI();
+      });
+    }
+
+    function sendOnlineMove() {
+      if (!isMyTurn()) return;
+      var move = serializeMove();
+      var nextTurn = myRole === 'player1' ? 'player2' : 'player1';
+      var nextRound = myRole === 'player2' ? currentRound + 1 : currentRound;
+
+      roomRef.update({
+        lastMove: move,
+        turn: nextTurn,
+        round: nextRound
+      });
+    }
+
+    function handleOpponentDisconnected() {
+      stopSequencer();
+      disconnectModal.classList.remove('hidden');
+    }
+
+    function cancelMatchmaking() {
+      if (waitingQueueRef && myRole === 'player1') {
+        waitingQueueRef.remove();
+      }
+      if (roomRef) {
+        roomRef.off();
+        if (myRole === 'player1') roomRef.remove();
+      }
+      waitingScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    }
+
+    function exitToMainMenu() {
+      if (roomRef) {
+        roomRef.off();
+        roomRef.child('players/' + myRole + '/connected').set(false);
+      }
+      disconnectModal.classList.add('hidden');
+      sequencerScreen.classList.add('hidden');
+      finaleScreen.classList.add('hidden');
+      waitingScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+      stopSequencer();
+      gameMode = 'solo';
+      myRole = null;
+    }
+
+    bindTap(btnSoloMode, function() {
+      initAndUnlockAudio();
+      gameMode = 'solo';
+      battleHeader.classList.add('hidden');
+      btnPrevInst.classList.add('hidden');
+      btnNextInst.classList.add('hidden');
+      startGame();
+    });
+
+    bindTap(btnOnlineMode, function() {
+      startOnlineMatchmaking();
+    });
+
+    bindTap(btnCancelMatchmaking, function() {
+      cancelMatchmaking();
+    });
+
+    bindTap(btnBackToMenu, function() {
+      exitToMainMenu();
+    });
+
+    bindTap(btnPrevInst, function() {
+      turnIndex = (turnIndex - 1 + INSTRUMENTS.length) % INSTRUMENTS.length;
+      renderTurn();
+    });
+
+    bindTap(btnNextInst, function() {
+      turnIndex = (turnIndex + 1) % INSTRUMENTS.length;
+      renderTurn();
+    });
 
     bindTap(clearBtn, function() {
+      if (gameMode === 'online' && !isMyTurn()) return;
       tracks[turnIndex].steps.fill(false);
       tracks[turnIndex].tied.fill(false);
       renderStepPads();
@@ -1536,13 +2059,20 @@
     });
 
     bindTap(nextBtn, function() {
-      nextTurn();
+      if (gameMode === 'online') {
+        if (isMyTurn()) {
+          sendOnlineMove();
+        }
+      } else {
+        nextTurn();
+      }
     });
 
     var waveBtns = waveBar.querySelectorAll('.wave-btn');
     for (var wb = 0; wb < waveBtns.length; wb++) {
       (function(btn) {
         bindTap(btn, function() {
+          if (gameMode === 'online' && !isMyTurn()) return;
           ensureAudioUnlocked();
           tracks[turnIndex].waveform = btn.getAttribute('data-wave');
           renderWaveButtons();
@@ -1591,6 +2121,7 @@
     }
 
     pianoCanvas.addEventListener('pointerdown', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
       e.preventDefault();
       ensureAudioUnlocked();
       pianoPointerId = e.pointerId;
@@ -1746,6 +2277,7 @@
           bar.className = 'playhead-bar';
 
           pad.addEventListener('pointerdown', function(e) {
+            if (gameMode === 'online' && !isMyTurn()) return;
             e.preventDefault();
             ensureAudioUnlocked();
             dragPointerId = e.pointerId;
@@ -1762,6 +2294,8 @@
     buildStepGrid();
 
     window.addEventListener('pointermove', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
+
       if (pianoPointerId !== null && e.pointerId === pianoPointerId) {
         var cell = getPianoCellAt(e.clientX, e.clientY);
         var instId = INSTRUMENTS[turnIndex].id;
@@ -1955,20 +2489,26 @@
       filterSlider.value = track.params.filter;
       updateParamText();
 
-      if (turnIndex < INSTRUMENTS.length - 1) {
-        nextBtn.textContent = INSTRUMENTS[turnIndex + 1].name + ' →';
+      if (gameMode === 'solo') {
+        if (turnIndex < INSTRUMENTS.length - 1) {
+          nextBtn.textContent = INSTRUMENTS[turnIndex + 1].name + ' →';
+        } else {
+          nextBtn.textContent = 'Play →';
+        }
       } else {
-        nextBtn.textContent = 'Play →';
+        updateTurnStatusUI();
       }
     }
 
     bpmSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
       bpm = Number(e.target.value);
       bpmValue.textContent = bpm;
       updateParamText();
     });
 
     pitchSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
       tracks[turnIndex].params.pitch = parseFloat(e.target.value);
       updateParamText();
       if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
@@ -1977,11 +2517,13 @@
     });
 
     decaySlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
       tracks[turnIndex].params.decay = parseFloat(e.target.value);
       updateParamText();
     });
 
     filterSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
       tracks[turnIndex].params.filter = parseFloat(e.target.value);
       updateParamText();
     });
@@ -2013,7 +2555,7 @@
     }
 
     // ---------------------------------------------------------
-    // DJ VINYLS & PIXEL PIGEON DANCER
+    // DJ VINYLS & PIXEL PIGEON DANCER (FINALE)
     // ---------------------------------------------------------
     var vinylAngleL = 0;
     var vinylAngleR = 0;
