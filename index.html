@@ -597,7 +597,7 @@
 
     var STEPS = 16;
     var FINALE_SECONDS = 30;
-    var BASE_HPF_HZ = 44; // Tuned 44Hz cut protects phone speaker excursion without thinning headphones
+    var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
 
     var turnIndex = 0;
@@ -632,7 +632,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE (HEADPHONE & PHONE SPEAKER CALIBRATED)
+    // WEB AUDIO ENGINE
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -641,8 +641,6 @@
 
     var snareGritShaper = null;
     var softClipShaper = null;
-
-    var activeSynthVoice = null;
 
     var rewindProcessor = null;
     var rewindLPF = null;
@@ -704,13 +702,12 @@
       return curve;
     }
 
-    // Analog-style soft-knee saturation curve: prevents harsh digital clipping and limiter pumping
     function createSoftClipCurve() {
       var n = 4096;
       var curve = new Float32Array(n);
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
-        curve[i] = (3 * x - Math.pow(x, 3)) / 2; // Classic tape-style soft saturation
+        curve[i] = (3 * x - Math.pow(x, 3)) / 2;
       }
       return curve;
     }
@@ -747,13 +744,11 @@
         softClipShaper.curve = createSoftClipCurve();
         softClipShaper.oversample = '2x';
 
-        // Master sub protection: protects phone speaker drivers, tightens bass on headphones
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
         masterHPF.frequency.value = BASE_HPF_HZ;
         masterHPF.Q.value = 0.7;
 
-        // Presence & warmth compensation: gives body on mobile speakers, removes fatigue on earbuds
         masterEQ = audioCtx.createBiquadFilter();
         masterEQ.type = 'peaking';
         masterEQ.frequency.value = 180;
@@ -773,7 +768,6 @@
         hpfReverbWet = audioCtx.createGain();
         hpfReverbWet.gain.value = 0.0;
 
-        // Transparent master compression: tames transients cleanly
         masterCompressor = audioCtx.createDynamicsCompressor();
         masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
         masterCompressor.knee.setValueAtTime(8, audioCtx.currentTime);
@@ -852,7 +846,6 @@
           rewindProcessor = null;
         }
 
-        // Processing order: Filter -> EQ -> Reverb split -> Soft Clipper -> Compressor -> Master
         masterHPF.connect(masterEQ);
         masterEQ.connect(softClipShaper);
 
@@ -974,73 +967,92 @@
       src.stop(now + 0.36);
     }
 
-    // High-Pass Stadium Crowd Swell: 1-beat pause, then swells clearly up to 0.38
+    // High-Pass Stadium Crowd Swell: Skips 1 beat, then swells clearly & loudly up to 0.44
     function startCrowdSwell() {
       stopCrowdSwell();
       if (!audioCtx || !noiseBuffer || !masterCompressor) return;
 
       var now = audioCtx.currentTime;
-      var skipBeatSec = 60 / bpm;
+      var skipBeatSec = Math.max(0.25, 60 / bpm);
       var swellStart = now + skipBeatSec;
 
-      var src1 = audioCtx.createBufferSource();
-      var src2 = audioCtx.createBufferSource();
-      src1.buffer = noiseBuffer;
-      src2.buffer = noiseBuffer;
-      src1.loop = true;
-      src2.loop = true;
+      // 1. Dual noise sources
+      var nSrc1 = audioCtx.createBufferSource();
+      var nSrc2 = audioCtx.createBufferSource();
+      nSrc1.buffer = noiseBuffer;
+      nSrc2.buffer = noiseBuffer;
+      nSrc1.loop = true;
+      nSrc2.loop = true;
 
-      var fLow = audioCtx.createBiquadFilter();
-      fLow.type = 'bandpass'; fLow.frequency.value = 420; fLow.Q.value = 2.0;
+      // 2. Tonal cheer formant layer (adds authentic human roar)
+      var vOsc1 = audioCtx.createOscillator();
+      var vOsc2 = audioCtx.createOscillator();
+      vOsc1.type = 'sawtooth';
+      vOsc2.type = 'triangle';
+      vOsc1.frequency.setValueAtTime(145, now);
+      vOsc1.frequency.exponentialRampToValueAtTime(380, swellStart + 3.5);
+      vOsc2.frequency.setValueAtTime(218, now);
+      vOsc2.frequency.exponentialRampToValueAtTime(570, swellStart + 3.5);
 
-      var fMid = audioCtx.createBiquadFilter();
-      fMid.type = 'bandpass'; fMid.frequency.value = 880; fMid.Q.value = 2.2;
+      var vGain = audioCtx.createGain();
+      vGain.gain.value = 0.18;
+      vOsc1.connect(vGain);
+      vOsc2.connect(vGain);
 
-      var fHigh = audioCtx.createBiquadFilter();
-      fHigh.type = 'bandpass'; fHigh.frequency.value = 1600; fHigh.Q.value = 2.2;
+      // 3. Serial vocal formant peaking filters (+8dB to +10dB peaks)
+      var f1 = audioCtx.createBiquadFilter();
+      f1.type = 'peaking'; f1.frequency.value = 620; f1.Q.value = 2.2; f1.gain.value = 8;
 
-      var fAir = audioCtx.createBiquadFilter();
-      fAir.type = 'bandpass'; fAir.frequency.value = 3000; fAir.Q.value = 1.5;
+      var f2 = audioCtx.createBiquadFilter();
+      f2.type = 'peaking'; f2.frequency.value = 1350; f2.Q.value = 2.5; f2.gain.value = 10;
 
-      var sumGain = audioCtx.createGain();
-      sumGain.gain.value = 1.0;
+      var f3 = audioCtx.createBiquadFilter();
+      f3.type = 'peaking'; f3.frequency.value = 2800; f3.Q.value = 1.8; f3.gain.value = 7;
 
+      // 4. Low-pass filter that opens up as the crowd goes wild
       var toneLPF = audioCtx.createBiquadFilter();
       toneLPF.type = 'lowpass';
-      toneLPF.frequency.setValueAtTime(800, now);
-      toneLPF.frequency.setValueAtTime(800, swellStart);
-      toneLPF.frequency.exponentialRampToValueAtTime(4500, swellStart + 3.0);
+      toneLPF.frequency.setValueAtTime(850, now);
+      toneLPF.frequency.setValueAtTime(850, swellStart);
+      toneLPF.frequency.exponentialRampToValueAtTime(5600, swellStart + 3.0);
+      toneLPF.Q.value = 1.2;
 
+      // 5. Crowd Master Gain: 1-beat pause, immediate entry (0.08), then swells up to 0.44
       var crowdGain = audioCtx.createGain();
       crowdGain.gain.setValueAtTime(0.0001, now);
       crowdGain.gain.setValueAtTime(0.0001, swellStart);
-      crowdGain.gain.linearRampToValueAtTime(0.38, swellStart + 2.5);
+      crowdGain.gain.linearRampToValueAtTime(0.08, swellStart + 0.18);
+      crowdGain.gain.linearRampToValueAtTime(0.44, swellStart + 2.6);
 
-      src1.connect(fLow);
-      src2.connect(fMid);
-      src1.connect(fHigh);
-      src2.connect(fAir);
-
-      fLow.connect(sumGain);
-      fMid.connect(sumGain);
-      fHigh.connect(sumGain);
-      fAir.connect(sumGain);
-
-      sumGain.connect(toneLPF);
+      nSrc1.connect(f1);
+      nSrc2.connect(f1);
+      vGain.connect(f1);
+      f1.connect(f2);
+      f2.connect(f3);
+      f3.connect(toneLPF);
       toneLPF.connect(crowdGain);
 
+      // Route directly into master compressor + arena reverb
       crowdGain.connect(masterCompressor);
       if (reverbConvolver) {
         var revSend = audioCtx.createGain();
-        revSend.gain.value = 0.38;
+        revSend.gain.value = 0.42;
         crowdGain.connect(revSend);
         revSend.connect(reverbConvolver);
       }
 
-      src1.start(now);
-      src2.start(now);
+      nSrc1.start(now);
+      nSrc2.start(now);
+      vOsc1.start(now);
+      vOsc2.start(now);
 
-      crowdNodes = { src1: src1, src2: src2, gain: crowdGain };
+      crowdNodes = {
+        nSrc1: nSrc1,
+        nSrc2: nSrc2,
+        vOsc1: vOsc1,
+        vOsc2: vOsc2,
+        gain: crowdGain
+      };
     }
 
     function stopCrowdSwell() {
@@ -1051,9 +1063,11 @@
       try {
         nodes.gain.gain.cancelScheduledValues(now);
         nodes.gain.gain.setValueAtTime(Math.max(0.0001, nodes.gain.gain.value), now);
-        nodes.gain.gain.linearRampToValueAtTime(0.0, now + 0.035);
-        nodes.src1.stop(now + 0.045);
-        nodes.src2.stop(now + 0.045);
+        nodes.gain.gain.linearRampToValueAtTime(0.0, now + 0.02);
+        nodes.nSrc1.stop(now + 0.03);
+        nodes.nSrc2.stop(now + 0.03);
+        nodes.vOsc1.stop(now + 0.03);
+        nodes.vOsc2.stop(now + 0.03);
       } catch (e) {}
     }
 
@@ -1128,7 +1142,6 @@
       lpf.connect(mixBus);
 
       if (inst.id === 'kick') {
-        // Deep sine fundamental (headphones)
         var osc = audioCtx.createOscillator();
         var g = audioCtx.createGain();
         osc.type = 'sine';
@@ -1143,7 +1156,6 @@
         osc.start(time);
         osc.stop(time + decayVal + 0.015);
 
-        // Acoustic beater click (cuts through iPhone speakers effortlessly)
         var clickOsc = audioCtx.createOscillator();
         var clickGain = audioCtx.createGain();
         clickOsc.type = 'triangle';
@@ -1161,7 +1173,6 @@
         hp.type = 'highpass';
         hp.frequency.setValueAtTime(4500 * pitchVal, time);
 
-        // Smooth high shelf to prevent headphone ear fatigue
         var hatTame = audioCtx.createBiquadFilter();
         hatTame.type = 'highshelf';
         hatTame.frequency.value = 11000;
@@ -1222,7 +1233,6 @@
         sBP.frequency.setValueAtTime(5200 * pitchVal, time);
         sBP.Q.value = 1.1;
 
-        // Smooth high shelf protects earbuds
         var sTame = audioCtx.createBiquadFilter();
         sTame.type = 'highshelf';
         sTame.frequency.value = 9500;
@@ -1303,12 +1313,10 @@
         var semitones = Math.round(pitchVal);
         var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
 
-        // Pure fundamental sine (deep sub on headphones)
         var mainSine = audioCtx.createOscillator();
         mainSine.type = 'sine';
         mainSine.frequency.setValueAtTime(freq, time);
 
-        // Octave + gentle 3rd harmonic saturation (audible on small iPhone speakers)
         var octSine = audioCtx.createOscillator();
         octSine.type = 'sine';
         octSine.frequency.setValueAtTime(freq * 2, time);
@@ -1356,7 +1364,6 @@
         octSine.stop(endTime);
         midSine.stop(endTime);
       } else if (inst.id === 'synth') {
-        // Restored crisp single-note synth (instant punchy attack, zero overlap, calibrated 8-110ms decay)
         var sNoteIdx = track.notes[stepIdx];
         if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
         var octShift = Math.round(pitchVal) * 12;
@@ -1367,13 +1374,7 @@
         sOsc.type = wave;
         sOsc.frequency.setValueAtTime(sFreq, time);
 
-        // Smooth high shelf protects headphones from harsh raw square/saw buzz
-        var sTame = audioCtx.createBiquadFilter();
-        sTame.type = 'highshelf';
-        sTame.frequency.value = 7500;
-        sTame.gain.value = (wave === 'sawtooth' || wave === 'square') ? -4.5 : 0;
-
-        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.30 : 0.42;
+        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.32 : 0.44;
         var sG = audioCtx.createGain();
         sG.gain.setValueAtTime(0.0001, time);
         sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
@@ -1381,8 +1382,7 @@
         sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
 
         sOsc.connect(sG);
-        sG.connect(sTame);
-        sTame.connect(lpf);
+        sG.connect(lpf);
         sOsc.start(time);
         sOsc.stop(time + decayVal + 0.008);
       }
