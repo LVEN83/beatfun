@@ -1323,267 +1323,271 @@
 
     function triggerSound(instIdx, stepIdx, time) {
       if (!audioCtx || audioCtx.state !== 'running') return;
-      var inst = INSTRUMENTS[instIdx];
-      var track = tracks[instIdx];
-      var p = track.params;
-      var pitchVal = inst.id === 'synth' ? Math.round(p.pitch) : lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
-      var decayVal = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
-      var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
+      try {
+        var inst = INSTRUMENTS[instIdx];
+        var track = tracks[instIdx];
+        var p = track.params;
+        var pitchVal = inst.id === 'synth' ? Math.round(p.pitch) : lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch);
+        var decayVal = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
+        var cutoff = inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter);
 
-      if (inst.id === 'bassline' && track.tied[stepIdx]) {
-        return;
-      }
-
-      var lpf = audioCtx.createBiquadFilter();
-      lpf.type = 'lowpass';
-      lpf.frequency.setValueAtTime(cutoff, time);
-      lpf.Q.value = 0.7;
-      lpf.connect(mixBus);
-
-      if (inst.id === 'kick') {
-        var osc = audioCtx.createOscillator();
-        var g = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(pitchVal * 2.8, time);
-        osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
-        g.gain.setValueAtTime(0.0001, time);
-        g.gain.linearRampToValueAtTime(0.66, time + 0.003);
-        g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
-        osc.connect(g);
-        g.connect(lpf);
-        osc.start(time);
-        osc.stop(time + decayVal + 0.015);
-
-        var clickOsc = audioCtx.createOscillator();
-        var clickGain = audioCtx.createGain();
-        clickOsc.type = 'triangle';
-        clickOsc.frequency.setValueAtTime(1400, time);
-        clickOsc.frequency.exponentialRampToValueAtTime(180, time + 0.006);
-        clickGain.gain.setValueAtTime(0.18, time);
-        clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.008);
-        clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
-        clickOsc.connect(clickGain);
-        clickGain.connect(lpf);
-        clickOsc.start(time);
-        clickOsc.stop(time + 0.012);
-      } else if (inst.id === 'hihat') {
-        var hp = audioCtx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.setValueAtTime(4500 * pitchVal, time);
-
-        var hatTame = audioCtx.createBiquadFilter();
-        hatTame.type = 'highshelf';
-        hatTame.frequency.value = 11000;
-        hatTame.gain.value = -3.5;
-
-        hp.connect(hatTame);
-        hatTame.connect(lpf);
-
-        var noise = audioCtx.createBufferSource();
-        noise.buffer = noiseBuffer;
-        var ng = audioCtx.createGain();
-        ng.gain.setValueAtTime(0.28, time);
-        ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        ng.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
-        noise.connect(ng);
-        ng.connect(hp);
-        noise.start(time);
-        noise.stop(time + decayVal + 0.012);
-
-        var ratios = [2, 3.1, 4.2, 5.4, 6.8];
-        var mg = audioCtx.createGain();
-        mg.gain.setValueAtTime(0.11, time);
-        mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
-        mg.connect(hp);
-        for (var i = 0; i < ratios.length; i++) {
-          var ho = audioCtx.createOscillator();
-          ho.type = 'square';
-          ho.frequency.setValueAtTime(260 * pitchVal * ratios[i], time);
-          ho.connect(mg);
-          ho.start(time);
-          ho.stop(time + decayVal + 0.012);
-        }
-      } else if (inst.id === 'tom') {
-        var tosc = audioCtx.createOscillator();
-        var tg = audioCtx.createGain();
-        tosc.type = 'sine';
-        tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
-        tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
-        tg.gain.setValueAtTime(0.0001, time);
-        tg.gain.linearRampToValueAtTime(0.50, time + 0.003);
-        tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
-        tosc.connect(tg);
-        tg.connect(lpf);
-        tosc.start(time);
-        tosc.stop(time + decayVal + 0.015);
-      } else if (inst.id === 'shakers') {
-        var sNoise = audioCtx.createBufferSource();
-        sNoise.buffer = noiseBuffer;
-
-        var sHP = audioCtx.createBiquadFilter();
-        sHP.type = 'highpass';
-        sHP.frequency.setValueAtTime(2400 * pitchVal, time);
-
-        var sBP = audioCtx.createBiquadFilter();
-        sBP.type = 'bandpass';
-        sBP.frequency.setValueAtTime(5200 * pitchVal, time);
-        sBP.Q.value = 1.1;
-
-        var sTame = audioCtx.createBiquadFilter();
-        sTame.type = 'highshelf';
-        sTame.frequency.value = 9500;
-        sTame.gain.value = -3.0;
-
-        var swellTime = Math.min(0.024, decayVal * 0.28);
-        var sEnv = audioCtx.createGain();
-        sEnv.gain.setValueAtTime(0.0001, time);
-        sEnv.gain.linearRampToValueAtTime(0.09, time + swellTime * 0.45);
-        sEnv.gain.linearRampToValueAtTime(0.38, time + swellTime);
-        sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
-
-        sNoise.connect(sHP);
-        sHP.connect(sBP);
-        sBP.connect(sTame);
-        sTame.connect(sEnv);
-        sEnv.connect(lpf);
-
-        sNoise.start(time, Math.random() * 0.8);
-        sNoise.stop(time + decayVal + 0.015);
-      } else if (inst.id === 'snare') {
-        var b1 = audioCtx.createOscillator();
-        var b2 = audioCtx.createOscillator();
-        b1.type = 'triangle';
-        b2.type = 'sine';
-        b1.frequency.setValueAtTime(pitchVal * 1.9, time);
-        b1.frequency.exponentialRampToValueAtTime(pitchVal * 0.95, time + 0.025);
-        b2.frequency.setValueAtTime(pitchVal * 2.8, time);
-        b2.frequency.exponentialRampToValueAtTime(pitchVal * 1.65, time + 0.022);
-
-        var bg1 = audioCtx.createGain();
-        var bg2 = audioCtx.createGain();
-        var bodyDec = Math.min(0.14, decayVal * 0.45);
-        bg1.gain.setValueAtTime(0.32, time);
-        bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
-        bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
-        bg2.gain.setValueAtTime(0.22, time);
-        bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
-        bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
-
-        b1.connect(bg1);
-        b2.connect(bg2);
-        bg1.connect(lpf);
-        bg2.connect(lpf);
-        b1.start(time);
-        b2.start(time);
-        b1.stop(time + bodyDec + 0.012);
-        b2.stop(time + bodyDec + 0.012);
-
-        var sn = audioCtx.createBufferSource();
-        sn.buffer = noiseBuffer;
-        var shp = audioCtx.createBiquadFilter();
-        shp.type = 'highpass';
-        shp.frequency.setValueAtTime(1650, time);
-        var sPeak = audioCtx.createBiquadFilter();
-        sPeak.type = 'peaking';
-        sPeak.frequency.setValueAtTime(4200, time);
-        sPeak.Q.value = 1.2;
-        sPeak.gain.value = 5;
-
-        var sng = audioCtx.createGain();
-        sng.gain.setValueAtTime(0.38, time);
-        sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-        sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
-
-        sn.connect(shp);
-        shp.connect(sPeak);
-        sPeak.connect(snareGritShaper);
-        snareGritShaper.connect(sng);
-        sng.connect(lpf);
-        sn.start(time);
-        sn.stop(time + decayVal + 0.015);
-      } else if (inst.id === 'bassline') {
-        var stepDur = 60 / bpm / 4;
-        var span = getStitchedSpan(track, stepIdx);
-        var noteIdx = track.notes[stepIdx] || 0;
-        var semitones = Math.round(pitchVal);
-        var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
-
-        var mainSine = audioCtx.createOscillator();
-        mainSine.type = 'sine';
-        mainSine.frequency.setValueAtTime(freq, time);
-
-        var octSine = audioCtx.createOscillator();
-        octSine.type = 'sine';
-        octSine.frequency.setValueAtTime(freq * 2, time);
-
-        var midSine = audioCtx.createOscillator();
-        midSine.type = 'triangle';
-        midSine.frequency.setValueAtTime(freq * 3, time);
-
-        var octGain = audioCtx.createGain();
-        octGain.gain.value = 0.26;
-
-        var midGain = audioCtx.createGain();
-        midGain.gain.value = 0.08;
-
-        var bg = audioCtx.createGain();
-        bg.gain.setValueAtTime(0.0001, time);
-
-        var endTime;
-        if (span > 1) {
-          var holdDur = Math.max(0.04, span * stepDur - 0.015);
-          var rel = Math.min(0.045, holdDur * 0.25);
-          bg.gain.linearRampToValueAtTime(0.28, time + 0.012);
-          bg.gain.setValueAtTime(0.28, time + Math.max(0.014, holdDur - rel));
-          bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
-          bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
-          endTime = time + holdDur + 0.008;
-        } else {
-          bg.gain.linearRampToValueAtTime(0.36, time + 0.008);
-          bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-          bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
-          endTime = time + decayVal + 0.012;
+        if (inst.id === 'bassline' && track.tied[stepIdx]) {
+          return;
         }
 
-        mainSine.connect(bg);
-        octSine.connect(octGain);
-        octGain.connect(bg);
-        midSine.connect(midGain);
-        midGain.connect(bg);
-        bg.connect(lpf);
+        var lpf = audioCtx.createBiquadFilter();
+        lpf.type = 'lowpass';
+        lpf.frequency.setValueAtTime(cutoff, time);
+        lpf.Q.value = 0.7;
+        lpf.connect(mixBus);
 
-        mainSine.start(time);
-        octSine.start(time);
-        midSine.start(time);
-        mainSine.stop(endTime);
-        octSine.stop(endTime);
-        midSine.stop(endTime);
-      } else if (inst.id === 'synth') {
-        var sNoteIdx = track.notes[stepIdx];
-        if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
-        var octShift = Math.round(pitchVal) * 12;
-        var sFreq = midiToHz(SYNTH_NOTES[sNoteIdx].midi + octShift);
-        var wave = track.waveform || 'sine';
+        if (inst.id === 'kick') {
+          var osc = audioCtx.createOscillator();
+          var g = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(pitchVal * 2.8, time);
+          osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
+          g.gain.setValueAtTime(0.0001, time);
+          g.gain.linearRampToValueAtTime(0.66, time + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
+          osc.connect(g);
+          g.connect(lpf);
+          osc.start(time);
+          osc.stop(time + decayVal + 0.015);
 
-        var sOsc = audioCtx.createOscillator();
-        sOsc.type = wave;
-        sOsc.frequency.setValueAtTime(sFreq, time);
+          var clickOsc = audioCtx.createOscillator();
+          var clickGain = audioCtx.createGain();
+          clickOsc.type = 'triangle';
+          clickOsc.frequency.setValueAtTime(1400, time);
+          clickOsc.frequency.exponentialRampToValueAtTime(180, time + 0.006);
+          clickGain.gain.setValueAtTime(0.18, time);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.008);
+          clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
+          clickOsc.connect(clickGain);
+          clickGain.connect(lpf);
+          clickOsc.start(time);
+          clickOsc.stop(time + 0.012);
+        } else if (inst.id === 'hihat') {
+          var hp = audioCtx.createBiquadFilter();
+          hp.type = 'highpass';
+          hp.frequency.setValueAtTime(4500 * pitchVal, time);
 
-        var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.32 : 0.44;
-        var sG = audioCtx.createGain();
-        sG.gain.setValueAtTime(0.0001, time);
-        sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
-        sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
-        sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
+          var hatTame = audioCtx.createBiquadFilter();
+          hatTame.type = 'highshelf';
+          hatTame.frequency.value = 11000;
+          hatTame.gain.value = -3.5;
 
-        sOsc.connect(sG);
-        sG.connect(lpf);
-        sOsc.start(time);
-        sOsc.stop(time + decayVal + 0.008);
+          hp.connect(hatTame);
+          hatTame.connect(lpf);
+
+          var noise = audioCtx.createBufferSource();
+          noise.buffer = noiseBuffer;
+          var ng = audioCtx.createGain();
+          ng.gain.setValueAtTime(0.28, time);
+          ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+          noise.connect(ng);
+          ng.connect(hp);
+          noise.start(time);
+          noise.stop(time + decayVal + 0.012);
+
+          var ratios = [2, 3.1, 4.2, 5.4, 6.8];
+          var mg = audioCtx.createGain();
+          mg.gain.setValueAtTime(0.11, time);
+          mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+          mg.connect(hp);
+          for (var i = 0; i < ratios.length; i++) {
+            var ho = audioCtx.createOscillator();
+            ho.type = 'square';
+            ho.frequency.setValueAtTime(260 * pitchVal * ratios[i], time);
+            ho.connect(mg);
+            ho.start(time);
+            ho.stop(time + decayVal + 0.012);
+          }
+        } else if (inst.id === 'tom') {
+          var tosc = audioCtx.createOscillator();
+          var tg = audioCtx.createGain();
+          tosc.type = 'sine';
+          tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
+          tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
+          tg.gain.setValueAtTime(0.0001, time);
+          tg.gain.linearRampToValueAtTime(0.50, time + 0.003);
+          tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
+          tosc.connect(tg);
+          tg.connect(lpf);
+          tosc.start(time);
+          tosc.stop(time + decayVal + 0.015);
+        } else if (inst.id === 'shakers') {
+          var sNoise = audioCtx.createBufferSource();
+          sNoise.buffer = noiseBuffer;
+
+          var sHP = audioCtx.createBiquadFilter();
+          sHP.type = 'highpass';
+          sHP.frequency.setValueAtTime(2400 * pitchVal, time);
+
+          var sBP = audioCtx.createBiquadFilter();
+          sBP.type = 'bandpass';
+          sBP.frequency.setValueAtTime(5200 * pitchVal, time);
+          sBP.Q.value = 1.1;
+
+          var sTame = audioCtx.createBiquadFilter();
+          sTame.type = 'highshelf';
+          sTame.frequency.value = 9500;
+          sTame.gain.value = -3.0;
+
+          var swellTime = Math.min(0.024, decayVal * 0.28);
+          var sEnv = audioCtx.createGain();
+          sEnv.gain.setValueAtTime(0.0001, time);
+          sEnv.gain.linearRampToValueAtTime(0.09, time + swellTime * 0.45);
+          sEnv.gain.linearRampToValueAtTime(0.38, time + swellTime);
+          sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+
+          sNoise.connect(sHP);
+          sHP.connect(sBP);
+          sBP.connect(sTame);
+          sTame.connect(sEnv);
+          sEnv.connect(lpf);
+
+          sNoise.start(time, Math.random() * 0.8);
+          sNoise.stop(time + decayVal + 0.015);
+        } else if (inst.id === 'snare') {
+          var b1 = audioCtx.createOscillator();
+          var b2 = audioCtx.createOscillator();
+          b1.type = 'triangle';
+          b2.type = 'sine';
+          b1.frequency.setValueAtTime(pitchVal * 1.9, time);
+          b1.frequency.exponentialRampToValueAtTime(pitchVal * 0.95, time + 0.025);
+          b2.frequency.setValueAtTime(pitchVal * 2.8, time);
+          b2.frequency.exponentialRampToValueAtTime(pitchVal * 1.65, time + 0.022);
+
+          var bg1 = audioCtx.createGain();
+          var bg2 = audioCtx.createGain();
+          var bodyDec = Math.min(0.14, decayVal * 0.45);
+          bg1.gain.setValueAtTime(0.32, time);
+          bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
+          bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
+          bg2.gain.setValueAtTime(0.22, time);
+          bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
+          bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
+
+          b1.connect(bg1);
+          b2.connect(bg2);
+          bg1.connect(lpf);
+          bg2.connect(lpf);
+          b1.start(time);
+          b2.start(time);
+          b1.stop(time + bodyDec + 0.012);
+          b2.stop(time + bodyDec + 0.012);
+
+          var sn = audioCtx.createBufferSource();
+          sn.buffer = noiseBuffer;
+          var shp = audioCtx.createBiquadFilter();
+          shp.type = 'highpass';
+          shp.frequency.setValueAtTime(1650, time);
+          var sPeak = audioCtx.createBiquadFilter();
+          sPeak.type = 'peaking';
+          sPeak.frequency.setValueAtTime(4200, time);
+          sPeak.Q.value = 1.2;
+          sPeak.gain.value = 5;
+
+          var sng = audioCtx.createGain();
+          sng.gain.setValueAtTime(0.38, time);
+          sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+          sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
+
+          sn.connect(shp);
+          shp.connect(sPeak);
+          sPeak.connect(snareGritShaper);
+          snareGritShaper.connect(sng);
+          sng.connect(lpf);
+          sn.start(time);
+          sn.stop(time + decayVal + 0.015);
+        } else if (inst.id === 'bassline') {
+          var stepDur = 60 / bpm / 4;
+          var span = getStitchedSpan(track, stepIdx);
+          var noteIdx = track.notes[stepIdx] || 0;
+          var semitones = Math.round(pitchVal);
+          var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
+
+          var mainSine = audioCtx.createOscillator();
+          mainSine.type = 'sine';
+          mainSine.frequency.setValueAtTime(freq, time);
+
+          var octSine = audioCtx.createOscillator();
+          octSine.type = 'sine';
+          octSine.frequency.setValueAtTime(freq * 2, time);
+
+          var midSine = audioCtx.createOscillator();
+          midSine.type = 'triangle';
+          midSine.frequency.setValueAtTime(freq * 3, time);
+
+          var octGain = audioCtx.createGain();
+          octGain.gain.value = 0.26;
+
+          var midGain = audioCtx.createGain();
+          midGain.gain.value = 0.08;
+
+          var bg = audioCtx.createGain();
+          bg.gain.setValueAtTime(0.0001, time);
+
+          var endTime;
+          if (span > 1) {
+            var holdDur = Math.max(0.04, span * stepDur - 0.015);
+            var rel = Math.min(0.045, holdDur * 0.25);
+            bg.gain.linearRampToValueAtTime(0.28, time + 0.012);
+            bg.gain.setValueAtTime(0.28, time + Math.max(0.014, holdDur - rel));
+            bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
+            bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
+            endTime = time + holdDur + 0.008;
+          } else {
+            bg.gain.linearRampToValueAtTime(0.36, time + 0.008);
+            bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+            bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+            endTime = time + decayVal + 0.012;
+          }
+
+          mainSine.connect(bg);
+          octSine.connect(octGain);
+          octGain.connect(bg);
+          midSine.connect(midGain);
+          midGain.connect(bg);
+          bg.connect(lpf);
+
+          mainSine.start(time);
+          octSine.start(time);
+          midSine.start(time);
+          mainSine.stop(endTime);
+          octSine.stop(endTime);
+          midSine.stop(endTime);
+        } else if (inst.id === 'synth') {
+          var sNoteIdx = track.notes[stepIdx];
+          if (sNoteIdx === undefined || sNoteIdx < 0 || sNoteIdx >= SYNTH_NOTES.length) sNoteIdx = 0;
+          var octShift = Math.round(pitchVal) * 12;
+          var sFreq = midiToHz(SYNTH_NOTES[sNoteIdx].midi + octShift);
+          var wave = track.waveform || 'sine';
+
+          var sOsc = audioCtx.createOscillator();
+          sOsc.type = wave;
+          sOsc.frequency.setValueAtTime(sFreq, time);
+
+          var peakAmp = (wave === 'sawtooth' || wave === 'square') ? 0.32 : 0.44;
+          var sG = audioCtx.createGain();
+          sG.gain.setValueAtTime(0.0001, time);
+          sG.gain.linearRampToValueAtTime(peakAmp, time + 0.0015);
+          sG.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
+          sG.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.004);
+
+          sOsc.connect(sG);
+          sG.connect(lpf);
+          sOsc.start(time);
+          sOsc.stop(time + decayVal + 0.008);
+        }
+      } catch (err) {
+        console.error('triggerSound error:', err);
       }
     }
 
@@ -1629,7 +1633,11 @@
         nextNoteTime = audioCtx.currentTime + 0.02;
       }
       while (nextNoteTime < audioCtx.currentTime + 0.1) {
-        scheduleStep(currentStep, nextNoteTime);
+        try {
+          scheduleStep(currentStep, nextNoteTime);
+        } catch (e) {
+          console.error('scheduleStep error:', e);
+        }
         nextNoteTime += stepDur;
         currentStep = (currentStep + 1) % STEPS;
       }
