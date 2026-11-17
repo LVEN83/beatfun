@@ -346,7 +346,7 @@
       touch-action: none;
     }
 
-    /* ---------- PARAMETERS (2x2 GRID + FULL-WIDTH VOLUME SLIDER) ---------- */
+    /* ---------- PARAMETERS (2x2 GRID + FULL WIDTH VOLUME) ---------- */
     .params-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -577,56 +577,15 @@
       background-color: #ffffff;
     }
 
-    /* 1. MUTE MATRIX & HOLD BUTTON (HOLD ON LEFT, BIGGER PADS, HARMONIOUS MARGINS) */
+    /* 1. MUTE MATRIX & PADS (EQUAL WIDTH TO LPs, SPACED OUT) */
     .mute-matrix-wrap {
       display: flex;
+      flex-direction: column;
       gap: 6px;
       width: 100%;
       max-width: 330px;
-      margin: clamp(10px, 1.8dvh, 18px) auto clamp(4px, 0.8dvh, 8px) auto;
-      align-items: stretch;
+      margin: clamp(10px, 1.8dvh, 18px) auto clamp(6px, 1.2dvh, 12px) auto;
       flex-shrink: 0;
-    }
-
-    .hold-btn {
-      width: clamp(58px, 15vw, 70px);
-      background: #000000;
-      color: #888888;
-      border: 1px solid #444444;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      cursor: pointer;
-      user-select: none;
-      touch-action: none;
-      transition: all 0.12s ease;
-    }
-
-    .hold-btn.active {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    .hold-title {
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 1.5px;
-    }
-
-    .hold-sub {
-      font-size: 8px;
-      letter-spacing: 0.5px;
-      color: inherit;
-    }
-
-    .mute-pads-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
     }
 
     .mute-row {
@@ -648,17 +607,17 @@
       color: #000000;
       border: 1px solid #ffffff;
       padding: 0;
-      height: clamp(32px, 4.8dvh, 40px);
-      font-size: 11px;
+      height: clamp(34px, 5dvh, 44px);
+      font-size: clamp(11px, 1.6dvh, 13px);
       font-weight: 900;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       user-select: none;
       touch-action: manipulation;
-      transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+      transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }
 
     .mute-pad.muted {
@@ -667,9 +626,23 @@
       border-color: #333333;
     }
 
-    .mute-pad.staged {
-      border: 1.5px dashed #ffffff !important;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    .mute-pad.staged-mute {
+      background: #777777 !important;
+      color: #000000 !important;
+      border: 2px dashed #ffffff !important;
+      animation: pulseQueue 0.8s infinite alternate;
+    }
+
+    .mute-pad.staged-unmute {
+      background: #222222 !important;
+      color: #ffffff !important;
+      border: 2px dashed #ffffff !important;
+      animation: pulseQueue 0.8s infinite alternate;
+    }
+
+    @keyframes pulseQueue {
+      0% { opacity: 0.6; }
+      100% { opacity: 1.0; }
     }
 
     /* CENTERED PIXEL MONITOR */
@@ -700,11 +673,12 @@
       touch-action: none;
     }
 
-    /* 4 BIG SPINNING LPS ANCHORED LOW */
+    /* 4 BIG SPINNING LPS WITH CENTER ROUND MUTE QUEUE BUTTON */
     .vinyls-grid {
+      position: relative;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: clamp(6px, 1.2dvh, 12px) clamp(12px, 3.5vw, 24px);
+      gap: clamp(8px, 1.4dvh, 14px) clamp(12px, 3.5vw, 24px);
       width: 100%;
       max-width: 330px;
       margin: 0 auto;
@@ -739,6 +713,58 @@
 
     .vinyl-label.active {
       color: #ffffff;
+    }
+
+    /* ROUND MUTE QUEUE BUTTON CENTERED IN THE 4 LPs */
+    .mute-queue-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(52px, 8dvh, 64px);
+      height: clamp(52px, 8dvh, 64px);
+      border-radius: 50%;
+      background: #000000;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.9), 0 0 0 4px #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      z-index: 30;
+      transition: background-color 0.1s ease, color 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .mute-queue-btn.active {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+      transform: translate(-50%, -50%) scale(0.96);
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.8), 0 0 0 4px #000000;
+    }
+
+    .mq-title {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      line-height: 1;
+    }
+
+    .mq-sub {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      line-height: 1;
+      color: #888888;
+    }
+
+    .mute-queue-btn.active .mq-sub {
+      color: #333333;
     }
 
     /* Modal dialogs */
@@ -880,7 +906,7 @@
           <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.0" />
         </div>
 
-        <!-- FULL-WIDTH VOLUME SLIDER -->
+        <!-- FULL WIDTH VOLUME SLIDER -->
         <div class="param-box full-width" id="boxVolume">
           <div class="param-top mono">
             <span class="param-label">Volume</span>
@@ -940,40 +966,32 @@
         <div class="progress-fill" id="progressFill"></div>
       </div>
 
-      <!-- 1. MUTE MATRIX & HOLD BUTTON (HOLD ON LEFT, BIGGER PADS, HARMONIOUS MARGINS) -->
+      <!-- 1. MUTE MATRIX (FULL WIDTH OF LPs & HARMONIOUS SPACING) -->
       <div class="mute-matrix-wrap" id="muteMatrixWrap">
-        <!-- HOLD Button on the left -->
-        <button type="button" class="hold-btn mono" id="holdBtn">
-          <span class="hold-title">HOLD</span>
-          <span class="hold-sub">QUEUE</span>
-        </button>
-
-        <div class="mute-pads-col">
-          <!-- Row 1: 5 Drum Pads -->
-          <div class="mute-row drums-row">
-            <button type="button" class="mute-pad mono" data-inst="0">BD</button>
-            <button type="button" class="mute-pad mono" data-inst="1">SD</button>
-            <button type="button" class="mute-pad mono" data-inst="2">TOM</button>
-            <button type="button" class="mute-pad mono" data-inst="3">HH</button>
-            <button type="button" class="mute-pad mono" data-inst="4">SHK</button>
-          </div>
-          <!-- Row 2: 2 Melodic Pads -->
-          <div class="mute-row melodic-row">
-            <button type="button" class="mute-pad mono" data-inst="5">BASS</button>
-            <button type="button" class="mute-pad mono" data-inst="6">SYNTH</button>
-          </div>
+        <!-- Row 1: 5 Drum Pads -->
+        <div class="mute-row drums-row">
+          <button type="button" class="mute-pad mono" data-inst="0">BD</button>
+          <button type="button" class="mute-pad mono" data-inst="1">SD</button>
+          <button type="button" class="mute-pad mono" data-inst="2">TOM</button>
+          <button type="button" class="mute-pad mono" data-inst="3">HH</button>
+          <button type="button" class="mute-pad mono" data-inst="4">SHK</button>
+        </div>
+        <!-- Row 2: 2 Melodic Pads -->
+        <div class="mute-row melodic-row">
+          <button type="button" class="mute-pad mono" data-inst="5">BASS</button>
+          <button type="button" class="mute-pad mono" data-inst="6">SYNTH</button>
         </div>
       </div>
 
-      <!-- CENTERED PIXEL MONITOR -->
+      <!-- CENTERED PIXEL MONITOR (BUNNY / PIGEONS) -->
       <div class="monitor-center">
         <div class="pixel-monitor">
           <canvas class="pixel-canvas" id="pixelCanvas" width="32" height="32"></canvas>
         </div>
       </div>
 
-      <!-- 4 BIG SPINNING LPS ANCHORED LOW -->
-      <div class="vinyls-grid">
+      <!-- 4 BIG SPINNING LPS WITH CENTER ROUND MUTE QUEUE BUTTON -->
+      <div class="vinyls-grid" id="vinylsGrid">
         <div class="vinyl-wrap">
           <canvas class="vinyl-canvas" id="vinylRewind" width="144" height="144"></canvas>
           <span class="vinyl-label mono" id="labelRewind">REWIND</span>
@@ -993,6 +1011,12 @@
           <canvas class="vinyl-canvas" id="vinylCrush" width="144" height="144"></canvas>
           <span class="vinyl-label mono" id="labelCrush">CRUSH/GATE</span>
         </div>
+
+        <!-- ROUND MUTE QUEUE BUTTON CENTERED IN THE 4 LPs -->
+        <button type="button" class="mute-queue-btn mono" id="holdBtn">
+          <span class="mq-title">MUTE</span>
+          <span class="mq-sub">QUEUE</span>
+        </button>
       </div>
     </div>
 
@@ -1054,7 +1078,7 @@
     var BASS_NOTES  = buildNoteRange(24, 36);
     var SYNTH_NOTES = buildNoteRange(60, 72);
 
-    // 2. Bassline defaults to SINE
+    // Bassline defaults to SINE
     var INSTRUMENTS = [
       { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78, reverb: 0.0, volume: 1.0 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
       { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85, reverb: 0.0, volume: 1.0 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
@@ -1066,7 +1090,7 @@
     ];
 
     var STEPS = 16;
-    // Finale duration is 60 SECONDS
+    // 60 SECONDS FINALE DURATION
     var FINALE_SECONDS = 60;
     var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
@@ -1245,7 +1269,7 @@
       return ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
     }
 
-    // 3. LETGO TRANSITION (Air suction / release whoosh)
+    // 3. MODULAR LETGO TRANSITION (Air suction / release whoosh)
     function triggerLetgoTransition() {
       if (!audioCtx || !noiseBuffer || audioCtx.state !== 'running') return;
       try {
@@ -1261,8 +1285,8 @@
 
         var g = audioCtx.createGain();
         g.gain.setValueAtTime(0.0001, now);
-        g.gain.linearRampToValueAtTime(0.07, now + 0.015);
-        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.095);
+        g.linearRampToValueAtTime(0.07, now + 0.015);
+        g.exponentialRampToValueAtTime(0.0001, now + 0.095);
 
         src.connect(bp);
         bp.connect(g);
@@ -2443,7 +2467,7 @@
         tracks[i].steps = mt.steps ? mt.steps.slice() : tracks[i].steps;
         tracks[i].notes = mt.notes ? mt.notes.slice() : tracks[i].notes;
         tracks[i].tied = mt.tied ? mt.tied.slice() : tracks[i].tied;
-        tracks[i].waveform = mt.waveform || (i === 5 ? 'sine' : 'sine');
+        tracks[i].waveform = mt.waveform || 'sine';
         if (mt.params) {
           tracks[i].params = {
             pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch,
@@ -3101,18 +3125,28 @@
     vinylCrush.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     // ---------------------------------------------------------
-    // MUTE MATRIX & HOLD INTERACTION
+    // 2. MUTE MATRIX & MUTE QUEUE (BRING STUFF IN AND OUT)
     // ---------------------------------------------------------
     function updateMutePadsUI() {
       mutePads.forEach(function(pad) {
         var idx = parseInt(pad.getAttribute('data-inst'));
         var isCurrentlyMuted = trackMutes[idx];
-        var isStagedDiff = isHoldActive && stagedMutes && (stagedMutes[idx] !== trackMutes[idx]);
 
-        var displayMuted = isHoldActive && stagedMutes ? stagedMutes[idx] : isCurrentlyMuted;
+        // Normal state when not queueing
+        if (!isHoldActive || !stagedMutes) {
+          pad.classList.toggle('muted', isCurrentlyMuted);
+          pad.classList.remove('staged-mute', 'staged-unmute');
+          return;
+        }
 
-        pad.classList.toggle('muted', displayMuted);
-        pad.classList.toggle('staged', isStagedDiff);
+        // QUEUE MODE: distinctly display staged cuts and staged drop-ins
+        var willBeMuted = stagedMutes[idx];
+        var isStagedToMute = !isCurrentlyMuted && willBeMuted; // currently playing -> will mute
+        var isStagedToUnmute = isCurrentlyMuted && !willBeMuted; // currently muted -> will play
+
+        pad.classList.toggle('muted', isCurrentlyMuted);
+        pad.classList.toggle('staged-mute', isStagedToMute);
+        pad.classList.toggle('staged-unmute', isStagedToUnmute);
       });
     }
 
@@ -3123,9 +3157,11 @@
         var idx = parseInt(this.getAttribute('data-inst'));
 
         if (isHoldActive && stagedMutes) {
+          // Stage toggle: works both for bringing in and taking out
           stagedMutes[idx] = !stagedMutes[idx];
           updateMutePadsUI();
         } else {
+          // Instant live toggle
           trackMutes[idx] = !trackMutes[idx];
           setTrackMuteAudio(idx, trackMutes[idx]);
           updateMutePadsUI();
@@ -3151,8 +3187,10 @@
 
       if (stagedMutes) {
         for (var i = 0; i < INSTRUMENTS.length; i++) {
-          trackMutes[i] = stagedMutes[i];
-          setTrackMuteAudio(i, trackMutes[i]);
+          if (trackMutes[i] !== stagedMutes[i]) {
+            trackMutes[i] = stagedMutes[i];
+            setTrackMuteAudio(i, trackMutes[i]);
+          }
         }
         stagedMutes = null;
       }
@@ -3496,7 +3534,7 @@
         ctx.moveTo(cx - 4, cy - 2);
         ctx.lineTo(cx + 4, cy - 2);
         ctx.moveTo(cx, cy - 2);
-        ctx.lineTo(cx, cy + 4);
+        ctx.lineTo(cx + 4, cy + 4);
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(cx, cy, 16, -0.6 * Math.PI, 0.4 * Math.PI, false);
