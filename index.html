@@ -346,11 +346,11 @@
       touch-action: none;
     }
 
-    /* ---------- PARAMETERS (BIG THUMB-FRIENDLY SLIDERS) ---------- */
+    /* ---------- PARAMETERS (2x2 GRID + FULL WIDTH VOLUME) ---------- */
     .params-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: clamp(4px, 0.8dvh, 6px);
+      gap: clamp(4px, 0.7dvh, 6px);
       flex-shrink: 0;
     }
 
@@ -358,10 +358,14 @@
       border: 1px solid #333333;
       padding: 4px 10px;
       min-height: 48px;
-      height: clamp(48px, 6.2dvh, 58px);
+      height: clamp(48px, 6dvh, 56px);
       display: flex;
       flex-direction: column;
       justify-content: center;
+    }
+
+    .param-box.full-width {
+      grid-column: 1 / -1;
     }
 
     .param-top {
@@ -475,7 +479,7 @@
       color: #ffffff;
     }
 
-    /* ---------- SWING / GROOVE SCREEN (CLEAN 3 TOGGLES) ---------- */
+    /* ---------- SWING / GROOVE SCREEN ---------- */
     .swing-screen {
       flex: 1;
       display: flex;
@@ -548,14 +552,14 @@
       color: #333333;
     }
 
-    /* ---------- FINALE SCREEN (CENTERED BUNNY & BIG LOW LPs) ---------- */
+    /* ---------- FINALE SCREEN (MUTE MATRIX + CENTERED BUNNY + LOW LPs) ---------- */
     .finale-screen {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 8px 10px calc(8px + env(safe-area-inset-bottom)) 10px;
+      padding: 6px 10px calc(8px + env(safe-area-inset-bottom)) 10px;
       min-height: 0;
       overflow: hidden;
     }
@@ -573,6 +577,102 @@
       background-color: #ffffff;
     }
 
+    /* 3. MUTE MATRIX & HOLD BUTTON */
+    .mute-matrix-wrap {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      max-width: 360px;
+      margin: 4px auto 0 auto;
+      align-items: stretch;
+      flex-shrink: 0;
+    }
+
+    .mute-pads-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mute-row {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .mute-row.drums-row {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .mute-row.melodic-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mute-pad {
+      background: #ffffff;
+      color: #000000;
+      border: 1px solid #ffffff;
+      padding: 0;
+      height: clamp(26px, 3.8dvh, 32px);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      touch-action: manipulation;
+      transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+    }
+
+    .mute-pad.muted {
+      background: #000000;
+      color: #555555;
+      border-color: #333333;
+    }
+
+    .mute-pad.staged {
+      border: 1.5px dashed #ffffff !important;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    }
+
+    .hold-btn {
+      width: clamp(54px, 14vw, 66px);
+      background: #000000;
+      color: #888888;
+      border: 1px solid #444444;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      transition: all 0.12s ease;
+    }
+
+    .hold-btn.active {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .hold-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    .hold-sub {
+      font-size: 8px;
+      letter-spacing: 0.5px;
+      color: inherit;
+    }
+
+    /* CENTERED PIXEL MONITOR */
     .monitor-center {
       flex: 1;
       display: flex;
@@ -580,6 +680,7 @@
       align-items: center;
       width: 100%;
       min-height: 0;
+      margin: 2px 0;
     }
 
     .pixel-monitor {
@@ -591,14 +692,15 @@
 
     .pixel-canvas {
       display: block;
-      width: clamp(90px, 15dvh, 126px);
-      height: clamp(90px, 15dvh, 126px);
+      width: clamp(86px, 14dvh, 118px);
+      height: clamp(86px, 14dvh, 118px);
       background-color: #000000;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       touch-action: none;
     }
 
+    /* 4 BIG SPINNING LPS ANCHORED LOW */
     .vinyls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -609,7 +711,7 @@
       align-items: center;
       justify-items: center;
       flex-shrink: 0;
-      padding-bottom: 4px;
+      padding-bottom: 2px;
     }
 
     .vinyl-wrap {
@@ -621,8 +723,8 @@
 
     .vinyl-canvas {
       display: block;
-      width: clamp(100px, 16.5dvh, 134px);
-      height: clamp(100px, 16.5dvh, 134px);
+      width: clamp(98px, 16dvh, 130px);
+      height: clamp(98px, 16dvh, 130px);
       cursor: pointer;
       touch-action: none;
     }
@@ -671,6 +773,7 @@
       .btn-secondary:hover { border-color: #ffffff; }
       .btn-next:hover { background-color: #000000; color: #ffffff; }
       .swing-toggle-btn:hover { border-color: #ffffff; }
+      .mute-pad:hover { opacity: 0.85; }
     }
   </style>
 </head>
@@ -743,7 +846,7 @@
         <canvas class="piano-canvas" id="pianoCanvas"></canvas>
       </div>
 
-      <!-- 2x2 COMPACT PARAMETER GRID (BIG THUMB-FRIENDLY SLIDERS) -->
+      <!-- 2x2 PARAMETERS + FULL-WIDTH VOLUME SLIDER -->
       <div class="params-grid" id="paramsGrid">
         <div class="param-box" id="boxPitch">
           <div class="param-top mono">
@@ -776,6 +879,15 @@
           </div>
           <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.0" />
         </div>
+
+        <!-- 2. FULL WIDTH VOLUME SLIDER UNDERNEATH -->
+        <div class="param-box full-width" id="boxVolume">
+          <div class="param-top mono">
+            <span class="param-label">Volume</span>
+            <span class="param-value" id="volumeVal">100%</span>
+          </div>
+          <input type="range" id="volumeSlider" min="0" max="1.5" step="0.01" value="1.0" />
+        </div>
       </div>
 
       <div class="actions-row">
@@ -784,7 +896,7 @@
       </div>
     </div>
 
-    <!-- SWING / GROOVE SCREEN (CLEAN 3 TOGGLES, NO SLIDER, NO LINES) -->
+    <!-- SWING / GROOVE SCREEN -->
     <div id="swingScreen" class="swing-screen hidden">
       <div class="swing-header">
         <div>
@@ -822,20 +934,45 @@
       </div>
     </div>
 
-    <!-- 30-SECOND FINALE SCREEN (CENTERED BUNNY & BIG LOW LPs) -->
+    <!-- 30-SECOND FINALE SCREEN (MUTE MATRIX + CENTERED BUNNY + 4 LOW LPs) -->
     <div id="finaleScreen" class="finale-screen hidden">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
       </div>
 
-      <!-- CENTERED PIXEL MONITOR -->
+      <!-- 3. MUTE MATRIX & HOLD BUTTON -->
+      <div class="mute-matrix-wrap" id="muteMatrixWrap">
+        <div class="mute-pads-col">
+          <!-- Row 1: 5 Drum Pads -->
+          <div class="mute-row drums-row">
+            <button type="button" class="mute-pad mono" data-inst="0">BD</button>
+            <button type="button" class="mute-pad mono" data-inst="1">SD</button>
+            <button type="button" class="mute-pad mono" data-inst="2">TOM</button>
+            <button type="button" class="mute-pad mono" data-inst="3">HH</button>
+            <button type="button" class="mute-pad mono" data-inst="4">SHK</button>
+          </div>
+          <!-- Row 2: 2 Melodic Pads -->
+          <div class="mute-row melodic-row">
+            <button type="button" class="mute-pad mono" data-inst="5">BASS</button>
+            <button type="button" class="mute-pad mono" data-inst="6">SYNTH</button>
+          </div>
+        </div>
+
+        <!-- HOLD Button on the right -->
+        <button type="button" class="hold-btn mono" id="holdBtn">
+          <span class="hold-title">HOLD</span>
+          <span class="hold-sub">QUEUE</span>
+        </button>
+      </div>
+
+      <!-- 4. CENTERED PIXEL MONITOR (BUNNY / PIGEONS) -->
       <div class="monitor-center">
         <div class="pixel-monitor">
           <canvas class="pixel-canvas" id="pixelCanvas" width="32" height="32"></canvas>
         </div>
       </div>
 
-      <!-- 4 BIG SPINNING LPS ANCHORED LOW FOR EASY THUMB JAMMING -->
+      <!-- 4 BIG SPINNING LPS ANCHORED LOW FOR THUMB JAMMING -->
       <div class="vinyls-grid">
         <div class="vinyl-wrap">
           <canvas class="vinyl-canvas" id="vinylRewind" width="144" height="144"></canvas>
@@ -917,15 +1054,14 @@
     var BASS_NOTES  = buildNoteRange(24, 36); // C1 to C2
     var SYNTH_NOTES = buildNoteRange(60, 72); // C4 to C5
 
-    // 1. Bassline decay 300-500ms, pitch starts at 0.5 (+12 st)
     var INSTRUMENTS = [
-      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78, reverb: 0.0 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
-      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85, reverb: 0.0 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
-      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80, reverb: 0.0 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
-      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90, reverb: 0.0 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
-      { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86, reverb: 0.0 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
-      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.5,  decay: 0.50, filter: 0.70, reverb: 0.0 }, pitchRange: [0, 24],      decayRange: [0.30, 0.50] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82, reverb: 0.0 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] }
+      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78, reverb: 0.0, volume: 1.0 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
+      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85, reverb: 0.0, volume: 1.0 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
+      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80, reverb: 0.0, volume: 1.0 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
+      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90, reverb: 0.0, volume: 1.0 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
+      { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86, reverb: 0.0, volume: 1.0 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
+      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.5,  decay: 0.50, filter: 0.70, reverb: 0.0, volume: 1.0 }, pitchRange: [0, 24],      decayRange: [0.30, 0.50] },
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82, reverb: 0.0, volume: 1.0 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] }
     ];
 
     var STEPS = 16;
@@ -940,6 +1076,12 @@
     var swingScreenActive = false;
     var currentSwingMode = 'straight';
     var tracks = [];
+
+    // Mute matrix state (all false = ON / unmuted to begin with)
+    var trackMutes = [false, false, false, false, false, false, false];
+    var isHoldActive = false;
+    var holdPointerId = null;
+    var stagedMutes = null;
 
     // Online game state
     var gameMode = 'solo';
@@ -972,7 +1114,8 @@
             pitch: inst.defaults.pitch,
             decay: inst.defaults.decay,
             filter: inst.defaults.filter,
-            reverb: 0.0
+            reverb: 0.0,
+            volume: 1.0
           }
         });
       }
@@ -980,7 +1123,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE & BASSLINE DUCKING
+    // WEB AUDIO ENGINE & POST-FADER CHANNEL STRIPS
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -1021,10 +1164,14 @@
 
     var reverbPreHPF = null;
     var instReverbReturn = null;
+
+    // Per-instrument channel strips (Post-voice Volume + Mute)
+    var trackVolGains = [];
+    var trackMuteGains = [];
     var trackDryGains = [];
     var trackRevGains = [];
 
-    // Bassline sidechain ducking gain node
+    // Bassline sidechain ducking node
     var basslineDuckingGain = null;
 
     // Space Echo nodes
@@ -1167,18 +1314,31 @@
         reverbToneLPF.connect(instReverbReturn);
         instReverbReturn.connect(masterHPF);
 
-        // 5. Bassline Sidechain Ducking Node
+        // Bassline Sidechain Ducking Node
         basslineDuckingGain = audioCtx.createGain();
         basslineDuckingGain.gain.value = 1.0;
         basslineDuckingGain.connect(mixBus);
 
-        // Per-track dry and reverb send buses
+        // Per-track Channel Strip: Volume -> Mute -> Dry / Wet Splits
+        trackVolGains = [];
+        trackMuteGains = [];
         trackDryGains = [];
         trackRevGains = [];
         for (var i = 0; i < INSTRUMENTS.length; i++) {
+          var volG = audioCtx.createGain();
+          var initVol = (tracks[i] && tracks[i].params && tracks[i].params.volume !== undefined) ? tracks[i].params.volume : 1.0;
+          volG.gain.value = initVol;
+          trackVolGains[i] = volG;
+
+          var muteG = audioCtx.createGain();
+          muteG.gain.value = trackMutes[i] ? 0.0 : 1.0;
+          trackMuteGains[i] = muteG;
+
+          volG.connect(muteG);
+
           var dryG = audioCtx.createGain();
           dryG.gain.value = 1.0;
-          if (i === 5) { // Bassline routes through ducking node
+          if (i === 5) {
             dryG.connect(basslineDuckingGain);
           } else {
             dryG.connect(mixBus);
@@ -1190,6 +1350,9 @@
           revG.gain.value = initRev * 0.40;
           revG.connect(reverbPreHPF);
           trackRevGains[i] = revG;
+
+          muteG.connect(dryG);
+          muteG.connect(revG);
         }
 
         hpfReverbWet = audioCtx.createGain();
@@ -1392,6 +1555,13 @@
       }
     });
 
+    function setTrackMuteAudio(idx, isMuted) {
+      if (audioCtx && trackMuteGains[idx]) {
+        trackMuteGains[idx].gain.cancelScheduledValues(audioCtx.currentTime);
+        trackMuteGains[idx].gain.setTargetAtTime(isMuted ? 0.0 : 1.0, audioCtx.currentTime, 0.008);
+      }
+    }
+
     function setRewind(on) {
       if (rewindActive === on) return;
       rewindActive = on;
@@ -1456,7 +1626,6 @@
       }
     }
 
-    // 2. SPACE ECHO: Fast drop back into dry sound on release
     function setSpaceEcho(on) {
       if (spaceEchoActive === on) return;
       spaceEchoActive = on;
@@ -1471,7 +1640,6 @@
         spaceEchoSend.gain.setTargetAtTime(0.70, now, 0.02);
         spaceEchoFeedback.gain.setTargetAtTime(0.88, now, 0.05);
       } else {
-        // Fast cutoff back to normal
         spaceEchoSend.gain.cancelScheduledValues(now);
         spaceEchoSend.gain.setValueAtTime(0.0, now);
         spaceEchoFeedback.gain.cancelScheduledValues(now);
@@ -1481,7 +1649,6 @@
       }
     }
 
-    // 3. CRUNCH / GATE: More balanced, groove stays intact
     function setCrushGate(on) {
       if (crushGateActive === on) return;
       crushGateActive = on;
@@ -1664,13 +1831,11 @@
         lpf.frequency.setValueAtTime(cutoff, time);
         lpf.Q.value = 0.7;
 
-        if (trackDryGains[instIdx]) {
-          lpf.connect(trackDryGains[instIdx]);
+        // 2. Route voice output through the per-track master volume & mute channel strip
+        if (trackVolGains[instIdx]) {
+          lpf.connect(trackVolGains[instIdx]);
         } else {
           lpf.connect(mixBus);
-        }
-        if (trackRevGains[instIdx]) {
-          lpf.connect(trackRevGains[instIdx]);
         }
 
         if (inst.id === 'kick') {
@@ -1839,13 +2004,16 @@
           sn.start(time);
           sn.stop(time + decayVal + 0.015);
         } else if (inst.id === 'bassline') {
-          // 1. Fixed, solid, punchy synth-bass voice (no farty beating)
+          // 1. Sawtooth balanced in comparison to other sounds
           var stepDur = 60 / bpm / 4;
           var span = getStitchedSpan(track, stepIdx);
           var noteIdx = track.notes[stepIdx] || 0;
           var semitones = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
           var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
           var wave = track.waveform || 'sawtooth';
+
+          // Calibrated amplitude: saw is slightly attenuated to avoid overpowering
+          var waveGainMult = (wave === 'sawtooth') ? 0.72 : (wave === 'square' ? 0.80 : 1.0);
 
           var mainOsc = audioCtx.createOscillator();
           mainOsc.type = wave;
@@ -1856,13 +2024,13 @@
           subOsc.frequency.setValueAtTime(freq * 0.5, time);
 
           var subGain = audioCtx.createGain();
-          subGain.gain.value = (wave === 'sine') ? 0.0 : 0.22;
+          subGain.gain.value = (wave === 'sine') ? 0.0 : ((wave === 'sawtooth') ? 0.18 : 0.22);
 
           var bassFilter = audioCtx.createBiquadFilter();
           bassFilter.type = 'lowpass';
-          var baseCutoff = (wave === 'sine') ? 1600 : 980;
+          var baseCutoff = (wave === 'sine') ? 1600 : 960;
           bassFilter.frequency.setValueAtTime(baseCutoff, time);
-          bassFilter.frequency.exponentialRampToValueAtTime(Math.max(140, baseCutoff * 0.55), time + Math.min(0.25, decayVal));
+          bassFilter.frequency.exponentialRampToValueAtTime(Math.max(130, baseCutoff * 0.55), time + Math.min(0.25, decayVal));
           bassFilter.Q.value = 1.6;
 
           var bg = audioCtx.createGain();
@@ -1872,15 +2040,15 @@
           if (span > 1 && !crushGateActive) {
             var holdDur = Math.max(0.04, span * stepDur - 0.015);
             var rel = Math.min(0.045, holdDur * 0.20);
-            bg.gain.linearRampToValueAtTime(0.48, time + 0.004);
-            bg.gain.setValueAtTime(0.40, time + Math.max(0.012, holdDur - rel));
+            bg.gain.linearRampToValueAtTime(0.48 * waveGainMult, time + 0.004);
+            bg.gain.setValueAtTime(0.40 * waveGainMult, time + Math.max(0.012, holdDur - rel));
             bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
             bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
             endTime = time + holdDur + 0.008;
           } else {
-            // Short hits now carry punch and volume matching held notes!
-            bg.gain.linearRampToValueAtTime(0.48, time + 0.004);
-            bg.gain.exponentialRampToValueAtTime(0.14, time + Math.min(0.18, decayVal * 0.45));
+            // Short hits punch cleanly and match held note volume
+            bg.gain.linearRampToValueAtTime(0.48 * waveGainMult, time + 0.004);
+            bg.gain.exponentialRampToValueAtTime(0.14 * waveGainMult, time + Math.min(0.18, decayVal * 0.45));
             bg.gain.exponentialRampToValueAtTime(0.0005, time + decayVal);
             bg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
             endTime = time + decayVal + 0.012;
@@ -1946,8 +2114,9 @@
       var anyHit = false;
       var maxIdx = (finaleActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
 
-      // 5. SIDECHAIN DUCKING: When Kick hits, smoothly duck the bassline
-      if (tracks[0].steps[step] && basslineDuckingGain && audioCtx) {
+      // Sidechain Ducking: When Kick is active and unmuted, duck the bassline
+      var kickActive = !trackMutes[0] && tracks[0].steps[step];
+      if (kickActive && basslineDuckingGain && audioCtx) {
         var duckTime = Math.max(audioCtx.currentTime, time);
         basslineDuckingGain.gain.cancelScheduledValues(duckTime);
         basslineDuckingGain.gain.setValueAtTime(basslineDuckingGain.gain.value, duckTime);
@@ -1965,7 +2134,8 @@
       }
 
       for (var i = 0; i <= maxIdx; i++) {
-        if (tracks[i].steps[step]) {
+        // Skip voice scheduling if instrument is muted
+        if (tracks[i].steps[step] && !trackMutes[i]) {
           if (!tracks[i].tied[step]) {
             anyHit = true;
           }
@@ -2102,17 +2272,20 @@
 
     var boxFilter = document.getElementById('boxFilter');
     var boxReverb = document.getElementById('boxReverb');
+    var boxVolume = document.getElementById('boxVolume');
 
     var pitchLabel = document.getElementById('pitchLabel');
     var pitchSlider = document.getElementById('pitchSlider');
     var decaySlider = document.getElementById('decaySlider');
     var filterSlider = document.getElementById('filterSlider');
     var reverbSlider = document.getElementById('reverbSlider');
+    var volumeSlider = document.getElementById('volumeSlider');
 
     var pitchVal = document.getElementById('pitchVal');
     var decayVal = document.getElementById('decayVal');
     var filterVal = document.getElementById('filterVal');
     var reverbVal = document.getElementById('reverbVal');
+    var volumeVal = document.getElementById('volumeVal');
 
     var swingBpmValue = document.getElementById('swingBpmValue');
     var btnPush = document.getElementById('btnPush');
@@ -2124,10 +2297,15 @@
     var progressFill = document.getElementById('progressFill');
     var pixelCanvas = document.getElementById('pixelCanvas');
 
+    // 4 Vinyl Canvases
     var vinylRewind = document.getElementById('vinylRewind');
     var vinylHighpass = document.getElementById('vinylHighpass');
     var vinylEcho = document.getElementById('vinylEcho');
     var vinylCrush = document.getElementById('vinylCrush');
+
+    // Mute Matrix & Hold
+    var mutePads = document.querySelectorAll('.mute-pad');
+    var holdBtn = document.getElementById('holdBtn');
 
     var dragPointerId = null;
     var dragPaint = true;
@@ -2220,7 +2398,8 @@
             pitch: tracks[i].params.pitch,
             decay: tracks[i].params.decay,
             filter: tracks[i].params.filter,
-            reverb: tracks[i].params.reverb !== undefined ? tracks[i].params.reverb : 0.0
+            reverb: tracks[i].params.reverb !== undefined ? tracks[i].params.reverb : 0.0,
+            volume: tracks[i].params.volume !== undefined ? tracks[i].params.volume : 1.0
           }
         });
       }
@@ -2250,10 +2429,14 @@
             pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch,
             decay: mt.params.decay !== undefined ? mt.params.decay : tracks[i].params.decay,
             filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter,
-            reverb: mt.params.reverb !== undefined ? mt.params.reverb : 0.0
+            reverb: mt.params.reverb !== undefined ? mt.params.reverb : 0.0,
+            volume: mt.params.volume !== undefined ? mt.params.volume : 1.0
           };
           if (audioCtx && trackRevGains[i]) {
             trackRevGains[i].gain.setValueAtTime(tracks[i].params.reverb * 0.40, audioCtx.currentTime);
+          }
+          if (audioCtx && trackVolGains[i]) {
+            trackVolGains[i].gain.setValueAtTime(tracks[i].params.volume, audioCtx.currentTime);
           }
         }
       }
@@ -2524,7 +2707,7 @@
     }
 
     function renderWaveButtons() {
-      var curWave = tracks[turnIndex].waveform || 'sine';
+      var curWave = tracks[turnIndex].waveform || (turnIndex === 5 ? 'sawtooth' : 'sine');
       for (var i = 0; i < waveBtns.length; i++) {
         waveBtns[i].classList.toggle('active', waveBtns[i].getAttribute('data-wave') === curWave);
       }
@@ -2841,6 +3024,11 @@
       if (e.pointerId === vinylPointers.highpass) { vinylPointers.highpass = null; setHighPass(false); }
       if (e.pointerId === vinylPointers.echo) { vinylPointers.echo = null; setSpaceEcho(false); }
       if (e.pointerId === vinylPointers.crush) { vinylPointers.crush = null; setCrushGate(false); }
+
+      // Release HOLD button if held
+      if (e.pointerId === holdPointerId) {
+        releaseHoldMode();
+      }
     }
 
     window.addEventListener('pointerup', handlePointerRelease);
@@ -2857,9 +3045,11 @@
         setHighPass(false);
         setSpaceEcho(false);
         setCrushGate(false);
+        if (isHoldActive) releaseHoldMode();
       }
     });
 
+    // BIND THE 4 VINYL LP CONTROLS
     vinylRewind.addEventListener('pointerdown', function(e) {
       e.preventDefault();
       ensureAudioUnlocked();
@@ -2892,6 +3082,71 @@
     });
     vinylCrush.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
+    // ---------------------------------------------------------
+    // 3. MUTE MATRIX & HOLD INTERACTION
+    // ---------------------------------------------------------
+    function updateMutePadsUI() {
+      mutePads.forEach(function(pad) {
+        var idx = parseInt(pad.getAttribute('data-inst'));
+        var isCurrentlyMuted = trackMutes[idx];
+        var isStagedDiff = isHoldActive && stagedMutes && (stagedMutes[idx] !== trackMutes[idx]);
+
+        // If in hold mode, show staged state with dashed outline
+        var displayMuted = isHoldActive && stagedMutes ? stagedMutes[idx] : isCurrentlyMuted;
+
+        pad.classList.toggle('muted', displayMuted);
+        pad.classList.toggle('staged', isStagedDiff);
+      });
+    }
+
+    mutePads.forEach(function(pad) {
+      pad.addEventListener('pointerdown', function(e) {
+        e.preventDefault();
+        ensureAudioUnlocked();
+        var idx = parseInt(this.getAttribute('data-inst'));
+
+        if (isHoldActive && stagedMutes) {
+          // Stage the change without applying immediately
+          stagedMutes[idx] = !stagedMutes[idx];
+          updateMutePadsUI();
+        } else {
+          // Instant toggle
+          trackMutes[idx] = !trackMutes[idx];
+          setTrackMuteAudio(idx, trackMutes[idx]);
+          updateMutePadsUI();
+        }
+      });
+    });
+
+    holdBtn.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      ensureAudioUnlocked();
+      isHoldActive = true;
+      holdPointerId = e.pointerId;
+      stagedMutes = trackMutes.slice();
+      holdBtn.classList.add('active');
+      updateMutePadsUI();
+    });
+
+    function releaseHoldMode() {
+      if (!isHoldActive) return;
+      isHoldActive = false;
+      holdPointerId = null;
+      holdBtn.classList.remove('active');
+
+      if (stagedMutes) {
+        for (var i = 0; i < INSTRUMENTS.length; i++) {
+          trackMutes[i] = stagedMutes[i];
+          setTrackMuteAudio(i, trackMutes[i]);
+        }
+        stagedMutes = null;
+      }
+      updateMutePadsUI();
+    }
+
+    holdBtn.addEventListener('pointerup', releaseHoldMode);
+    holdBtn.addEventListener('pointercancel', releaseHoldMode);
+
     function renderStepPads() {
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
@@ -2923,6 +3178,9 @@
 
       var revPct = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100);
       reverbVal.textContent = revPct + '%';
+
+      var volPct = Math.round((p.volume !== undefined ? p.volume : 1.0) * 100);
+      volumeVal.textContent = volPct + '%';
     }
 
     function renderTurn() {
@@ -2939,7 +3197,7 @@
       waveBar.classList.toggle('hidden', !isWave);
       pianoRollWrap.classList.toggle('hidden', !isPiano);
 
-      // Hide Lowpass and Reverb for Bassline
+      // 1. Hide Lowpass and Reverb for Bassline
       boxFilter.classList.toggle('hidden', isBass);
       boxReverb.classList.toggle('hidden', isBass);
 
@@ -2974,6 +3232,7 @@
       decaySlider.value = track.params.decay;
       filterSlider.value = track.params.filter;
       reverbSlider.value = track.params.reverb !== undefined ? track.params.reverb : 0.0;
+      volumeSlider.value = track.params.volume !== undefined ? track.params.volume : 1.0;
       updateParamText();
 
       if (gameMode === 'solo') {
@@ -3022,6 +3281,17 @@
       }
     });
 
+    // 2. Full-width Instrument Volume Slider
+    volumeSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
+      var val = parseFloat(e.target.value);
+      tracks[turnIndex].params.volume = val;
+      updateParamText();
+      if (audioCtx && trackVolGains[turnIndex]) {
+        trackVolGains[turnIndex].gain.setTargetAtTime(val, audioCtx.currentTime, 0.02);
+      }
+    });
+
     function startGame() {
       resetTracks();
       turnIndex = 0;
@@ -3029,6 +3299,8 @@
       swingScreenActive = false;
       currentSwingMode = 'straight';
       updateSwingUI();
+      trackMutes = [false, false, false, false, false, false, false];
+      updateMutePadsUI();
       dragPointerId = null;
       pianoPointerId = null;
 
@@ -3131,7 +3403,6 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // Record outer edge
       ctx.beginPath();
       ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
       ctx.fillStyle = '#000000';
@@ -3140,7 +3411,6 @@
       ctx.strokeStyle = '#ffffff';
       ctx.stroke();
 
-      // Sound grooves
       var radii = [outerR - 8, outerR - 16, outerR - 24, outerR - 32];
       for (var i = 0; i < radii.length; i++) {
         ctx.beginPath();
@@ -3150,7 +3420,6 @@
         ctx.stroke();
       }
 
-      // Rotating strobe line
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle);
@@ -3162,7 +3431,6 @@
       ctx.stroke();
       ctx.restore();
 
-      // Center record label
       var labelR = 27;
       ctx.beginPath();
       ctx.arc(cx, cy, labelR, 0, Math.PI * 2);
@@ -3172,7 +3440,6 @@
       ctx.strokeStyle = '#ffffff';
       ctx.stroke();
 
-      // Draw Electronic Schematic Symbol in Center
       ctx.save();
       ctx.strokeStyle = isPressed ? '#000000' : '#ffffff';
       ctx.fillStyle = isPressed ? '#000000' : '#ffffff';
@@ -3181,7 +3448,6 @@
       ctx.lineJoin = 'round';
 
       if (symbolType === 'rewind') {
-        // Electronic Schematic: Reverse Diode —|◄—
         ctx.beginPath();
         ctx.moveTo(cx - 15, cy);
         ctx.lineTo(cx - 7, cy);
@@ -3199,7 +3465,6 @@
         ctx.closePath();
         ctx.stroke();
       } else if (symbolType === 'highpass') {
-        // Electronic Schematic: Capacitor —||—
         ctx.beginPath();
         ctx.moveTo(cx - 15, cy);
         ctx.lineTo(cx - 4, cy);
@@ -3213,7 +3478,6 @@
         ctx.lineTo(cx + 4, cy + 10);
         ctx.stroke();
       } else if (symbolType === 'echo') {
-        // Electronic Schematic: Feedback Loop with Delay τ [—τ—↺]
         ctx.strokeRect(cx - 8, cy - 6, 16, 12);
         ctx.beginPath();
         ctx.moveTo(cx - 4, cy - 2);
@@ -3230,7 +3494,6 @@
         ctx.lineTo(cx + 8, cy + 13);
         ctx.fill();
       } else if (symbolType === 'crush') {
-        // Electronic Schematic: Schmitt Trigger / Quantizer Hysteresis [—⎍—]
         ctx.beginPath();
         ctx.moveTo(cx - 15, cy);
         ctx.lineTo(cx - 9, cy);
@@ -3250,7 +3513,6 @@
 
       ctx.restore();
 
-      // Center Spindle Hole
       ctx.beginPath();
       ctx.arc(cx, cy, 3, 0, Math.PI * 2);
       ctx.fillStyle = isPressed ? '#ffffff' : '#000000';
@@ -3448,6 +3710,13 @@
       setSpaceEcho(false);
       setCrushGate(false);
 
+      // Reset mute matrix to all unmuted (all ON)
+      trackMutes = [false, false, false, false, false, false, false];
+      for (var i = 0; i < INSTRUMENTS.length; i++) {
+        setTrackMuteAudio(i, false);
+      }
+      updateMutePadsUI();
+
       sequencerScreen.classList.add('hidden');
       swingScreen.classList.add('hidden');
       finaleScreen.classList.remove('hidden');
@@ -3572,13 +3841,11 @@
       if (finaleActive) {
         drawFinaleDancer(nowMs);
 
-        // Update spinning angles for all 4 LPs
         vinylAngles.rewind += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
         vinylAngles.highpass += frameDt * (hpfActive ? 5.2 : 2.6);
         vinylAngles.echo += frameDt * (spaceEchoActive ? 4.2 : 2.6);
         vinylAngles.crush += frameDt * (crushGateActive ? 1.8 : 2.6);
 
-        // Draw 4 Vinyl records with schematic symbols
         drawVinyl(vinylRewind, vinylAngles.rewind, rewindActive, 'rewind');
         drawVinyl(vinylHighpass, vinylAngles.highpass, hpfActive, 'highpass');
         drawVinyl(vinylEcho, vinylAngles.echo, spaceEchoActive, 'echo');
