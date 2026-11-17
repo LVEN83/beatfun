@@ -41,10 +41,10 @@
       max-width: 520px;
       margin: 0 auto;
       padding:
-        calc(10px + env(safe-area-inset-top))
-        calc(14px + env(safe-area-inset-right))
-        calc(12px + env(safe-area-inset-bottom))
-        calc(14px + env(safe-area-inset-left));
+        calc(6px + env(safe-area-inset-top))
+        calc(10px + env(safe-area-inset-right))
+        calc(8px + env(safe-area-inset-bottom))
+        calc(10px + env(safe-area-inset-left));
       background-color: #000000;
       display: flex;
       flex-direction: column;
@@ -77,8 +77,8 @@
       align-items: center;
       justify-content: center;
       border: 1px solid #ffffff;
-      padding: 24px 16px;
-      gap: 28px;
+      padding: 20px 14px;
+      gap: 22px;
       text-align: center;
     }
 
@@ -100,7 +100,7 @@
     .menu-buttons {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       width: 100%;
       max-width: 290px;
     }
@@ -109,8 +109,8 @@
       background-color: #000000;
       color: #ffffff;
       border: 1px solid #ffffff;
-      min-height: 60px;
-      padding: 16px 20px;
+      min-height: 54px;
+      padding: 14px 18px;
       font-size: 14px;
       font-weight: 800;
       letter-spacing: 2.5px;
@@ -154,16 +154,17 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 10px;
+      padding: 4px 8px;
       border: 1px solid #333333;
       background: #0a0a0a;
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 1.5px;
+      flex-shrink: 0;
     }
 
     .battle-badge {
       font-weight: 800;
-      padding: 2px 6px;
+      padding: 2px 5px;
       border: 1px solid #ffffff;
     }
 
@@ -173,26 +174,27 @@
     }
 
     .battle-status-msg {
-      font-size: 10px;
+      font-size: 9px;
       color: #aaaaaa;
       text-transform: uppercase;
       font-weight: 700;
     }
 
-    /* ---------- SEQUENCER SCREEN ---------- */
+    /* ---------- SEQUENCER SCREEN (RESPONSIVE FOR SMALL IPHONES) ---------- */
     .seq-screen {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 12px 14px;
+      padding: clamp(6px, 1.2dvh, 10px) clamp(8px, 2vw, 12px);
       min-height: 0;
-      gap: 6px;
+      gap: clamp(3px, 0.8dvh, 6px);
       position: relative;
+      overflow: hidden;
     }
 
-    /* Locked overlay for opponent's turn or playback */
+    /* Locked overlay */
     .locked-overlay {
       position: absolute;
       inset: 0;
@@ -211,7 +213,7 @@
     .locked-card {
       border: 1px solid #ffffff;
       background: #000000;
-      padding: 20px 24px;
+      padding: 18px 20px;
       max-width: 320px;
       width: 100%;
     }
@@ -220,13 +222,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       border-bottom: 1px solid #333333;
-      padding-bottom: 8px;
+      padding-bottom: clamp(3px, 0.8dvh, 6px);
+      flex-shrink: 0;
     }
 
     .inst-name {
-      font-size: 20px;
+      font-size: clamp(16px, 2.6dvh, 20px);
       font-weight: 800;
       letter-spacing: -0.5px;
       text-transform: uppercase;
@@ -239,11 +242,11 @@
     .bpm-box {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       border: 1px solid #333333;
-      padding: 0 10px;
-      height: 48px;
-      font-size: 11px;
+      padding: 0 8px;
+      height: clamp(34px, 4.8dvh, 42px);
+      font-size: 10px;
       letter-spacing: 1px;
       flex-shrink: 0;
     }
@@ -251,26 +254,27 @@
     .step-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: clamp(3px, 0.7dvh, 5px);
       touch-action: none;
-      margin: 4px 0;
+      margin: 0;
+      flex-shrink: 1;
     }
 
     .step-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
     }
 
     .step-pad {
       width: 100%;
-      min-height: 48px;
-      height: clamp(48px, 7.2dvh, 64px);
+      min-height: 36px;
+      height: clamp(36px, 5.2dvh, 54px);
       background-color: #000000;
       border: 1px solid #3a3a3a;
       color: #666666;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -291,7 +295,7 @@
 
     .playhead-bar {
       width: 100%;
-      height: 3px;
+      height: 2px;
       background-color: #1a1a1a;
     }
 
@@ -303,15 +307,17 @@
     .wave-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: 5px;
+      flex-shrink: 0;
     }
 
     .wave-btn {
-      min-height: 44px;
+      min-height: 36px;
+      height: clamp(36px, 4.8dvh, 42px);
       background-color: #000000;
       color: #777777;
       border: 1px solid #333333;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
@@ -326,7 +332,7 @@
 
     .piano-roll-wrap {
       flex: 1;
-      min-height: 170px;
+      min-height: 115px;
       border: 1px solid #444444;
       background-color: #000000;
       position: relative;
@@ -345,13 +351,15 @@
     .params-grid {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: clamp(3px, 0.6dvh, 5px);
+      flex-shrink: 0;
     }
 
     .param-box {
       border: 1px solid #333333;
-      padding: 4px 12px;
-      min-height: 46px;
+      padding: clamp(2px, 0.5dvh, 4px) 10px;
+      min-height: 36px;
+      height: clamp(36px, 5dvh, 44px);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -360,10 +368,10 @@
     .param-top {
       display: flex;
       justify-content: space-between;
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .param-label {
@@ -380,7 +388,7 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 24px;
+      height: 18px;
       margin: 0;
       background: transparent;
       outline: none;
@@ -395,9 +403,9 @@
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 22px;
-      height: 22px;
-      margin-top: -10px;
+      width: 18px;
+      height: 18px;
+      margin-top: -8px;
       background: #ffffff;
       border: none;
     }
@@ -405,17 +413,19 @@
     .actions-row {
       display: grid;
       grid-template-columns: 1fr 1.5fr;
-      gap: 10px;
+      gap: 8px;
       padding-top: 2px;
+      flex-shrink: 0;
     }
 
     .btn-secondary {
       background-color: #000000;
       color: #ffffff;
       border: 1px solid #555555;
-      min-height: 48px;
-      padding: 10px;
-      font-size: 12px;
+      min-height: 40px;
+      height: clamp(40px, 5.5dvh, 48px);
+      padding: 6px 10px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
@@ -431,9 +441,10 @@
       background-color: #ffffff;
       color: #000000;
       border: 1px solid #ffffff;
-      min-height: 48px;
-      padding: 10px;
-      font-size: 13px;
+      min-height: 40px;
+      height: clamp(40px, 5.5dvh, 48px);
+      padding: 6px 10px;
+      font-size: 12px;
       font-weight: 800;
       letter-spacing: 1.5px;
       text-transform: uppercase;
@@ -452,14 +463,16 @@
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 14px;
+      padding: 12px;
       min-height: 0;
+      overflow: hidden;
     }
 
     .progress-track {
       width: 100%;
       height: 3px;
       background-color: #222222;
+      flex-shrink: 0;
     }
 
     .progress-fill {
@@ -472,19 +485,20 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .pixel-monitor {
       border: 1px solid #ffffff;
-      padding: 5px;
+      padding: 4px;
       background-color: #000000;
       display: inline-block;
     }
 
     .pixel-canvas {
       display: block;
-      width: clamp(120px, 21dvh, 176px);
-      height: clamp(120px, 21dvh, 176px);
+      width: clamp(100px, 18dvh, 150px);
+      height: clamp(100px, 18dvh, 150px);
       background-color: #000000;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
@@ -495,27 +509,28 @@
       display: flex;
       align-items: center;
       justify-content: space-around;
-      gap: 16px;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
     .vinyl-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .vinyl-canvas {
       display: block;
-      width: clamp(112px, 18dvh, 140px);
-      height: clamp(112px, 18dvh, 140px);
+      width: clamp(96px, 15dvh, 130px);
+      height: clamp(96px, 15dvh, 130px);
       cursor: pointer;
       touch-action: none;
     }
 
     .vinyl-label {
-      font-size: 10px;
-      letter-spacing: 2px;
+      font-size: 9px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       color: #666666;
     }
@@ -526,21 +541,22 @@
 
     .matrix {
       border: 1px solid #333333;
-      padding: 10px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      flex-shrink: 1;
     }
 
     .matrix-row {
       display: grid;
-      grid-template-columns: 74px repeat(16, 1fr);
+      grid-template-columns: 68px repeat(16, 1fr);
       gap: 2px;
       align-items: center;
     }
 
     .matrix-name {
-      font-size: 9px;
+      font-size: 8px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       color: #aaaaaa;
@@ -549,7 +565,7 @@
     }
 
     .matrix-cell {
-      height: 11px;
+      height: 9px;
       border: 1px solid #262626;
       background-color: #000000;
     }
@@ -578,13 +594,13 @@
     .modal-card {
       border: 1px solid #ffffff;
       background: #000000;
-      padding: 24px;
+      padding: 22px;
       max-width: 320px;
       width: 100%;
       text-align: center;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     @media (hover: hover) {
@@ -645,7 +661,7 @@
 
         <div class="bpm-box mono">
           <span>BPM</span>
-          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 74px;" />
+          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 68px;" />
           <span id="bpmValue">118</span>
         </div>
       </div>
@@ -815,6 +831,7 @@
     var isReviewingMove = false;
     var reviewStepsRemaining = 0;
     var lastHandledMoveTimestamp = 0;
+    var oppDisconnectTimer = null;
 
     function resetTracks() {
       tracks = [];
@@ -842,7 +859,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE
+    // WEB AUDIO ENGINE & HEADPHONE RE-ROUTE HANDLING
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -939,6 +956,15 @@
         var AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         audioCtx = new AC();
+
+        // Auto-recover if headphones/AirPods disconnect
+        audioCtx.onstatechange = function() {
+          if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
+            audioCtx.resume().then(function() {
+              if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+            }).catch(function() {});
+          }
+        };
 
         mixBus = audioCtx.createGain();
         mixBus.gain.value = 0.62;
@@ -1077,7 +1103,7 @@
         }
       }
 
-      if (audioCtx.state === 'suspended') {
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
         audioCtx.resume().then(function() {
           if (isPlaying && audioCtx) {
             nextNoteTime = audioCtx.currentTime + 0.03;
@@ -1106,9 +1132,12 @@
     }
     document.addEventListener('touchend', ensureAudioUnlocked, true);
     document.addEventListener('click', ensureAudioUnlocked, true);
+    document.addEventListener('pointerdown', ensureAudioUnlocked, true);
     document.addEventListener('visibilitychange', function() {
-      if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
+      if (!document.hidden && audioCtx && audioCtx.state !== 'running') {
+        audioCtx.resume().then(function() {
+          if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+        }).catch(function() {});
       }
     });
 
@@ -1624,14 +1653,21 @@
 
     function scheduler() {
       if (!isPlaying || !audioCtx) return;
+
+      // Auto-resume if audio route changed (e.g. headphones unplugged)
       if (audioCtx.state !== 'running') {
+        audioCtx.resume().catch(function() {});
         nextNoteTime = audioCtx.currentTime + 0.05;
         return;
       }
+
       var stepDur = 60 / bpm / 4;
-      if (nextNoteTime < audioCtx.currentTime - 0.25) {
+
+      // Resync if currentTime jumped during hardware audio re-route
+      if (nextNoteTime < audioCtx.currentTime - 0.25 || nextNoteTime > audioCtx.currentTime + 1.0) {
         nextNoteTime = audioCtx.currentTime + 0.02;
       }
+
       while (nextNoteTime < audioCtx.currentTime + 0.1) {
         try {
           scheduleStep(currentStep, nextNoteTime);
@@ -1755,8 +1791,16 @@
     }
 
     // ---------------------------------------------------------
-    // ONLINE BATTLE MATCHMAKING & STATE MACHINE
+    // ONLINE BATTLE MATCHMAKING & ROBUST RECONNECT
     // ---------------------------------------------------------
+    // Auto-reassert connected state if network flaps on mobile
+    db.ref('.info/connected').on('value', function(snap) {
+      if (snap.val() === true && roomRef && myRole) {
+        roomRef.child('players/' + myRole + '/connected').set(true);
+        roomRef.child('players/' + myRole + '/connected').onDisconnect().set(false);
+      }
+    });
+
     function isMyTurn() {
       return gameMode === 'online' && myRole === roomTurn && !isReviewingMove;
     }
@@ -1846,6 +1890,7 @@
       myRole = null;
       currentRoomId = null;
       turnIndex = 0;
+      clearTimeout(oppDisconnectTimer);
 
       startScreen.classList.add('hidden');
       waitingScreen.classList.remove('hidden');
@@ -1868,7 +1913,7 @@
           roleToAssign = 'player1';
           return { roomId: newRoomKey, createdAt: firebase.database.ServerValue.TIMESTAMP };
         }
-      }, function(err, committed, snapshot) {
+      }, function(err, committed) {
         if (err || !committed) {
           document.getElementById('waitingStatusText').textContent = 'CONNECTION ERROR';
           return;
@@ -1879,7 +1924,6 @@
         roomRef = db.ref('rooms/' + currentRoomId);
 
         if (myRole === 'player1') {
-          // Player 1 waits for Player 2
           waitingQueue.onDisconnect().remove();
 
           roomRef.set({
@@ -1895,7 +1939,6 @@
 
           roomRef.child('players/player1/connected').onDisconnect().set(false);
 
-          // Watch for Player 2 joining
           roomRef.child('players/player2/connected').on('value', function(snap) {
             if (snap.val() === true) {
               waitingQueue.onDisconnect().cancel();
@@ -1903,7 +1946,6 @@
             }
           });
         } else {
-          // Player 2 joined existing room
           roomRef.child('players/player2/connected').onDisconnect().set(false);
           roomRef.update({
             status: 'playing',
@@ -1924,16 +1966,25 @@
       renderTurn();
       startSequencer();
 
-      // Setup room synchronizer
       roomRef.on('value', function(snap) {
         var data = snap.val();
         if (!data) return;
 
-        // Check opponent connection
+        // Opponent disconnect handling with 7s grace period (prevents false alarms on network flaps)
         var opp = myRole === 'player1' ? 'player2' : 'player1';
-        if (data.players && data.players[opp] && data.players[opp].connected === false) {
-          handleOpponentDisconnected();
-          return;
+        if ((data.status === 'playing' || data.status === 'finale') && data.players && data.players[opp]) {
+          if (data.players[opp].connected === false) {
+            if (!oppDisconnectTimer) {
+              oppDisconnectTimer = setTimeout(function() {
+                handleOpponentDisconnected();
+              }, 7000);
+            }
+          } else {
+            if (oppDisconnectTimer) {
+              clearTimeout(oppDisconnectTimer);
+              oppDisconnectTimer = null;
+            }
+          }
         }
 
         // Both players enter the 30-second Finale!
@@ -1958,7 +2009,7 @@
           turnIndex = newInstIndex;
           renderTurn();
 
-          // If it is now our turn, play the opponent's beat for 2 bars (32 steps) before unlocking
+          // Listen to opponent's beat for 2 bars (32 steps) before unlocking
           if (roomTurn === myRole) {
             isReviewingMove = true;
             reviewStepsRemaining = 32;
@@ -1991,7 +2042,6 @@
         turnIndex = nextInstIndex;
         renderTurn();
       } else {
-        // All 7 instruments finished -> Start the 30-second finale for both!
         move.instrumentIndex = INSTRUMENTS.length;
         roomRef.update({
           lastMove: move,
@@ -2003,11 +2053,15 @@
     }
 
     function handleOpponentDisconnected() {
+      clearTimeout(oppDisconnectTimer);
+      oppDisconnectTimer = null;
+      if (roomRef) roomRef.off();
       stopSequencer();
       disconnectModal.classList.remove('hidden');
     }
 
     function cancelMatchmaking() {
+      clearTimeout(oppDisconnectTimer);
       if (waitingQueueRef && myRole === 'player1') {
         waitingQueueRef.remove();
       }
@@ -2020,6 +2074,7 @@
     }
 
     function exitToMainMenu() {
+      clearTimeout(oppDisconnectTimer);
       if (roomRef) {
         roomRef.off();
         roomRef.child('players/' + myRole + '/connected').set(false);
@@ -2615,14 +2670,12 @@
       ctx.fill();
     }
 
-    // ---------- SOLO FINALE: YOUR PLUSH BUNNY (32x32) ----------
-    // Modeled on your plush:
-    // - Upright brown ears with fluffy white inner ears
-    // - Big dark button eyes with shine
-    // - White fluffy snout with black button nose centered on it
-    // - White chest and front paws
-    // - Short stubby legs with NO thigh gap
-    // Symbols: '#' = White, ':' = Brown/Gray, '@' = Black nose/eyes, '.' = background
+    // ---------- SOLO FINALE: SLIMMER 2-COLOR PLUSH BUNNY (32x32) ----------
+    // Exactly 2 colors (White '#' and Gray ':') like the pigeons:
+    // - Upright ears with white interior and gray rim
+    // - Slimmer body silhouette
+    // - White snout with gray button nose
+    // - Short front legs with NO THIGH GAP (paws solid together in front)
     var RABBIT_FRAMES = [
       // Frame 0: Rest pose
       [
@@ -2638,28 +2691,28 @@
         "........::::::::::::::::........",
         ".......::::::::::::::::::.......",
         "......::::::::::::::::::::......",
-        ".....::::@#::::::::::#@::::.....",
-        ".....::::@@::::::::::@@::::.....",
+        ".....::::#::::::::::::#::::.....",
+        ".....::::#::::::::::::#::::.....",
         ".....:::::::########:::::::.....",
-        "......:::::###@@@@###:::::......",
-        ".......:::####@@@@####:::.......",
+        "......:::::###::::###:::::......",
+        ".......:::####::::####:::.......",
         "........::############::........",
         ".........:############:.........",
         "........::::::::::::::::........",
         ".......:::::########:::::.......",
         "......::::::########::::::......",
         ".....:::::::########:::::::.....",
-        "....::::::::########::::::::....",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "....:::::::..######..:::::::....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        "......:::::..######..:::::......",
         "................................",
         "................................"
       ],
-      // Frame 1: Bassdrum Hit (Leg bop down 1px, head nods down 1px)
+      // Frame 1: Bassdrum Hit (Subtle 1px bop down & head nod)
       [
         "................................",
         "................................",
@@ -2674,23 +2727,23 @@
         "........::::::::::::::::........",
         ".......::::::::::::::::::.......",
         "......::::::::::::::::::::......",
-        ".....::::@#::::::::::#@::::.....",
-        ".....::::@@::::::::::@@::::.....",
+        ".....::::#::::::::::::#::::.....",
+        ".....::::#::::::::::::#::::.....",
         ".....:::::::########:::::::.....",
-        "......:::::###@@@@###:::::......",
-        ".......:::####@@@@####:::.......",
+        "......:::::###::::###:::::......",
+        ".......:::####::::####:::.......",
         "........::############::........",
         ".........:############:.........",
         "........::::::::::::::::........",
         ".......:::::########:::::.......",
         "......::::::########::::::......",
         ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
         "....::::::::########::::::::....",
-        "...:::::::::########:::::::::...",
-        "..::::::::::########::::::::::..",
-        "..::::::::::########::::::::::..",
-        "..::::::::::########::::::::::..",
-        "...::::::::..######..::::::::...",
+        "....::::::::########::::::::....",
+        "....::::::::########::::::::....",
+        ".....::::::..######..::::::.....",
         "................................",
         "................................"
       ],
@@ -2707,25 +2760,25 @@
         "........::::::::::::::::........",
         ".......::::::::::::::::::.......",
         "......::::::::::::::::::::......",
-        ".....::::@#::::::::::#@::::.....",
-        ".....::::@@::::::::::@@::::.....",
+        ".....::::#::::::::::::#::::.....",
+        ".....::::#::::::::::::#::::.....",
         ".....:::::::########:::::::.....",
-        "......:::::###@@@@###:::::......",
-        ".......:::####@@@@####:::.......",
+        "......:::::###::::###:::::......",
+        ".......:::####::::####:::.......",
         "........::############::........",
         ".........:############:.........",
         "........::::::::::::::::........",
         ".......:::::########:::::.......",
         "......::::::########::::::......",
         ".....:::::::########:::::::.....",
-        "....::::::::########::::::::....",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "...:::::::::########:::::::::...",
-        "....:::::::..######..:::::::....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        ".....:::::::########:::::::.....",
+        "......:::::..######..:::::......",
+        "................................",
         "................................",
         "................................"
       ]
@@ -2874,15 +2927,8 @@
         for (var x = 0; x < 32; x++) {
           var ch = rowStr.charAt(x);
           if (ch === '.') continue;
-          if (ch === '#') {
-            ctx.fillStyle = '#ffffff'; // White inner ear, snout, chest, front paws, eye shine
-          } else if (ch === ':') {
-            ctx.fillStyle = '#666666'; // Brown plush fur
-          } else if (ch === '@') {
-            ctx.fillStyle = '#111111'; // Glossy button eyes and button nose
-          } else {
-            ctx.fillStyle = '#ffffff';
-          }
+          // Exactly 2 colors like the pigeons: pure white (#) and mid-gray (:)
+          ctx.fillStyle = (ch === '#') ? '#ffffff' : '#666666';
           ctx.fillRect(x, y, 1, 1);
         }
       }
@@ -2907,7 +2953,7 @@
             ctx.fillRect(xL, yL, 1, 1);
           }
 
-          // Right Pigeon (Player 2) - facing left (mirrored horizontally)
+          // Right Pigeon (Player 2) - facing left (mirrored)
           var xR = 29 - c;
           var yR = startY + r;
           if (xR >= 0 && xR < 32 && yR >= 0 && yR < 32) {
