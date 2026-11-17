@@ -180,7 +180,7 @@
       font-weight: 700;
     }
 
-    /* ---------- SEQUENCER SCREEN (RESPONSIVE FOR SMALL IPHONES) ---------- */
+    /* ---------- SEQUENCER SCREEN ---------- */
     .seq-screen {
       flex: 1;
       display: flex;
@@ -194,7 +194,6 @@
       overflow: hidden;
     }
 
-    /* Locked overlay */
     .locked-overlay {
       position: absolute;
       inset: 0;
@@ -347,19 +346,19 @@
       touch-action: none;
     }
 
-    /* ---------- PARAMETERS ---------- */
+    /* ---------- PARAMETERS (COMPACT 2x2 GRID) ---------- */
     .params-grid {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: clamp(3px, 0.6dvh, 5px);
       flex-shrink: 0;
     }
 
     .param-box {
       border: 1px solid #333333;
-      padding: clamp(2px, 0.5dvh, 4px) 10px;
+      padding: clamp(2px, 0.5dvh, 4px) 8px;
       min-height: 36px;
-      height: clamp(36px, 5dvh, 44px);
+      height: clamp(36px, 4.8dvh, 42px);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -369,7 +368,7 @@
       display: flex;
       justify-content: space-between;
       font-size: 9px;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       margin-bottom: 1px;
     }
@@ -454,6 +453,121 @@
     .btn-next:active {
       background-color: #000000;
       color: #ffffff;
+    }
+
+    /* ---------- SWING / GROOVE SCREEN ---------- */
+    .swing-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid #ffffff;
+      padding: 14px;
+      min-height: 0;
+      gap: 12px;
+    }
+
+    .swing-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333333;
+      padding-bottom: 8px;
+    }
+
+    .swing-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .swing-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .swing-card {
+      border: 1px solid #333333;
+      background: #000000;
+      padding: 16px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .swing-card.active {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .swing-icon-wrap {
+      width: 32px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .swing-line {
+      width: 4px;
+      height: 40px;
+      background-color: #ffffff;
+      border-radius: 2px;
+    }
+
+    .swing-card.active .swing-line {
+      background-color: #000000;
+    }
+
+    .line-lean-forward {
+      transform: rotate(-22deg);
+    }
+
+    .line-straight {
+      transform: rotate(0deg);
+    }
+
+    .line-lean-backward {
+      transform: rotate(22deg);
+    }
+
+    .swing-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    .swing-sub {
+      font-size: 8px;
+      letter-spacing: 0.5px;
+      color: #888888;
+    }
+
+    .swing-card.active .swing-sub {
+      color: #333333;
+    }
+
+    .swing-slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 4px;
+    }
+
+    .swing-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #777777;
+      letter-spacing: 1px;
     }
 
     /* ---------- FINALE SCREEN ---------- */
@@ -682,13 +796,14 @@
         <canvas class="piano-canvas" id="pianoCanvas"></canvas>
       </div>
 
+      <!-- 2x2 COMPACT PARAMETER GRID (PITCH, DECAY, LOWPASS, REVERB) -->
       <div class="params-grid">
         <div class="param-box">
           <div class="param-top mono">
             <span class="param-label" id="pitchLabel">Pitch</span>
-            <span class="param-value" id="pitchVal">50%</span>
+            <span class="param-value" id="pitchVal">0 st</span>
           </div>
-          <input type="range" id="pitchSlider" min="0" max="1" step="0.01" value="0.5" />
+          <input type="range" id="pitchSlider" min="0" max="1" step="0.01" value="0.0" />
         </div>
 
         <div class="param-box">
@@ -706,11 +821,78 @@
           </div>
           <input type="range" id="filterSlider" min="0" max="1" step="0.01" value="0.85" />
         </div>
+
+        <div class="param-box">
+          <div class="param-top mono">
+            <span class="param-label">Reverb</span>
+            <span class="param-value" id="reverbVal">0%</span>
+          </div>
+          <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.0" />
+        </div>
       </div>
 
       <div class="actions-row">
         <button type="button" class="btn-secondary" id="clearBtn">Clear</button>
         <button type="button" class="btn-next" id="nextBtn">NEXT</button>
+      </div>
+    </div>
+
+    <!-- SWING / GROOVE SCREEN (BETWEEN LAST INSTRUMENT AND FINALE) -->
+    <div id="swingScreen" class="swing-screen hidden">
+      <div class="swing-header">
+        <div>
+          <div style="font-size: 16px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;">GROOVE / SWING</div>
+          <div class="sub-logo mono">CHOOSE TIMING FEEL</div>
+        </div>
+        <div class="bpm-box mono">
+          <span>BPM</span>
+          <span id="swingBpmValue">118</span>
+        </div>
+      </div>
+
+      <div class="swing-center">
+        <div class="swing-cards-grid">
+          <!-- PUSH: Lean Forward -->
+          <div class="swing-card mono" id="cardPush" data-mode="push">
+            <div class="swing-icon-wrap">
+              <div class="swing-line line-lean-forward"></div>
+            </div>
+            <div class="swing-title">PUSH</div>
+            <div class="swing-sub">DRIVE (-4%)</div>
+          </div>
+
+          <!-- STRAIGHT: Straight Up -->
+          <div class="swing-card mono active" id="cardStraight" data-mode="straight">
+            <div class="swing-icon-wrap">
+              <div class="swing-line line-straight"></div>
+            </div>
+            <div class="swing-title">STRAIGHT</div>
+            <div class="swing-sub">ON-GRID (0%)</div>
+          </div>
+
+          <!-- GROOVE: Lean Backward -->
+          <div class="swing-card mono" id="cardGroove" data-mode="groove">
+            <div class="swing-icon-wrap">
+              <div class="swing-line line-lean-backward"></div>
+            </div>
+            <div class="swing-title">GROOVE</div>
+            <div class="swing-sub">SWING (+14%)</div>
+          </div>
+        </div>
+
+        <div class="swing-slider-container">
+          <input type="range" id="swingSlider" min="0" max="2" step="1" value="1" />
+          <div class="swing-ticks mono">
+            <span>PUSH</span>
+            <span>STRAIGHT</span>
+            <span>GROOVE</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn-secondary" id="btnBackFromSwing">BACK</button>
+        <button type="button" class="btn-next" id="btnProceedToFinale">NEXT</button>
       </div>
     </div>
 
@@ -800,14 +982,15 @@
     var BASS_NOTES  = buildNoteRange(24, 36); // C1 to C2
     var SYNTH_NOTES = buildNoteRange(60, 72); // C4 to C5
 
+    // Instruments order + Reverb defaulting to 0.0
     var INSTRUMENTS = [
-      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
-      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
-      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
-      { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
-      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
-      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.50, decay: 0.45, filter: 0.70 }, pitchRange: [-12, 12],    decayRange: [0.06, 0.45] },
-      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] }
+      { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78, reverb: 0.0 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
+      { id: 'snare',    name: 'Snare Drum', defaults: { pitch: 0.48, decay: 0.40, filter: 0.85, reverb: 0.0 }, pitchRange: [130, 290],   decayRange: [0.08, 0.50] },
+      { id: 'tom',      name: 'Toms',       defaults: { pitch: 0.50, decay: 0.45, filter: 0.80, reverb: 0.0 }, pitchRange: [75, 240],    decayRange: [0.10, 0.65] },
+      { id: 'hihat',    name: 'Hi-Hats',    defaults: { pitch: 0.55, decay: 0.25, filter: 0.90, reverb: 0.0 }, pitchRange: [0.6, 1.8],   decayRange: [0.03, 0.35] },
+      { id: 'shakers',  name: 'Shakers',    defaults: { pitch: 0.50, decay: 0.42, filter: 0.86, reverb: 0.0 }, pitchRange: [0.65, 1.50], decayRange: [0.07, 0.28] },
+      { id: 'bassline', name: 'Bassline',   defaults: { pitch: 0.0,  decay: 0.45, filter: 0.70, reverb: 0.0 }, pitchRange: [0, 24],      decayRange: [0.06, 0.45] },
+      { id: 'synth',    name: 'Synth',      defaults: { pitch: 0,    decay: 0.45, filter: 0.82, reverb: 0.0 }, pitchRange: [-1, 1],      decayRange: [0.008, 0.11] }
     ];
 
     var STEPS = 16;
@@ -819,11 +1002,13 @@
     var bpm = 118;
     var isPlaying = false;
     var finaleActive = false;
+    var swingScreenActive = false;
+    var currentSwingMode = 'straight'; // 'push', 'straight', 'groove'
     var tracks = [];
 
     // Online game state
-    var gameMode = 'solo'; // 'solo' or 'online'
-    var myRole = null;     // 'player1' or 'player2'
+    var gameMode = 'solo';
+    var myRole = null;
     var currentRoomId = null;
     var roomRef = null;
     var waitingQueueRef = null;
@@ -851,7 +1036,8 @@
           params: {
             pitch: inst.defaults.pitch,
             decay: inst.defaults.decay,
-            filter: inst.defaults.filter
+            filter: inst.defaults.filter,
+            reverb: 0.0
           }
         });
       }
@@ -859,7 +1045,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE & HEADPHONE RE-ROUTE HANDLING
+    // WEB AUDIO ENGINE & PER-INSTRUMENT REVERB BUS
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -897,6 +1083,12 @@
     var masterCompressor = null;
     var masterGain = null;
     var noiseBuffer = null;
+
+    // Per-instrument controllable reverb nodes
+    var reverbPreHPF = null;
+    var instReverbReturn = null;
+    var trackDryGains = [];
+    var trackRevGains = [];
 
     var crowdNodes = null;
 
@@ -957,7 +1149,6 @@
         if (!AC) return;
         audioCtx = new AC();
 
-        // Auto-recover if headphones/AirPods disconnect
         audioCtx.onstatechange = function() {
           if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
             audioCtx.resume().then(function() {
@@ -994,15 +1185,47 @@
         hpfReverbSend = audioCtx.createGain();
         hpfReverbSend.gain.value = 0.0;
 
+        // Controlled Reverb Convolver
         reverbConvolver = audioCtx.createConvolver();
-        reverbConvolver.buffer = createReverbImpulse(audioCtx, 1.4, 3.0);
+        reverbConvolver.buffer = createReverbImpulse(audioCtx, 1.1, 3.4);
 
         reverbToneLPF = audioCtx.createBiquadFilter();
         reverbToneLPF.type = 'lowpass';
-        reverbToneLPF.frequency.value = 5200;
+        reverbToneLPF.frequency.value = 4400;
+
+        // Highpass at 120Hz so sub-bass doesn't clutter reverb
+        reverbPreHPF = audioCtx.createBiquadFilter();
+        reverbPreHPF.type = 'highpass';
+        reverbPreHPF.frequency.value = 120;
+        reverbPreHPF.connect(reverbConvolver);
+
+        instReverbReturn = audioCtx.createGain();
+        instReverbReturn.gain.value = 0.70;
+
+        reverbConvolver.connect(reverbToneLPF);
+        reverbToneLPF.connect(instReverbReturn);
+        instReverbReturn.connect(masterHPF);
+
+        // Per-track dry and reverb send buses
+        trackDryGains = [];
+        trackRevGains = [];
+        for (var i = 0; i < INSTRUMENTS.length; i++) {
+          var dryG = audioCtx.createGain();
+          dryG.gain.value = 1.0;
+          dryG.connect(mixBus);
+          trackDryGains[i] = dryG;
+
+          var revG = audioCtx.createGain();
+          var initRev = (tracks[i] && tracks[i].params && tracks[i].params.reverb !== undefined) ? tracks[i].params.reverb : 0.0;
+          revG.gain.value = initRev * 0.40;
+          revG.connect(reverbPreHPF);
+          trackRevGains[i] = revG;
+        }
 
         hpfReverbWet = audioCtx.createGain();
         hpfReverbWet.gain.value = 0.0;
+        reverbToneLPF.connect(hpfReverbWet);
+        hpfReverbWet.connect(softClipShaper);
 
         masterCompressor = audioCtx.createDynamicsCompressor();
         masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
@@ -1087,9 +1310,6 @@
 
         masterHPF.connect(hpfReverbSend);
         hpfReverbSend.connect(reverbConvolver);
-        reverbConvolver.connect(reverbToneLPF);
-        reverbToneLPF.connect(hpfReverbWet);
-        hpfReverbWet.connect(softClipShaper);
 
         softClipShaper.connect(masterCompressor);
         masterCompressor.connect(masterGain);
@@ -1368,7 +1588,16 @@
         lpf.type = 'lowpass';
         lpf.frequency.setValueAtTime(cutoff, time);
         lpf.Q.value = 0.7;
-        lpf.connect(mixBus);
+
+        // Route to per-track Dry and Reverb buses
+        if (trackDryGains[instIdx]) {
+          lpf.connect(trackDryGains[instIdx]);
+        } else {
+          lpf.connect(mixBus);
+        }
+        if (trackRevGains[instIdx]) {
+          lpf.connect(trackRevGains[instIdx]);
+        }
 
         if (inst.id === 'kick') {
           var osc = audioCtx.createOscillator();
@@ -1620,10 +1849,27 @@
       }
     }
 
+    function getSwingOffset(step, stepDur) {
+      if (currentSwingMode === 'groove') {
+        if (step % 2 === 1) {
+          return 0.14 * stepDur;
+        }
+        return 0;
+      } else if (currentSwingMode === 'push') {
+        if (step % 2 === 1) {
+          return 0.24 * stepDur;
+        } else if (step % 4 === 2) {
+          return -0.04 * stepDur;
+        }
+        return 0;
+      }
+      return 0;
+    }
+
     function scheduleStep(step, time) {
       var kickHit = false;
       var anyHit = false;
-      var maxIdx = (finaleActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
+      var maxIdx = (finaleActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
       for (var i = 0; i <= maxIdx; i++) {
         if (tracks[i].steps[step]) {
           if (!tracks[i].tied[step]) {
@@ -1641,7 +1887,6 @@
       }
       visualQueue.push({ step: step, time: time, kickHit: kickHit });
 
-      // Handle automatic opponent move playback duration
       if (isReviewingMove) {
         reviewStepsRemaining--;
         if (reviewStepsRemaining <= 0) {
@@ -1654,7 +1899,6 @@
     function scheduler() {
       if (!isPlaying || !audioCtx) return;
 
-      // Auto-resume if audio route changed (e.g. headphones unplugged)
       if (audioCtx.state !== 'running') {
         audioCtx.resume().catch(function() {});
         nextNoteTime = audioCtx.currentTime + 0.05;
@@ -1663,14 +1907,15 @@
 
       var stepDur = 60 / bpm / 4;
 
-      // Resync if currentTime jumped during hardware audio re-route
       if (nextNoteTime < audioCtx.currentTime - 0.25 || nextNoteTime > audioCtx.currentTime + 1.0) {
         nextNoteTime = audioCtx.currentTime + 0.02;
       }
 
-      while (nextNoteTime < audioCtx.currentTime + 0.1) {
+      while (nextNoteTime < audioCtx.currentTime + 0.12) {
+        var offset = getSwingOffset(currentStep, stepDur);
+        var noteTime = Math.max(audioCtx.currentTime + 0.003, nextNoteTime + offset);
         try {
-          scheduleStep(currentStep, nextNoteTime);
+          scheduleStep(currentStep, noteTime);
         } catch (e) {
           console.error('scheduleStep error:', e);
         }
@@ -1723,6 +1968,7 @@
     var startScreen = document.getElementById('startScreen');
     var waitingScreen = document.getElementById('waitingScreen');
     var sequencerScreen = document.getElementById('sequencerScreen');
+    var swingScreen = document.getElementById('swingScreen');
     var finaleScreen = document.getElementById('finaleScreen');
     var disconnectModal = document.getElementById('disconnectModal');
 
@@ -1754,10 +2000,20 @@
     var pitchSlider = document.getElementById('pitchSlider');
     var decaySlider = document.getElementById('decaySlider');
     var filterSlider = document.getElementById('filterSlider');
+    var reverbSlider = document.getElementById('reverbSlider');
 
     var pitchVal = document.getElementById('pitchVal');
     var decayVal = document.getElementById('decayVal');
     var filterVal = document.getElementById('filterVal');
+    var reverbVal = document.getElementById('reverbVal');
+
+    var swingBpmValue = document.getElementById('swingBpmValue');
+    var cardPush = document.getElementById('cardPush');
+    var cardStraight = document.getElementById('cardStraight');
+    var cardGroove = document.getElementById('cardGroove');
+    var swingSlider = document.getElementById('swingSlider');
+    var btnBackFromSwing = document.getElementById('btnBackFromSwing');
+    var btnProceedToFinale = document.getElementById('btnProceedToFinale');
 
     var progressFill = document.getElementById('progressFill');
     var pixelCanvas = document.getElementById('pixelCanvas');
@@ -1791,9 +2047,8 @@
     }
 
     // ---------------------------------------------------------
-    // ONLINE BATTLE MATCHMAKING & ROBUST RECONNECT
+    // ONLINE BATTLE MATCHMAKING & RECONNECT
     // ---------------------------------------------------------
-    // Auto-reassert connected state if network flaps on mobile
     db.ref('.info/connected').on('value', function(snap) {
       if (snap.val() === true && roomRef && myRole) {
         roomRef.child('players/' + myRole + '/connected').set(true);
@@ -1850,7 +2105,8 @@
           params: {
             pitch: tracks[i].params.pitch,
             decay: tracks[i].params.decay,
-            filter: tracks[i].params.filter
+            filter: tracks[i].params.filter,
+            reverb: tracks[i].params.reverb !== undefined ? tracks[i].params.reverb : 0.0
           }
         });
       }
@@ -1867,6 +2123,7 @@
       bpm = moveData.bpm || 118;
       bpmSlider.value = bpm;
       bpmValue.textContent = bpm;
+      swingBpmValue.textContent = bpm;
 
       for (var i = 0; i < moveData.tracks.length && i < tracks.length; i++) {
         var mt = moveData.tracks[i];
@@ -1878,8 +2135,12 @@
           tracks[i].params = {
             pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch,
             decay: mt.params.decay !== undefined ? mt.params.decay : tracks[i].params.decay,
-            filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter
+            filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter,
+            reverb: mt.params.reverb !== undefined ? mt.params.reverb : 0.0
           };
+          if (audioCtx && trackRevGains[i]) {
+            trackRevGains[i].gain.setValueAtTime(tracks[i].params.reverb * 0.40, audioCtx.currentTime);
+          }
         }
       }
     }
@@ -1906,7 +2167,7 @@
         if (curr && curr.roomId) {
           targetRoomId = curr.roomId;
           roleToAssign = 'player2';
-          return null; // Claim and clear the waiting queue
+          return null;
         } else {
           var newRoomKey = db.ref('rooms').push().key;
           targetRoomId = newRoomKey;
@@ -1931,6 +2192,7 @@
             turn: 'player1',
             instrumentIndex: 0,
             lastMove: null,
+            readyForFinale: { player1: false, player2: false },
             players: {
               player1: { connected: true },
               player2: { connected: false }
@@ -1970,9 +2232,8 @@
         var data = snap.val();
         if (!data) return;
 
-        // Opponent disconnect handling with 7s grace period (prevents false alarms on network flaps)
         var opp = myRole === 'player1' ? 'player2' : 'player1';
-        if ((data.status === 'playing' || data.status === 'finale') && data.players && data.players[opp]) {
+        if ((data.status === 'playing' || data.status === 'swing' || data.status === 'finale') && data.players && data.players[opp]) {
           if (data.players[opp].connected === false) {
             if (!oppDisconnectTimer) {
               oppDisconnectTimer = setTimeout(function() {
@@ -1987,8 +2248,7 @@
           }
         }
 
-        // Both players enter the 30-second Finale!
-        if (data.status === 'finale' || (data.instrumentIndex && data.instrumentIndex >= INSTRUMENTS.length)) {
+        if (data.status === 'finale') {
           if (data.lastMove) {
             applyOpponentMove(data.lastMove);
           }
@@ -1998,10 +2258,19 @@
           return;
         }
 
+        if (data.status === 'swing') {
+          if (data.lastMove) {
+            applyOpponentMove(data.lastMove);
+          }
+          if (!swingScreenActive && !finaleActive) {
+            openSwingScreen();
+          }
+          return;
+        }
+
         roomTurn = data.turn || 'player1';
         var newInstIndex = data.instrumentIndex !== undefined ? data.instrumentIndex : 0;
 
-        // Detect new move sent by opponent
         if (data.lastMove && data.lastMove.sender !== myRole && data.lastMove.timestamp !== lastHandledMoveTimestamp) {
           lastHandledMoveTimestamp = data.lastMove.timestamp;
           applyOpponentMove(data.lastMove);
@@ -2009,7 +2278,6 @@
           turnIndex = newInstIndex;
           renderTurn();
 
-          // Listen to opponent's beat for 2 bars (32 steps) before unlocking
           if (roomTurn === myRole) {
             isReviewingMove = true;
             reviewStepsRemaining = 32;
@@ -2046,9 +2314,9 @@
         roomRef.update({
           lastMove: move,
           instrumentIndex: INSTRUMENTS.length,
-          status: 'finale'
+          status: 'swing'
         });
-        startFinale();
+        openSwingScreen();
       }
     }
 
@@ -2081,6 +2349,7 @@
       }
       disconnectModal.classList.add('hidden');
       sequencerScreen.classList.add('hidden');
+      swingScreen.classList.add('hidden');
       finaleScreen.classList.add('hidden');
       waitingScreen.classList.add('hidden');
       startScreen.classList.remove('hidden');
@@ -2511,6 +2780,9 @@
 
       var hz = Math.round(inst.id === 'bassline' ? normToBassFilterHz(p.filter) : normToFilterHz(p.filter));
       filterVal.textContent = hz >= 1000 ? (hz / 1000).toFixed(1) + ' kHz' : hz + ' Hz';
+
+      var revPct = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100);
+      reverbVal.textContent = revPct + '%';
     }
 
     function renderTurn() {
@@ -2547,6 +2819,7 @@
       pitchSlider.value = track.params.pitch;
       decaySlider.value = track.params.decay;
       filterSlider.value = track.params.filter;
+      reverbSlider.value = track.params.reverb !== undefined ? track.params.reverb : 0.0;
       updateParamText();
 
       if (gameMode === 'solo') {
@@ -2560,6 +2833,7 @@
       if (gameMode === 'online' && !isMyTurn()) return;
       bpm = Number(e.target.value);
       bpmValue.textContent = bpm;
+      swingBpmValue.textContent = bpm;
       updateParamText();
     });
 
@@ -2584,14 +2858,28 @@
       updateParamText();
     });
 
+    reverbSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
+      var val = parseFloat(e.target.value);
+      tracks[turnIndex].params.reverb = val;
+      updateParamText();
+      if (audioCtx && trackRevGains[turnIndex]) {
+        trackRevGains[turnIndex].gain.setTargetAtTime(val * 0.40, audioCtx.currentTime, 0.02);
+      }
+    });
+
     function startGame() {
       resetTracks();
       turnIndex = 0;
       finaleActive = false;
+      swingScreenActive = false;
+      currentSwingMode = 'straight';
+      updateSwingUI();
       dragPointerId = null;
       pianoPointerId = null;
 
       startScreen.classList.add('hidden');
+      swingScreen.classList.add('hidden');
       finaleScreen.classList.add('hidden');
       sequencerScreen.classList.remove('hidden');
 
@@ -2606,9 +2894,78 @@
         turnIndex++;
         renderTurn();
       } else {
-        startFinale();
+        openSwingScreen();
       }
     }
+
+    // ---------------------------------------------------------
+    // SWING SCREEN INTERACTION (3-WAY MODE)
+    // ---------------------------------------------------------
+    function setSwingMode(mode) {
+      currentSwingMode = mode;
+      updateSwingUI();
+    }
+
+    function updateSwingUI() {
+      var val = (currentSwingMode === 'push') ? 0 : (currentSwingMode === 'straight' ? 1 : 2);
+      swingSlider.value = val;
+
+      cardPush.classList.toggle('active', currentSwingMode === 'push');
+      cardStraight.classList.toggle('active', currentSwingMode === 'straight');
+      cardGroove.classList.toggle('active', currentSwingMode === 'groove');
+    }
+
+    swingSlider.addEventListener('input', function(e) {
+      var v = Number(e.target.value);
+      if (v === 0) setSwingMode('push');
+      else if (v === 1) setSwingMode('straight');
+      else setSwingMode('groove');
+    });
+
+    bindTap(cardPush, function() { setSwingMode('push'); });
+    bindTap(cardStraight, function() { setSwingMode('straight'); });
+    bindTap(cardGroove, function() { setSwingMode('groove'); });
+
+    function openSwingScreen() {
+      swingScreenActive = true;
+      swingBpmValue.textContent = bpm;
+      updateSwingUI();
+
+      sequencerScreen.classList.add('hidden');
+      swingScreen.classList.remove('hidden');
+
+      if (gameMode === 'online') {
+        btnBackFromSwing.classList.add('hidden');
+      } else {
+        btnBackFromSwing.classList.remove('hidden');
+      }
+    }
+
+    bindTap(btnBackFromSwing, function() {
+      swingScreenActive = false;
+      swingScreen.classList.add('hidden');
+      sequencerScreen.classList.remove('hidden');
+      renderTurn();
+    });
+
+    bindTap(btnProceedToFinale, function() {
+      swingScreenActive = false;
+      swingScreen.classList.add('hidden');
+
+      if (gameMode === 'online') {
+        btnProceedToFinale.textContent = 'WAITING...';
+        roomRef.child('readyForFinale/' + myRole).set(true);
+
+        roomRef.child('readyForFinale').on('value', function(snap) {
+          var r = snap.val();
+          if (r && r.player1 && r.player2) {
+            roomRef.update({ status: 'finale' });
+          }
+        });
+      } else {
+        startFinale();
+      }
+    });
 
     // ---------------------------------------------------------
     // DJ VINYLS & RETRO 32x32 FINALE PIXEL ANIMATION
@@ -2671,11 +3028,6 @@
     }
 
     // ---------- SOLO FINALE: SLIMMER 2-COLOR PLUSH BUNNY (32x32) ----------
-    // Exactly 2 colors (White '#' and Gray ':') like the pigeons:
-    // - Upright ears with white interior and gray rim
-    // - Slimmer body silhouette
-    // - White snout with gray button nose
-    // - Short front legs with NO THIGH GAP (paws solid together in front)
     var RABBIT_FRAMES = [
       // Frame 0: Rest pose
       [
@@ -2884,6 +3236,7 @@
       setRewind(false);
 
       sequencerScreen.classList.add('hidden');
+      swingScreen.classList.add('hidden');
       finaleScreen.classList.remove('hidden');
 
       buildMatrix();
@@ -2892,11 +3245,13 @@
     function resetToNewRound() {
       stopSequencer();
       finaleActive = false;
+      swingScreenActive = false;
       leftPointerId = null;
       rightPointerId = null;
 
       appEl.classList.remove('vanishing');
       finaleScreen.classList.add('hidden');
+      swingScreen.classList.add('hidden');
 
       if (gameMode === 'online') {
         exitToMainMenu();
@@ -2913,11 +3268,11 @@
       var t = dt / cycleDur;
 
       if (t < 0.42) {
-        return 1; // Down bop & head nod
+        return 1;
       } else if (t < 0.82) {
-        return 2; // Rebound
+        return 2;
       }
-      return 0; // Rest
+      return 0;
     }
 
     function drawDancingRabbit(ctx, frameIdx) {
@@ -2927,7 +3282,6 @@
         for (var x = 0; x < 32; x++) {
           var ch = rowStr.charAt(x);
           if (ch === '.') continue;
-          // Exactly 2 colors like the pigeons: pure white (#) and mid-gray (:)
           ctx.fillStyle = (ch === '#') ? '#ffffff' : '#666666';
           ctx.fillRect(x, y, 1, 1);
         }
@@ -2946,14 +3300,12 @@
           var color = (ch === '#' || ch === '=') ? '#ffffff' : '#666666';
           ctx.fillStyle = color;
 
-          // Left Pigeon (Player 1) - facing right
           var xL = 2 + c;
           var yL = startY + r;
           if (xL >= 0 && xL < 32 && yL >= 0 && yL < 32) {
             ctx.fillRect(xL, yL, 1, 1);
           }
 
-          // Right Pigeon (Player 2) - facing left (mirrored)
           var xR = 29 - c;
           var yR = startY + r;
           if (xR >= 0 && xR < 32 && yR >= 0 && yR < 32) {
@@ -2995,7 +3347,7 @@
 
         if (activePlayStep !== lastVisualStep) {
           lastVisualStep = activePlayStep;
-          if (!finaleActive) {
+          if (!finaleActive && !swingScreenActive) {
             if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
               drawPianoRoll();
             } else {
@@ -3004,7 +3356,7 @@
                 bars[i].classList.toggle('now', i === activePlayStep);
               }
             }
-          } else {
+          } else if (finaleActive) {
             var cells = matrix.querySelectorAll('.matrix-cell');
             for (var c = 0; c < cells.length; c++) {
               cells[c].classList.toggle('now', Number(cells[c].getAttribute('data-step')) === activePlayStep);
