@@ -346,19 +346,19 @@
       touch-action: none;
     }
 
-    /* ---------- PARAMETERS (COMPACT 2x2 GRID) ---------- */
+    /* ---------- PARAMETERS (BIG THUMB-FRIENDLY SLIDERS) ---------- */
     .params-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: clamp(3px, 0.6dvh, 5px);
+      gap: clamp(4px, 0.8dvh, 6px);
       flex-shrink: 0;
     }
 
     .param-box {
       border: 1px solid #333333;
-      padding: clamp(2px, 0.5dvh, 4px) 8px;
-      min-height: 36px;
-      height: clamp(36px, 4.8dvh, 42px);
+      padding: 4px 10px;
+      min-height: 48px;
+      height: clamp(48px, 6.2dvh, 58px);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -370,11 +370,12 @@
       font-size: 9px;
       letter-spacing: 1px;
       text-transform: uppercase;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
     }
 
     .param-label {
-      color: #999999;
+      color: #aaaaaa;
+      font-weight: 700;
     }
 
     .param-value {
@@ -387,7 +388,7 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 18px;
+      height: 30px;
       margin: 0;
       background: transparent;
       outline: none;
@@ -395,18 +396,37 @@
     }
 
     input[type="range"]::-webkit-slider-runnable-track {
-      height: 2px;
-      background: #444444;
+      height: 4px;
+      background: #3a3a3a;
+      border-radius: 2px;
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
-      margin-top: -8px;
+      width: 28px;
+      height: 28px;
+      margin-top: -12px;
       background: #ffffff;
       border: none;
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      background: #3a3a3a;
+      border-radius: 2px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      background: #ffffff;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
     }
 
     .actions-row {
@@ -421,8 +441,8 @@
       background-color: #000000;
       color: #ffffff;
       border: 1px solid #555555;
-      min-height: 40px;
-      height: clamp(40px, 5.5dvh, 48px);
+      min-height: 42px;
+      height: clamp(42px, 5.6dvh, 48px);
       padding: 6px 10px;
       font-size: 11px;
       font-weight: 700;
@@ -440,8 +460,8 @@
       background-color: #ffffff;
       color: #000000;
       border: 1px solid #ffffff;
-      min-height: 40px;
-      height: clamp(40px, 5.5dvh, 48px);
+      min-height: 42px;
+      height: clamp(42px, 5.6dvh, 48px);
       padding: 6px 10px;
       font-size: 12px;
       font-weight: 800;
@@ -455,16 +475,16 @@
       color: #ffffff;
     }
 
-    /* ---------- SWING / GROOVE SCREEN ---------- */
+    /* ---------- SWING / GROOVE SCREEN (CLEAN 3 TOGGLES) ---------- */
     .swing-screen {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 14px;
+      padding: 16px 14px;
       min-height: 0;
-      gap: 12px;
+      gap: 16px;
     }
 
     .swing-header {
@@ -472,7 +492,7 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #333333;
-      padding-bottom: 8px;
+      padding-bottom: 10px;
     }
 
     .swing-center {
@@ -483,101 +503,59 @@
       gap: 20px;
     }
 
-    .swing-cards-grid {
+    .swing-toggles-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 10px;
+      width: 100%;
     }
 
-    .swing-card {
-      border: 1px solid #333333;
+    .swing-toggle-btn {
       background: #000000;
-      padding: 16px 6px;
+      color: #ffffff;
+      border: 1px solid #444444;
+      min-height: 84px;
+      padding: 14px 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 10px;
       cursor: pointer;
-      user-select: none;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      touch-action: manipulation;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
 
-    .swing-card.active {
+    .swing-toggle-btn.active {
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
     }
 
-    .swing-icon-wrap {
-      width: 32px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .swing-line {
-      width: 4px;
-      height: 40px;
-      background-color: #ffffff;
-      border-radius: 2px;
-    }
-
-    .swing-card.active .swing-line {
-      background-color: #000000;
-    }
-
-    .line-lean-forward {
-      transform: rotate(-22deg);
-    }
-
-    .line-straight {
-      transform: rotate(0deg);
-    }
-
-    .line-lean-backward {
-      transform: rotate(22deg);
-    }
-
-    .swing-title {
-      font-size: 11px;
+    .swing-btn-title {
+      font-size: 13px;
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 2px;
     }
 
-    .swing-sub {
-      font-size: 8px;
+    .swing-btn-sub {
+      font-size: 9px;
       letter-spacing: 0.5px;
       color: #888888;
     }
 
-    .swing-card.active .swing-sub {
+    .swing-toggle-btn.active .swing-btn-sub {
       color: #333333;
     }
 
-    .swing-slider-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 0 4px;
-    }
-
-    .swing-ticks {
-      display: flex;
-      justify-content: space-between;
-      font-size: 9px;
-      color: #777777;
-      letter-spacing: 1px;
-    }
-
-    /* ---------- FINALE SCREEN ---------- */
+    /* ---------- FINALE SCREEN (4 SPINNING VINYLS IN 2x2 GRID) ---------- */
     .finale-screen {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       border: 1px solid #ffffff;
-      padding: 12px;
+      padding: 10px 12px;
       min-height: 0;
       overflow: hidden;
     }
@@ -600,44 +578,50 @@
       justify-content: center;
       align-items: center;
       flex-shrink: 0;
+      margin: 4px 0;
     }
 
     .pixel-monitor {
       border: 1px solid #ffffff;
-      padding: 4px;
+      padding: 3px;
       background-color: #000000;
       display: inline-block;
     }
 
     .pixel-canvas {
       display: block;
-      width: clamp(100px, 18dvh, 150px);
-      height: clamp(100px, 18dvh, 150px);
+      width: clamp(86px, 15dvh, 120px);
+      height: clamp(86px, 15dvh, 120px);
       background-color: #000000;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       touch-action: none;
     }
 
-    .vinyls-row {
-      display: flex;
+    .vinyls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(6px, 1.2dvh, 12px) 14px;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
       align-items: center;
-      justify-content: space-around;
-      gap: 12px;
-      flex-shrink: 0;
+      justify-items: center;
+      flex: 1;
+      align-content: center;
     }
 
     .vinyl-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
     }
 
     .vinyl-canvas {
       display: block;
-      width: clamp(96px, 15dvh, 130px);
-      height: clamp(96px, 15dvh, 130px);
+      width: clamp(82px, 13dvh, 108px);
+      height: clamp(82px, 13dvh, 108px);
       cursor: pointer;
       touch-action: none;
     }
@@ -647,50 +631,11 @@
       letter-spacing: 1.5px;
       text-transform: uppercase;
       color: #666666;
+      font-weight: 700;
     }
 
     .vinyl-label.active {
       color: #ffffff;
-    }
-
-    .matrix {
-      border: 1px solid #333333;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex-shrink: 1;
-    }
-
-    .matrix-row {
-      display: grid;
-      grid-template-columns: 68px repeat(16, 1fr);
-      gap: 2px;
-      align-items: center;
-    }
-
-    .matrix-name {
-      font-size: 8px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      color: #aaaaaa;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-
-    .matrix-cell {
-      height: 9px;
-      border: 1px solid #262626;
-      background-color: #000000;
-    }
-
-    .matrix-cell.on {
-      background-color: #ffffff;
-      border-color: #ffffff;
-    }
-
-    .matrix-cell.now {
-      outline: 1.5px solid #ffffff;
     }
 
     /* Modal dialogs */
@@ -724,6 +669,7 @@
       .wave-btn:hover { border-color: #ffffff; }
       .btn-secondary:hover { border-color: #ffffff; }
       .btn-next:hover { background-color: #000000; color: #ffffff; }
+      .swing-toggle-btn:hover { border-color: #ffffff; }
     }
   </style>
 </head>
@@ -775,7 +721,7 @@
 
         <div class="bpm-box mono">
           <span>BPM</span>
-          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 68px;" />
+          <input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 76px;" />
           <span id="bpmValue">118</span>
         </div>
       </div>
@@ -796,7 +742,7 @@
         <canvas class="piano-canvas" id="pianoCanvas"></canvas>
       </div>
 
-      <!-- 2x2 COMPACT PARAMETER GRID (PITCH, DECAY, LOWPASS, REVERB) -->
+      <!-- 2x2 COMPACT PARAMETER GRID (BIG THUMB-FRIENDLY SLIDERS) -->
       <div class="params-grid">
         <div class="param-box">
           <div class="param-top mono">
@@ -837,12 +783,12 @@
       </div>
     </div>
 
-    <!-- SWING / GROOVE SCREEN (BETWEEN LAST INSTRUMENT AND FINALE) -->
+    <!-- SWING / GROOVE SCREEN (CLEAN 3 TOGGLES, NO SLIDER, NO LINES) -->
     <div id="swingScreen" class="swing-screen hidden">
       <div class="swing-header">
         <div>
           <div style="font-size: 16px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;">GROOVE / SWING</div>
-          <div class="sub-logo mono">CHOOSE TIMING FEEL</div>
+          <div class="sub-logo mono">SELECT TIMING FEEL</div>
         </div>
         <div class="bpm-box mono">
           <span>BPM</span>
@@ -851,42 +797,24 @@
       </div>
 
       <div class="swing-center">
-        <div class="swing-cards-grid">
-          <!-- PUSH: Lean Forward -->
-          <div class="swing-card mono" id="cardPush" data-mode="push">
-            <div class="swing-icon-wrap">
-              <div class="swing-line line-lean-forward"></div>
-            </div>
-            <div class="swing-title">PUSH</div>
-            <div class="swing-sub">DRIVE (-4%)</div>
-          </div>
+        <div class="swing-toggles-grid">
+          <!-- PUSH TOGGLE -->
+          <button type="button" class="swing-toggle-btn mono" id="btnPush" data-mode="push">
+            <span class="swing-btn-title">PUSH</span>
+            <span class="swing-btn-sub">-4% / +24%</span>
+          </button>
 
-          <!-- STRAIGHT: Straight Up -->
-          <div class="swing-card mono active" id="cardStraight" data-mode="straight">
-            <div class="swing-icon-wrap">
-              <div class="swing-line line-straight"></div>
-            </div>
-            <div class="swing-title">STRAIGHT</div>
-            <div class="swing-sub">ON-GRID (0%)</div>
-          </div>
+          <!-- STRAIGHT TOGGLE -->
+          <button type="button" class="swing-toggle-btn mono active" id="btnStraight" data-mode="straight">
+            <span class="swing-btn-title">STRAIGHT</span>
+            <span class="swing-btn-sub">0% ON-GRID</span>
+          </button>
 
-          <!-- GROOVE: Lean Backward -->
-          <div class="swing-card mono" id="cardGroove" data-mode="groove">
-            <div class="swing-icon-wrap">
-              <div class="swing-line line-lean-backward"></div>
-            </div>
-            <div class="swing-title">GROOVE</div>
-            <div class="swing-sub">SWING (+14%)</div>
-          </div>
-        </div>
-
-        <div class="swing-slider-container">
-          <input type="range" id="swingSlider" min="0" max="2" step="1" value="1" />
-          <div class="swing-ticks mono">
-            <span>PUSH</span>
-            <span>STRAIGHT</span>
-            <span>GROOVE</span>
-          </div>
+          <!-- GROOVE TOGGLE -->
+          <button type="button" class="swing-toggle-btn mono" id="btnGroove" data-mode="groove">
+            <span class="swing-btn-title">GROOVE</span>
+            <span class="swing-btn-sub">+14% SWING</span>
+          </button>
         </div>
       </div>
 
@@ -896,7 +824,7 @@
       </div>
     </div>
 
-    <!-- 30-SECOND FINALE SCREEN (SOLO & ONLINE FINALE) -->
+    <!-- 30-SECOND FINALE SCREEN (4 SPINNING LPS, SEQUENCER MATRIX REMOVED) -->
     <div id="finaleScreen" class="finale-screen hidden">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
@@ -908,19 +836,32 @@
         </div>
       </div>
 
-      <div class="vinyls-row">
+      <!-- 4 SPINNING VINYL RECORDS (2x2 GRID) WITH ELECTRONIC SCHEMATIC SYMBOLS -->
+      <div class="vinyls-grid">
+        <!-- LP 1: REWIND -->
         <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="leftVinyl" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="leftVinylLabel">REWIND</span>
+          <canvas class="vinyl-canvas" id="vinylRewind" width="128" height="128"></canvas>
+          <span class="vinyl-label mono" id="labelRewind">REWIND</span>
         </div>
 
+        <!-- LP 2: HIGHPASS -->
         <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="rightVinyl" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="rightVinylLabel">HIGHPASS</span>
+          <canvas class="vinyl-canvas" id="vinylHighpass" width="128" height="128"></canvas>
+          <span class="vinyl-label mono" id="labelHighpass">HIGHPASS</span>
+        </div>
+
+        <!-- LP 3: SPACE ECHO -->
+        <div class="vinyl-wrap">
+          <canvas class="vinyl-canvas" id="vinylEcho" width="128" height="128"></canvas>
+          <span class="vinyl-label mono" id="labelEcho">SPACE ECHO</span>
+        </div>
+
+        <!-- LP 4: CRUSH / GATE -->
+        <div class="vinyl-wrap">
+          <canvas class="vinyl-canvas" id="vinylCrush" width="128" height="128"></canvas>
+          <span class="vinyl-label mono" id="labelCrush">CRUSH/GATE</span>
         </div>
       </div>
-
-      <div class="matrix" id="matrix"></div>
     </div>
 
     <!-- OPPONENT DISCONNECTED / LEAVE MODAL -->
@@ -1045,7 +986,7 @@
     resetTracks();
 
     // ---------------------------------------------------------
-    // WEB AUDIO ENGINE & PER-INSTRUMENT REVERB BUS
+    // WEB AUDIO ENGINE & 4 FINALE EFFECTS (REWIND, HPF, ECHO, CRUSH/GATE)
     // ---------------------------------------------------------
     var audioCtx = null;
     var audioUnlocked = false;
@@ -1055,6 +996,7 @@
     var snareGritShaper = null;
     var softClipShaper = null;
 
+    // Effect 1: Rewind
     var rewindProcessor = null;
     var rewindLPF = null;
     var rewindOutGain = null;
@@ -1065,7 +1007,6 @@
     var rewindLoopSpan = 0;
     var rewindCursor = 0;
     var rewindActive = false;
-
     var rewindStutterBaseIdx = 0;
     var rewindStutterSlice = 0;
     var rewindStutterTotal = 0;
@@ -1074,6 +1015,7 @@
     var lastHitAudioTime = -1;
     var prevHitAudioTime = -1;
 
+    // Effect 2: Highpass & Reverb Sweeps
     var masterHPF = null;
     var masterEQ = null;
     var hpfReverbSend = null;
@@ -1083,6 +1025,7 @@
     var masterCompressor = null;
     var masterGain = null;
     var noiseBuffer = null;
+    var hpfActive = false;
 
     // Per-instrument controllable reverb nodes
     var reverbPreHPF = null;
@@ -1090,9 +1033,25 @@
     var trackDryGains = [];
     var trackRevGains = [];
 
+    // Effect 3: Space Echo Delay Swell with Safety Limiter
+    var spaceEchoSend = null;
+    var spaceEchoDelay = null;
+    var spaceEchoFeedback = null;
+    var spaceEchoToneLPF = null;
+    var spaceEchoToneHPF = null;
+    var spaceEchoLimiter = null;
+    var spaceEchoOutGain = null;
+    var spaceEchoActive = false;
+
+    // Effect 4: Crush & Short Decay Gate
+    var crushShaper = null;
+    var crushFilter = null;
+    var crushGateGain = null;
+    var crushOutGain = null;
+    var crushGateActive = false;
+
     var crowdNodes = null;
 
-    var hpfActive = false;
     var activePlayStep = 0;
     var currentStep = 0;
     var nextNoteTime = 0;
@@ -1127,6 +1086,16 @@
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
         curve[i] = (3 * x - Math.pow(x, 3)) / 2;
+      }
+      return curve;
+    }
+
+    function createBitcrushCurve() {
+      var n = 2048, curve = new Float32Array(n);
+      var steps = 8; // 8-step Lo-Fi quantization
+      for (var i = 0; i < n; i++) {
+        var x = (i * 2) / (n - 1) - 1;
+        curve[i] = Math.round(x * steps) / steps;
       }
       return curve;
     }
@@ -1193,7 +1162,6 @@
         reverbToneLPF.type = 'lowpass';
         reverbToneLPF.frequency.value = 4400;
 
-        // Highpass at 120Hz so sub-bass doesn't clutter reverb
         reverbPreHPF = audioCtx.createBiquadFilter();
         reverbPreHPF.type = 'highpass';
         reverbPreHPF.frequency.value = 120;
@@ -1226,6 +1194,69 @@
         hpfReverbWet.gain.value = 0.0;
         reverbToneLPF.connect(hpfReverbWet);
         hpfReverbWet.connect(softClipShaper);
+
+        // Effect 3: Space Echo Delay Swell with Safety Limiter
+        spaceEchoSend = audioCtx.createGain();
+        spaceEchoSend.gain.value = 0.0;
+
+        spaceEchoDelay = audioCtx.createDelay(2.0);
+        spaceEchoDelay.delayTime.value = (60 / bpm) * 0.75; // Dotted eighth note space echo
+
+        spaceEchoFeedback = audioCtx.createGain();
+        spaceEchoFeedback.gain.value = 0.25;
+
+        spaceEchoToneHPF = audioCtx.createBiquadFilter();
+        spaceEchoToneHPF.type = 'highpass';
+        spaceEchoToneHPF.frequency.value = 260;
+
+        spaceEchoToneLPF = audioCtx.createBiquadFilter();
+        spaceEchoToneLPF.type = 'lowpass';
+        spaceEchoToneLPF.frequency.value = 2400;
+
+        // Limiter prevents runaway feedback explosion
+        spaceEchoLimiter = audioCtx.createDynamicsCompressor();
+        spaceEchoLimiter.threshold.setValueAtTime(-6, audioCtx.currentTime);
+        spaceEchoLimiter.ratio.setValueAtTime(20, audioCtx.currentTime);
+        spaceEchoLimiter.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        spaceEchoLimiter.release.setValueAtTime(0.08, audioCtx.currentTime);
+
+        spaceEchoOutGain = audioCtx.createGain();
+        spaceEchoOutGain.gain.value = 0.85;
+
+        mixBus.connect(spaceEchoSend);
+        spaceEchoSend.connect(spaceEchoDelay);
+
+        // Space Echo feedback loop
+        spaceEchoDelay.connect(spaceEchoToneHPF);
+        spaceEchoToneHPF.connect(spaceEchoToneLPF);
+        spaceEchoToneLPF.connect(spaceEchoFeedback);
+        spaceEchoFeedback.connect(spaceEchoLimiter);
+        spaceEchoLimiter.connect(spaceEchoDelay);
+
+        spaceEchoLimiter.connect(spaceEchoOutGain);
+        spaceEchoOutGain.connect(masterHPF);
+
+        // Effect 4: Crush & Short Decay Gate
+        crushShaper = audioCtx.createWaveShaper();
+        crushShaper.curve = createBitcrushCurve();
+        crushShaper.oversample = 'none';
+
+        crushFilter = audioCtx.createBiquadFilter();
+        crushFilter.type = 'bandpass';
+        crushFilter.frequency.value = 1900;
+        crushFilter.Q.value = 1.2;
+
+        crushGateGain = audioCtx.createGain();
+        crushGateGain.gain.value = 1.0;
+
+        crushOutGain = audioCtx.createGain();
+        crushOutGain.gain.value = 0.0;
+
+        mixBus.connect(crushFilter);
+        crushFilter.connect(crushShaper);
+        crushShaper.connect(crushGateGain);
+        crushGateGain.connect(crushOutGain);
+        crushOutGain.connect(masterHPF);
 
         masterCompressor = audioCtx.createDynamicsCompressor();
         masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
@@ -1361,10 +1392,11 @@
       }
     });
 
+    // EFFECT 1: REWIND
     function setRewind(on) {
       if (rewindActive === on) return;
       rewindActive = on;
-      leftVinylLabel.classList.toggle('active', on);
+      document.getElementById('labelRewind').classList.toggle('active', on);
       if (!audioCtx || !dryMixGain || !rewindOutGain || !rewindProcessor) return;
 
       var now = audioCtx.currentTime;
@@ -1396,7 +1428,71 @@
         rewindOutGain.gain.setTargetAtTime(1.15, now, 0.005);
       } else {
         rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
-        dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
+        if (!crushGateActive) dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
+      }
+    }
+
+    // EFFECT 2: HIGHPASS
+    function setHighPass(on) {
+      if (hpfActive === on) return;
+      hpfActive = on;
+      document.getElementById('labelHighpass').classList.toggle('active', on);
+      if (!audioCtx || !masterHPF) return;
+
+      var now = audioCtx.currentTime;
+      masterHPF.frequency.cancelScheduledValues(now);
+      masterHPF.frequency.setValueAtTime(Math.max(BASE_HPF_HZ, masterHPF.frequency.value), now);
+
+      if (on) {
+        masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
+        masterHPF.Q.setTargetAtTime(1.6, now, 0.04);
+        hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
+        hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
+        triggerHpfNoiseBurst();
+        startCrowdSwell();
+      } else {
+        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
+        masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
+        hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
+        stopCrowdSwell();
+      }
+    }
+
+    // EFFECT 3: SPACE ECHO DELAY SWELL
+    function setSpaceEcho(on) {
+      if (spaceEchoActive === on) return;
+      spaceEchoActive = on;
+      document.getElementById('labelEcho').classList.toggle('active', on);
+      if (!audioCtx || !spaceEchoSend || !spaceEchoFeedback || !spaceEchoDelay) return;
+
+      var now = audioCtx.currentTime;
+      if (on) {
+        spaceEchoDelay.delayTime.setValueAtTime((60 / bpm) * 0.75, now);
+        spaceEchoSend.gain.setTargetAtTime(0.70, now, 0.03);
+        // Swells into self-oscillation capped by limiter
+        spaceEchoFeedback.gain.setTargetAtTime(0.88, now, 0.06);
+      } else {
+        spaceEchoSend.gain.setTargetAtTime(0.0, now, 0.04);
+        spaceEchoFeedback.gain.setTargetAtTime(0.25, now, 0.14);
+      }
+    }
+
+    // EFFECT 4: CRUSH & STACCATO GATE
+    function setCrushGate(on) {
+      if (crushGateActive === on) return;
+      crushGateActive = on;
+      document.getElementById('labelCrush').classList.toggle('active', on);
+      if (!audioCtx || !dryMixGain || !crushOutGain || !crushGateGain) return;
+
+      var now = audioCtx.currentTime;
+      if (on) {
+        dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
+        crushOutGain.gain.setTargetAtTime(1.10, now, 0.005);
+      } else {
+        crushGateGain.gain.cancelScheduledValues(now);
+        crushGateGain.gain.setValueAtTime(1.0, now);
+        crushOutGain.gain.setTargetAtTime(0.0, now, 0.008);
+        if (!rewindActive) dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
       }
     }
 
@@ -1519,31 +1615,6 @@
       } catch (e) {}
     }
 
-    function setHighPass(on) {
-      if (hpfActive === on) return;
-      hpfActive = on;
-      rightVinylLabel.classList.toggle('active', on);
-      if (!audioCtx || !masterHPF) return;
-
-      var now = audioCtx.currentTime;
-      masterHPF.frequency.cancelScheduledValues(now);
-      masterHPF.frequency.setValueAtTime(Math.max(BASE_HPF_HZ, masterHPF.frequency.value), now);
-
-      if (on) {
-        masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
-        masterHPF.Q.setTargetAtTime(1.6, now, 0.04);
-        hpfReverbWet.gain.setTargetAtTime(0.32, now, 0.03);
-        hpfReverbSend.gain.setTargetAtTime(0.40, now, 0.05);
-        triggerHpfNoiseBurst();
-        startCrowdSwell();
-      } else {
-        masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
-        masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
-        hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
-        stopCrowdSwell();
-      }
-    }
-
     function lerp(a, b, t) {
       return a + (b - a) * t;
     }
@@ -1584,12 +1655,16 @@
           return;
         }
 
+        // Clamp decay if crush/gate active
+        if (crushGateActive) {
+          decayVal = Math.min(0.045, decayVal * 0.2);
+        }
+
         var lpf = audioCtx.createBiquadFilter();
         lpf.type = 'lowpass';
         lpf.frequency.setValueAtTime(cutoff, time);
         lpf.Q.value = 0.7;
 
-        // Route to per-track Dry and Reverb buses
         if (trackDryGains[instIdx]) {
           lpf.connect(trackDryGains[instIdx]);
         } else {
@@ -1793,7 +1868,7 @@
           bg.gain.setValueAtTime(0.0001, time);
 
           var endTime;
-          if (span > 1) {
+          if (span > 1 && !crushGateActive) {
             var holdDur = Math.max(0.04, span * stepDur - 0.015);
             var rel = Math.min(0.045, holdDur * 0.25);
             bg.gain.linearRampToValueAtTime(0.28, time + 0.012);
@@ -1870,6 +1945,17 @@
       var kickHit = false;
       var anyHit = false;
       var maxIdx = (finaleActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
+
+      // Staccato gate triggering for Crush/Gate effect
+      if (crushGateActive && audioCtx && crushGateGain) {
+        try {
+          crushGateGain.gain.cancelScheduledValues(time);
+          crushGateGain.gain.setValueAtTime(1.0, time);
+          crushGateGain.gain.exponentialRampToValueAtTime(0.001, time + 0.038);
+          crushGateGain.gain.linearRampToValueAtTime(0.0, time + 0.046);
+        } catch (e) {}
+      }
+
       for (var i = 0; i <= maxIdx; i++) {
         if (tracks[i].steps[step]) {
           if (!tracks[i].tied[step]) {
@@ -1936,6 +2022,8 @@
       }
       setRewind(false);
       setHighPass(false);
+      setSpaceEcho(false);
+      setCrushGate(false);
       lastHitAudioTime = -1;
       prevHitAudioTime = -1;
       if (ringBuf) ringBuf.fill(0);
@@ -1955,6 +2043,8 @@
       visualQueue.length = 0;
       setRewind(false);
       setHighPass(false);
+      setSpaceEcho(false);
+      setCrushGate(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
         hpfReverbSend.gain.setValueAtTime(0.0, audioCtx.currentTime);
         hpfReverbWet.gain.setValueAtTime(0.0, audioCtx.currentTime);
@@ -2008,20 +2098,20 @@
     var reverbVal = document.getElementById('reverbVal');
 
     var swingBpmValue = document.getElementById('swingBpmValue');
-    var cardPush = document.getElementById('cardPush');
-    var cardStraight = document.getElementById('cardStraight');
-    var cardGroove = document.getElementById('cardGroove');
-    var swingSlider = document.getElementById('swingSlider');
+    var btnPush = document.getElementById('btnPush');
+    var btnStraight = document.getElementById('btnStraight');
+    var btnGroove = document.getElementById('btnGroove');
     var btnBackFromSwing = document.getElementById('btnBackFromSwing');
     var btnProceedToFinale = document.getElementById('btnProceedToFinale');
 
     var progressFill = document.getElementById('progressFill');
     var pixelCanvas = document.getElementById('pixelCanvas');
-    var leftVinyl = document.getElementById('leftVinyl');
-    var rightVinyl = document.getElementById('rightVinyl');
-    var leftVinylLabel = document.getElementById('leftVinylLabel');
-    var rightVinylLabel = document.getElementById('rightVinylLabel');
-    var matrix = document.getElementById('matrix');
+
+    // 4 Vinyl Canvases
+    var vinylRewind = document.getElementById('vinylRewind');
+    var vinylHighpass = document.getElementById('vinylHighpass');
+    var vinylEcho = document.getElementById('vinylEcho');
+    var vinylCrush = document.getElementById('vinylCrush');
 
     var dragPointerId = null;
     var dragPaint = true;
@@ -2032,8 +2122,13 @@
     var pianoAnchorNote = 0;
     var pianoMovedHoriz = false;
 
-    var leftPointerId = null;
-    var rightPointerId = null;
+    // Per-vinyl pointer state
+    var vinylPointers = {
+      rewind: null,
+      highpass: null,
+      echo: null,
+      crush: null
+    };
 
     function isPianoRollInstrument(instId) {
       return instId === 'bassline' || instId === 'synth';
@@ -2722,8 +2817,12 @@
     function handlePointerRelease(e) {
       if (e.pointerId === dragPointerId) dragPointerId = null;
       if (e.pointerId === pianoPointerId) pianoPointerId = null;
-      if (e.pointerId === leftPointerId) { leftPointerId = null; setRewind(false); }
-      if (e.pointerId === rightPointerId) { rightPointerId = null; setHighPass(false); }
+
+      // Vinyl release checks
+      if (e.pointerId === vinylPointers.rewind) { vinylPointers.rewind = null; setRewind(false); }
+      if (e.pointerId === vinylPointers.highpass) { vinylPointers.highpass = null; setHighPass(false); }
+      if (e.pointerId === vinylPointers.echo) { vinylPointers.echo = null; setSpaceEcho(false); }
+      if (e.pointerId === vinylPointers.crush) { vinylPointers.crush = null; setCrushGate(false); }
     }
 
     window.addEventListener('pointerup', handlePointerRelease);
@@ -2732,26 +2831,49 @@
       if (e.touches && e.touches.length === 0) {
         dragPointerId = null;
         pianoPointerId = null;
-        leftPointerId = null;
-        rightPointerId = null;
+        vinylPointers.rewind = null;
+        vinylPointers.highpass = null;
+        vinylPointers.echo = null;
+        vinylPointers.crush = null;
         setRewind(false);
         setHighPass(false);
+        setSpaceEcho(false);
+        setCrushGate(false);
       }
     });
 
-    leftVinyl.addEventListener('pointerdown', function(e) {
+    // BIND THE 4 VINYL LP CONTROLS
+    vinylRewind.addEventListener('pointerdown', function(e) {
       e.preventDefault();
-      leftPointerId = e.pointerId;
+      ensureAudioUnlocked();
+      vinylPointers.rewind = e.pointerId;
       setRewind(true);
     });
-    leftVinyl.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    vinylRewind.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
-    rightVinyl.addEventListener('pointerdown', function(e) {
+    vinylHighpass.addEventListener('pointerdown', function(e) {
       e.preventDefault();
-      rightPointerId = e.pointerId;
+      ensureAudioUnlocked();
+      vinylPointers.highpass = e.pointerId;
       setHighPass(true);
     });
-    rightVinyl.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    vinylHighpass.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    vinylEcho.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      ensureAudioUnlocked();
+      vinylPointers.echo = e.pointerId;
+      setSpaceEcho(true);
+    });
+    vinylEcho.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    vinylCrush.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      ensureAudioUnlocked();
+      vinylPointers.crush = e.pointerId;
+      setCrushGate(true);
+    });
+    vinylCrush.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     function renderStepPads() {
       var track = tracks[turnIndex];
@@ -2899,7 +3021,7 @@
     }
 
     // ---------------------------------------------------------
-    // SWING SCREEN INTERACTION (3-WAY MODE)
+    // SWING SCREEN INTERACTION (3 CLEAN TOGGLES)
     // ---------------------------------------------------------
     function setSwingMode(mode) {
       currentSwingMode = mode;
@@ -2907,24 +3029,14 @@
     }
 
     function updateSwingUI() {
-      var val = (currentSwingMode === 'push') ? 0 : (currentSwingMode === 'straight' ? 1 : 2);
-      swingSlider.value = val;
-
-      cardPush.classList.toggle('active', currentSwingMode === 'push');
-      cardStraight.classList.toggle('active', currentSwingMode === 'straight');
-      cardGroove.classList.toggle('active', currentSwingMode === 'groove');
+      btnPush.classList.toggle('active', currentSwingMode === 'push');
+      btnStraight.classList.toggle('active', currentSwingMode === 'straight');
+      btnGroove.classList.toggle('active', currentSwingMode === 'groove');
     }
 
-    swingSlider.addEventListener('input', function(e) {
-      var v = Number(e.target.value);
-      if (v === 0) setSwingMode('push');
-      else if (v === 1) setSwingMode('straight');
-      else setSwingMode('groove');
-    });
-
-    bindTap(cardPush, function() { setSwingMode('push'); });
-    bindTap(cardStraight, function() { setSwingMode('straight'); });
-    bindTap(cardGroove, function() { setSwingMode('groove'); });
+    bindTap(btnPush, function() { setSwingMode('push'); });
+    bindTap(btnStraight, function() { setSwingMode('straight'); });
+    bindTap(btnGroove, function() { setSwingMode('groove'); });
 
     function openSwingScreen() {
       swingScreenActive = true;
@@ -2968,12 +3080,16 @@
     });
 
     // ---------------------------------------------------------
-    // DJ VINYLS & RETRO 32x32 FINALE PIXEL ANIMATION
+    // DJ VINYLS & ELECTRONIC SCHEMATIC SYMBOLS
     // ---------------------------------------------------------
-    var vinylAngleL = 0;
-    var vinylAngleR = 0;
+    var vinylAngles = {
+      rewind: 0,
+      highpass: 0,
+      echo: 0,
+      crush: 0
+    };
 
-    function drawVinyl(canvas, angle, isPressed) {
+    function drawVinyl(canvas, angle, isPressed, symbolType) {
       var ctx = canvas.getContext('2d');
       var w = canvas.width;
       var h = canvas.height;
@@ -2983,6 +3099,7 @@
 
       ctx.clearRect(0, 0, w, h);
 
+      // Record outer edge
       ctx.beginPath();
       ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
       ctx.fillStyle = '#000000';
@@ -2991,40 +3108,132 @@
       ctx.strokeStyle = '#ffffff';
       ctx.stroke();
 
-      var radii = [outerR - 9, outerR - 17, outerR - 25, outerR - 33, outerR - 41];
+      // Sound grooves
+      var radii = [outerR - 7, outerR - 14, outerR - 21, outerR - 28];
       for (var i = 0; i < radii.length; i++) {
         ctx.beginPath();
         ctx.arc(cx, cy, radii[i], 0, Math.PI * 2);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = isPressed ? '#666666' : '#333333';
+        ctx.strokeStyle = isPressed ? '#555555' : '#282828';
         ctx.stroke();
       }
 
+      // Rotating strobe line
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(20, 0);
-      ctx.lineTo(outerR - 5, 0);
+      ctx.moveTo(25, 0);
+      ctx.lineTo(outerR - 4, 0);
       ctx.stroke();
       ctx.restore();
 
+      // Center record label
+      var labelR = 24;
       ctx.beginPath();
-      ctx.arc(cx, cy, 17, 0, Math.PI * 2);
-      ctx.fillStyle = isPressed ? '#000000' : '#ffffff';
+      ctx.arc(cx, cy, labelR, 0, Math.PI * 2);
+      ctx.fillStyle = isPressed ? '#ffffff' : '#000000';
       ctx.fill();
-      if (isPressed) {
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      // Draw Electronic Schematic Symbol in Center
+      ctx.save();
+      ctx.strokeStyle = isPressed ? '#000000' : '#ffffff';
+      ctx.fillStyle = isPressed ? '#000000' : '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (symbolType === 'rewind') {
+        // Electronic Schematic: Reverse Diode —|◄—
+        ctx.beginPath();
+        // Lead-in lines
+        ctx.moveTo(cx - 14, cy);
+        ctx.lineTo(cx - 6, cy);
+        ctx.moveTo(cx + 6, cy);
+        ctx.lineTo(cx + 14, cy);
+        ctx.stroke();
+        // Cathode bar
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, cy - 8);
+        ctx.lineTo(cx - 6, cy + 8);
+        ctx.stroke();
+        // Triangle pointing left (reverse)
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, cy);
+        ctx.lineTo(cx + 6, cy - 7);
+        ctx.lineTo(cx + 6, cy + 7);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (symbolType === 'highpass') {
+        // Electronic Schematic: Capacitor —||— (Blocks Lows, Passes Highs)
+        ctx.beginPath();
+        ctx.moveTo(cx - 14, cy);
+        ctx.lineTo(cx - 4, cy);
+        ctx.moveTo(cx + 4, cy);
+        ctx.lineTo(cx + 14, cy);
+        ctx.stroke();
+        // Capacitor plates
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, cy - 9);
+        ctx.lineTo(cx - 4, cy + 9);
+        ctx.moveTo(cx + 4, cy - 9);
+        ctx.lineTo(cx + 4, cy + 9);
+        ctx.stroke();
+      } else if (symbolType === 'echo') {
+        // Electronic Schematic: Feedback Loop with Delay τ [—τ—↺]
+        ctx.strokeRect(cx - 7, cy - 5, 14, 10);
+        ctx.beginPath();
+        // Tau symbol inside box
+        ctx.moveTo(cx - 3, cy - 2);
+        ctx.lineTo(cx + 3, cy - 2);
+        ctx.moveTo(cx, cy - 2);
+        ctx.lineTo(cx, cy + 3);
+        ctx.stroke();
+        // Feedback loop arrow
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, -0.6 * Math.PI, 0.4 * Math.PI, false);
+        ctx.stroke();
+        // Arrowhead
+        ctx.beginPath();
+        ctx.moveTo(cx + 11, cy + 6);
+        ctx.lineTo(cx + 15, cy + 12);
+        ctx.lineTo(cx + 7, cy + 11);
+        ctx.fill();
+      } else if (symbolType === 'crush') {
+        // Electronic Schematic: Schmitt Trigger / Quantizer Hysteresis [—⎍—]
+        ctx.beginPath();
+        ctx.moveTo(cx - 14, cy);
+        ctx.lineTo(cx - 8, cy);
+        ctx.moveTo(cx + 8, cy);
+        ctx.lineTo(cx + 14, cy);
+        ctx.stroke();
+        // Quantizer stepped hysteresis curve
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy - 4);
+        ctx.lineTo(cx + 1, cy - 4);
+        ctx.lineTo(cx + 1, cy + 4);
+        ctx.lineTo(cx + 8, cy + 4);
+        ctx.moveTo(cx + 8, cy + 4);
+        ctx.lineTo(cx - 1, cy + 4);
+        ctx.lineTo(cx - 1, cy - 4);
         ctx.stroke();
       }
 
+      ctx.restore();
+
+      // Center Spindle Hole
       ctx.beginPath();
-      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = isPressed ? '#ffffff' : '#000000';
       ctx.fill();
+      ctx.strokeStyle = isPressed ? '#000000' : '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
 
     // ---------- SOLO FINALE: SLIMMER 2-COLOR PLUSH BUNNY (32x32) ----------
@@ -3204,50 +3413,26 @@
     var fadeTriggered = false;
     var lastKickMs = -1;
 
-    function buildMatrix() {
-      matrix.innerHTML = '';
-      for (var i = 0; i < INSTRUMENTS.length; i++) {
-        var row = document.createElement('div');
-        row.className = 'matrix-row';
-
-        var label = document.createElement('div');
-        label.className = 'matrix-name mono';
-        label.textContent = INSTRUMENTS[i].name;
-        row.appendChild(label);
-
-        for (var s = 0; s < STEPS; s++) {
-          var cell = document.createElement('div');
-          cell.className = 'matrix-cell' + (tracks[i].steps[s] ? ' on' : '');
-          cell.setAttribute('data-step', s);
-          row.appendChild(cell);
-        }
-        matrix.appendChild(row);
-      }
-    }
-
     function startFinale() {
       finaleActive = true;
       fadeTriggered = false;
       finaleStartMs = performance.now();
       lastKickMs = -1;
-      leftPointerId = null;
-      rightPointerId = null;
       progressFill.style.width = '0%';
       setRewind(false);
+      setHighPass(false);
+      setSpaceEcho(false);
+      setCrushGate(false);
 
       sequencerScreen.classList.add('hidden');
       swingScreen.classList.add('hidden');
       finaleScreen.classList.remove('hidden');
-
-      buildMatrix();
     }
 
     function resetToNewRound() {
       stopSequencer();
       finaleActive = false;
       swingScreenActive = false;
-      leftPointerId = null;
-      rightPointerId = null;
 
       appEl.classList.remove('vanishing');
       finaleScreen.classList.add('hidden');
@@ -3356,11 +3541,6 @@
                 bars[i].classList.toggle('now', i === activePlayStep);
               }
             }
-          } else if (finaleActive) {
-            var cells = matrix.querySelectorAll('.matrix-cell');
-            for (var c = 0; c < cells.length; c++) {
-              cells[c].classList.toggle('now', Number(cells[c].getAttribute('data-step')) === activePlayStep);
-            }
           }
         }
       }
@@ -3368,11 +3548,17 @@
       if (finaleActive) {
         drawFinaleDancer(nowMs);
 
-        vinylAngleL += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
-        vinylAngleR += frameDt * (hpfActive ? 5.2 : 2.6);
+        // Update spinning angles for all 4 LPs
+        vinylAngles.rewind += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
+        vinylAngles.highpass += frameDt * (hpfActive ? 5.2 : 2.6);
+        vinylAngles.echo += frameDt * (spaceEchoActive ? 4.2 : 2.6);
+        vinylAngles.crush += frameDt * (crushGateActive ? 1.6 : 2.6);
 
-        drawVinyl(leftVinyl, vinylAngleL, rewindActive);
-        drawVinyl(rightVinyl, vinylAngleR, hpfActive);
+        // Draw 4 Vinyl records with schematic symbols
+        drawVinyl(vinylRewind, vinylAngles.rewind, rewindActive, 'rewind');
+        drawVinyl(vinylHighpass, vinylAngles.highpass, hpfActive, 'highpass');
+        drawVinyl(vinylEcho, vinylAngles.echo, spaceEchoActive, 'echo');
+        drawVinyl(vinylCrush, vinylAngles.crush, crushGateActive, 'crush');
 
         var elapsed = (nowMs - finaleStartMs) / 1000;
         var progress = Math.min(1, elapsed / FINALE_SECONDS);
