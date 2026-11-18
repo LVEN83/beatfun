@@ -594,7 +594,7 @@
       100% { opacity: 1.0; }
     }
 
-    /* CENTERED PIXEL MONITOR (NO BORDER) */
+    /* CENTERED PIXEL MONITOR (BORDERLESS) */
     .monitor-center {
       flex: 1;
       display: flex;
@@ -1060,12 +1060,16 @@
     var currentRoomId = null;
     var roomRef = null;
     var waitingQueueRef = null;
+    var p2JoinRef = null;
     var roomTurn = 'player1';
     var isReviewingMove = false;
     var reviewStepsRemaining = 0;
     var lastHandledMoveTimestamp = 0;
     var oppDisconnectTimer = null;
     var battleLaunched = false;
+    var isSendingMove = false;
+    var waitingForJamReady = false;
+    var jamTransitionSent = false;
 
     function resetTracks() {
       tracks = [];
@@ -1132,6 +1136,7 @@
     var masterCompressor = null;
     var masterGain = null;
     var noiseBuffer = null;
+    var metallicHatBuffer = null;
     var hpfActive = false;
 
     var reverbPreHPF = null;
@@ -1178,6 +1183,25 @@
         }
       }
       return impulse;
+    }
+
+    function createMetallicHatBuffer(ctx) {
+      var dur = 0.7;
+      var len = Math.floor(ctx.sampleRate * dur);
+      var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      var ratios = [2, 3.1, 4.2, 5.4, 6.8];
+      var sr = ctx.sampleRate;
+      for (var i = 0; i < len; i++) {
+        var t = i / sr;
+        var sum = 0;
+        for (var r = 0; r < ratios.length; r++) {
+          var phase = (t * 260 * ratios[r]) % 1;
+          sum += (phase < 0.5 ? 1 : -1);
+        }
+        data[i] = sum * 0.2;
+      }
+      return buf;
     }
 
     function create909GritCurve() {
@@ -1274,7 +1298,7 @@
 
         softClipShaper = audioCtx.createWaveShaper();
         softClipShaper.curve = createSoftClipCurve();
-        softClipShaper.oversample = '2x';
+        softClipShaper.oversample = 'none';
 
         masterHPF = audioCtx.createBiquadFilter();
         masterHPF.type = 'highpass';
@@ -1506,6 +1530,8 @@
         for (var i = 0; i < len; i++) {
           ch[i] = Math.random() * 2 - 1;
         }
+
+        metallicHatBuffer = createMetallicHatBuffer(audioCtx);
       }
 
       if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
@@ -1887,19 +1913,18 @@
           noise.start(time);
           noise.stop(time + decayVal + 0.012);
 
-          var ratios = [2, 3.1, 4.2, 5.4, 6.8];
-          var mg = audioCtx.createGain();
-          mg.gain.setValueAtTime(0.11, time);
-          mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-          mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
-          mg.connect(hp);
-          for (var i = 0; i < ratios.length; i++) {
-            var ho = audioCtx.createOscillator();
-            ho.type = 'square';
-            ho.frequency.setValueAtTime(260 * pitchVal * ratios[i], time);
-            ho.connect(mg);
-            ho.start(time);
-            ho.stop(time + decayVal + 0.012);
+          if (metallicHatBuffer) {
+            var metal = audioCtx.createBufferSource();
+            metal.buffer = metallicHatBuffer;
+            metal.playbackRate.setValueAtTime(pitchVal, time);
+            var mg = audioCtx.createGain();
+            mg.gain.setValueAtTime(0.55, time);
+            mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
+            mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+            metal.connect(mg);
+            mg.connect(hp);
+            metal.start(time);
+            metal.stop(time + decayVal + 0.012);
           }
         } else if (inst.id === 'tom') {
           var tosc = audioCtx.createOscillator();
@@ -2005,6 +2030,7 @@
           var stepDur = 60 / bpm / 4;
           var span = getStitchedSpan(track, stepIdx);
           var noteIdx = track.notes[stepIdx] || 0;
+          if (noteIdx < 0 || noteIdx >= BASS_NOTES.length) noteIdx = 0;
           var semitones = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
           var freq = midiToHz(BASS_NOTES[noteIdx].midi + semitones);
           var wave = track.waveform || 'sine';
@@ -2036,8 +2062,9 @@
           if (span > 1 && !crushGateActive) {
             var holdDur = Math.max(0.04, span * stepDur - 0.015);
             var rel = Math.min(0.045, holdDur * 0.20);
+            var relStart = Math.max(0.012, holdDur - rel);
             bg.gain.linearRampToValueAtTime(0.48 * waveGainMult, time + 0.004);
-            bg.gain.setValueAtTime(0.40 * waveGainMult, time + Math.max(0.012, holdDur - rel));
+            bg.gain.setValueAtTime(0.40 * waveGainMult, time + Math.min(relStart, holdDur - 0.005));
             bg.gain.exponentialRampToValueAtTime(0.0005, time + holdDur);
             bg.gain.linearRampToValueAtTime(0.0, time + holdDur + 0.005);
             endTime = time + holdDur + 0.008;
@@ -2141,6 +2168,9 @@
       if (anyHit) {
         prevHitAudioTime = lastHitAudioTime;
         lastHitAudioTime = time;
+      }
+      if (visualQueue.length > 64) {
+        visualQueue.shift();
       }
       visualQueue.push({ step: step, time: time, kickHit: kickHit });
 
@@ -2382,6 +2412,18 @@
       }
     }
 
+    function toArray16(val, defaultVal) {
+      var out = [];
+      for (var i = 0; i < STEPS; i++) {
+        if (val && val[i] !== undefined) {
+          out.push(val[i]);
+        } else {
+          out.push(defaultVal);
+        }
+      }
+      return out;
+    }
+
     function serializeMove() {
       var compactTracks = [];
       for (var i = 0; i < tracks.length; i++) {
@@ -2416,9 +2458,10 @@
 
       for (var i = 0; i < moveData.tracks.length && i < tracks.length; i++) {
         var mt = moveData.tracks[i];
-        tracks[i].steps = mt.steps ? mt.steps.slice() : tracks[i].steps;
-        tracks[i].notes = mt.notes ? mt.notes.slice() : tracks[i].notes;
-        tracks[i].tied = mt.tied ? mt.tied.slice() : tracks[i].tied;
+        if (!mt) continue;
+        tracks[i].steps = mt.steps ? toArray16(mt.steps, false) : tracks[i].steps;
+        tracks[i].notes = mt.notes ? toArray16(mt.notes, 0) : tracks[i].notes;
+        tracks[i].tied = mt.tied ? toArray16(mt.tied, false) : tracks[i].tied;
         tracks[i].waveform = mt.waveform || 'sine';
         if (mt.params) {
           tracks[i].params = {
@@ -2438,6 +2481,15 @@
       }
     }
 
+    function applyIncomingMoveIfNew(moveData) {
+      if (!moveData || !moveData.timestamp) return false;
+      if (moveData.sender === myRole) return false;
+      if (moveData.timestamp === lastHandledMoveTimestamp) return false;
+      lastHandledMoveTimestamp = moveData.timestamp;
+      applyOpponentMove(moveData);
+      return true;
+    }
+
     function startOnlineMatchmaking() {
       initAndUnlockAudio();
       gameMode = 'online';
@@ -2445,6 +2497,13 @@
       currentRoomId = null;
       turnIndex = 0;
       battleLaunched = false;
+      lastHandledMoveTimestamp = 0;
+      isSendingMove = false;
+      waitingForJamReady = false;
+      jamTransitionSent = false;
+      swingScreenActive = false;
+      jamActive = false;
+      isReviewingMove = false;
       clearTimeout(oppDisconnectTimer);
 
       startScreen.classList.add('hidden');
@@ -2485,6 +2544,7 @@
             status: 'waiting',
             turn: 'player1',
             instrumentIndex: 0,
+            swingMode: 'straight',
             lastMove: null,
             readyForJam: { player1: false, player2: false },
             players: {
@@ -2495,10 +2555,11 @@
 
           roomRef.child('players/player1/connected').onDisconnect().set(false);
 
-          var p2JoinRef = roomRef.child('players/player2/connected');
+          p2JoinRef = roomRef.child('players/player2/connected');
           p2JoinRef.on('value', function(snap) {
             if (snap.val() === true && !battleLaunched) {
               p2JoinRef.off();
+              p2JoinRef = null;
               waitingQueue.onDisconnect().cancel();
               launchOnlineBattle();
             }
@@ -2523,6 +2584,9 @@
       battleHeader.classList.remove('hidden');
 
       turnIndex = 0;
+      roomTurn = 'player1';
+      currentSwingMode = 'straight';
+      updateSwingUI();
       resetTracks();
       renderTurn();
       startSequencer();
@@ -2547,11 +2611,17 @@
           }
         }
 
+        if (data.swingMode && data.swingMode !== currentSwingMode) {
+          currentSwingMode = data.swingMode;
+          updateSwingUI();
+        }
+
         if (data.status === 'jam') {
           if (data.lastMove) {
-            applyOpponentMove(data.lastMove);
+            applyIncomingMoveIfNew(data.lastMove);
           }
           if (!jamActive) {
+            swingScreenActive = false;
             startJam();
           }
           return;
@@ -2559,21 +2629,30 @@
 
         if (data.status === 'swing') {
           if (data.lastMove) {
-            applyOpponentMove(data.lastMove);
+            applyIncomingMoveIfNew(data.lastMove);
           }
           if (!swingScreenActive && !jamActive) {
+            isReviewingMove = false;
             openSwingScreen();
+          }
+          if (
+            data.readyForJam &&
+            data.readyForJam.player1 &&
+            data.readyForJam.player2 &&
+            !jamTransitionSent
+          ) {
+            jamTransitionSent = true;
+            if (myRole === 'player1') {
+              roomRef.update({ status: 'jam' });
+            }
           }
           return;
         }
 
         roomTurn = data.turn || 'player1';
-        var newInstIndex = data.instrumentIndex !== undefined ? data.instrumentIndex : 0;
+        var newInstIndex = data.instrumentIndex !== undefined ? Math.min(INSTRUMENTS.length - 1, data.instrumentIndex) : 0;
 
-        if (data.lastMove && data.lastMove.sender !== myRole && data.lastMove.timestamp !== lastHandledMoveTimestamp) {
-          lastHandledMoveTimestamp = data.lastMove.timestamp;
-          applyOpponentMove(data.lastMove);
-
+        if (data.lastMove && applyIncomingMoveIfNew(data.lastMove)) {
           turnIndex = newInstIndex;
           renderTurn();
 
@@ -2581,11 +2660,9 @@
             isReviewingMove = true;
             reviewStepsRemaining = 32;
           }
-        } else {
-          if (turnIndex !== newInstIndex && !jamActive && !swingScreenActive) {
-            turnIndex = newInstIndex;
-            renderTurn();
-          }
+        } else if (turnIndex !== newInstIndex && !jamActive && !swingScreenActive) {
+          turnIndex = newInstIndex;
+          renderTurn();
         }
 
         updateTurnStatusUI();
@@ -2593,8 +2670,11 @@
     }
 
     function sendOnlineMove() {
-      if (!isMyTurn()) return;
+      if (!isMyTurn() || isSendingMove) return;
+      isSendingMove = true;
+
       var move = serializeMove();
+      lastHandledMoveTimestamp = move.timestamp;
       var nextInstIndex = turnIndex + 1;
 
       if (nextInstIndex < INSTRUMENTS.length) {
@@ -2604,16 +2684,21 @@
           lastMove: move,
           turn: nextTurn,
           instrumentIndex: nextInstIndex
+        }, function() {
+          isSendingMove = false;
         });
 
         turnIndex = nextInstIndex;
+        roomTurn = nextTurn;
         renderTurn();
       } else {
-        move.instrumentIndex = INSTRUMENTS.length;
         roomRef.update({
           lastMove: move,
           instrumentIndex: INSTRUMENTS.length,
+          swingMode: currentSwingMode,
           status: 'swing'
+        }, function() {
+          isSendingMove = false;
         });
         openSwingScreen();
       }
@@ -2622,6 +2707,7 @@
     function handleOpponentDisconnected() {
       clearTimeout(oppDisconnectTimer);
       oppDisconnectTimer = null;
+      if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
       if (roomRef) roomRef.off();
       stopSequencer();
       disconnectModal.classList.remove('hidden');
@@ -2630,12 +2716,15 @@
     function cancelMatchmaking() {
       clearTimeout(oppDisconnectTimer);
       battleLaunched = false;
+      if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
       if (waitingQueueRef && myRole === 'player1') {
+        waitingQueueRef.onDisconnect().cancel();
         waitingQueueRef.remove();
       }
       if (roomRef) {
         roomRef.off();
         if (myRole === 'player1') roomRef.remove();
+        roomRef = null;
       }
       waitingScreen.classList.add('hidden');
       startScreen.classList.remove('hidden');
@@ -2644,9 +2733,17 @@
     function exitToMainMenu() {
       clearTimeout(oppDisconnectTimer);
       battleLaunched = false;
+      waitingForJamReady = false;
+      jamTransitionSent = false;
+      isSendingMove = false;
+      isReviewingMove = false;
+      if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
       if (roomRef) {
         roomRef.off();
-        roomRef.child('players/' + myRole + '/connected').set(false);
+        if (myRole) {
+          roomRef.child('players/' + myRole + '/connected').set(false);
+        }
+        roomRef = null;
       }
       disconnectModal.classList.add('hidden');
       sequencerScreen.classList.add('hidden');
@@ -3337,6 +3434,9 @@
     function setSwingMode(mode) {
       currentSwingMode = mode;
       updateSwingUI();
+      if (gameMode === 'online' && roomRef) {
+        roomRef.update({ swingMode: mode });
+      }
     }
 
     function updateSwingUI() {
@@ -3351,6 +3451,8 @@
 
     function openSwingScreen() {
       swingScreenActive = true;
+      waitingForJamReady = false;
+      jamTransitionSent = false;
       swingBpmValue.textContent = bpm;
       btnProceedToJam.textContent = 'JAM';
       updateSwingUI();
@@ -3373,20 +3475,14 @@
     });
 
     bindTap(btnProceedToJam, function() {
-      swingScreenActive = false;
-      swingScreen.classList.add('hidden');
-
       if (gameMode === 'online') {
+        if (waitingForJamReady || !roomRef) return;
+        waitingForJamReady = true;
         btnProceedToJam.textContent = 'WAITING...';
         roomRef.child('readyForJam/' + myRole).set(true);
-
-        roomRef.child('readyForJam').on('value', function(snap) {
-          var r = snap.val();
-          if (r && r.player1 && r.player2) {
-            roomRef.update({ status: 'jam' });
-          }
-        });
       } else {
+        swingScreenActive = false;
+        swingScreen.classList.add('hidden');
         startJam();
       }
     });
@@ -3703,6 +3799,8 @@
 
     function startJam() {
       jamActive = true;
+      swingScreenActive = false;
+      waitingForJamReady = false;
       fadeTriggered = false;
       jamStartMs = performance.now();
       lastKickMs = -1;
