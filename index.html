@@ -1328,7 +1328,7 @@
         hpfReverbSend.gain.value = 0.0;
 
         reverbConvolver = audioCtx.createConvolver();
-        reverbConvolver.buffer = createReverbImpulse(audioCtx, 1.1, 3.4);
+        reverbConvolver.buffer = createReverbImpulse(audioCtx, 0.75, 3.2);
 
         reverbToneLPF = audioCtx.createBiquadFilter();
         reverbToneLPF.type = 'lowpass';
@@ -1344,7 +1344,7 @@
 
         reverbConvolver.connect(reverbToneLPF);
         reverbToneLPF.connect(instReverbReturn);
-        instReverbReturn.connect(masterHPF);
+        instReverbReturn.connect(softClipShaper);
 
         basslineDuckingGain = audioCtx.createGain();
         basslineDuckingGain.gain.value = 1.0;
@@ -1651,7 +1651,7 @@
 
       var now = audioCtx.currentTime;
       masterHPF.frequency.cancelScheduledValues(now);
-      masterHPF.frequency.setValueAtTime(Math.max(BASE_HPF_HZ, masterHPF.frequency.value), now);
+      masterHPF.frequency.setValueAtTime(Math.max(BASE_HPF_HZ, masterHPF.frequency.value || BASE_HPF_HZ), now);
 
       if (on) {
         masterHPF.frequency.exponentialRampToValueAtTime(700, now + 0.28);
@@ -1664,6 +1664,7 @@
         masterHPF.frequency.exponentialRampToValueAtTime(BASE_HPF_HZ, now + 0.09);
         masterHPF.Q.setTargetAtTime(0.7, now, 0.04);
         hpfReverbSend.gain.setTargetAtTime(0.0, now, 0.02);
+        hpfReverbWet.gain.setTargetAtTime(0.0, now, 0.03);
         stopCrowdSwell();
         if (wasOn) triggerLetgoTransition();
       }
@@ -1807,7 +1808,7 @@
       var revSend = null;
       if (reverbConvolver) {
         revSend = audioCtx.createGain();
-        revSend.gain.value = 0.40;
+        revSend.gain.value = 0.25;
         crowdGain.connect(revSend);
         revSend.connect(reverbConvolver);
       }
@@ -3690,6 +3691,7 @@
       ],
       [
         "................................",
+        "................................",
         "..........::........::..........",
         ".........:##:......:##:.........",
         ".........:##:......:##:.........",
@@ -3717,7 +3719,6 @@
         ".....:::::::########:::::::.....",
         ".....:::::::########:::::::.....",
         "......:::::..######..:::::......",
-        "................................",
         "................................",
         "................................",
         "................................"
@@ -3786,6 +3787,7 @@
     ];
 
     var jamStartMs = 0;
+    var lastJamDrawMs = 0;
     var fadeTriggered = false;
     var lastKickMs = -1;
 
@@ -3794,6 +3796,7 @@
       swingScreenActive = false;
       fadeTriggered = false;
       jamStartMs = performance.now();
+      lastJamDrawMs = 0;
       lastKickMs = -1;
       progressFill.style.width = '0%';
       setRewind(false);
@@ -3929,17 +3932,19 @@
       }
 
       if (jamActive) {
-        drawJamDancer(nowMs);
-
         vinylAngles.rewind += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
         vinylAngles.highpass += frameDt * (hpfActive ? 5.2 : 2.6);
         vinylAngles.echo += frameDt * (spaceEchoActive ? 4.2 : 2.6);
         vinylAngles.crush += frameDt * (crushGateActive ? 1.8 : 2.6);
 
-        drawVinyl(vinylRewind, vinylAngles.rewind, rewindActive, 'rewind');
-        drawVinyl(vinylHighpass, vinylAngles.highpass, hpfActive, 'highpass');
-        drawVinyl(vinylEcho, vinylAngles.echo, spaceEchoActive, 'echo');
-        drawVinyl(vinylCrush, vinylAngles.crush, crushGateActive, 'crush');
+        if (nowMs - lastJamDrawMs >= 32) {
+          lastJamDrawMs = nowMs;
+          drawJamDancer(nowMs);
+          drawVinyl(vinylRewind, vinylAngles.rewind, rewindActive, 'rewind');
+          drawVinyl(vinylHighpass, vinylAngles.highpass, hpfActive, 'highpass');
+          drawVinyl(vinylEcho, vinylAngles.echo, spaceEchoActive, 'echo');
+          drawVinyl(vinylCrush, vinylAngles.crush, crushGateActive, 'crush');
+        }
 
         var elapsed = (nowMs - jamStartMs) / 1000;
         var progress = Math.min(1, elapsed / JAM_SECONDS);
