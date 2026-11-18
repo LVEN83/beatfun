@@ -52,22 +52,10 @@
       transition: opacity 1s ease;
     }
 
-    .app.vanishing {
-      opacity: 0;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .mono {
-      font-family: "Courier New", Courier, monospace;
-    }
-
-    button {
-      touch-action: manipulation;
-      outline: none;
-    }
+    .app.vanishing { opacity: 0; }
+    .hidden { display: none !important; }
+    .mono { font-family: "Courier New", Courier, monospace; }
+    button { touch-action: manipulation; outline: none; }
 
     /* ---------- START SCREEN & WAITING SCREEN ---------- */
     .start-screen {
@@ -121,20 +109,9 @@
       justify-content: center;
     }
 
-    .btn-lets-go.primary {
-      background-color: #ffffff;
-      color: #000000;
-    }
-
-    .btn-lets-go:active {
-      background-color: #333333;
-      color: #ffffff;
-    }
-
-    .btn-lets-go.primary:active {
-      background-color: #cccccc;
-      color: #000000;
-    }
+    .btn-lets-go.primary { background-color: #ffffff; color: #000000; }
+    .btn-lets-go:active { background-color: #333333; color: #ffffff; }
+    .btn-lets-go.primary:active { background-color: #cccccc; color: #000000; }
 
     .waiting-radar {
       font-size: 13px;
@@ -168,11 +145,7 @@
       border: 1px solid #ffffff;
     }
 
-    .battle-badge.active-turn {
-      background: #ffffff;
-      color: #000000;
-    }
-
+    .battle-badge.active-turn { background: #ffffff; color: #000000; }
     .battle-status-msg {
       font-size: 9px;
       color: #aaaaaa;
@@ -282,10 +255,7 @@
       touch-action: none;
     }
 
-    .step-pad.beat-mark {
-      border-left: 3px solid #777777;
-    }
-
+    .step-pad.beat-mark { border-left: 3px solid #777777; }
     .step-pad.active {
       background-color: #ffffff;
       border-color: #ffffff;
@@ -298,9 +268,7 @@
       background-color: #1a1a1a;
     }
 
-    .playhead-bar.now {
-      background-color: #ffffff;
-    }
+    .playhead-bar.now { background-color: #ffffff; }
 
     /* ---------- WAVEFORM SELECTOR & ABLETON PIANO ROLL ---------- */
     .wave-bar {
@@ -364,9 +332,7 @@
       justify-content: center;
     }
 
-    .param-box.full-width {
-      grid-column: 1 / -1;
-    }
+    .param-box.full-width { grid-column: 1 / -1; }
 
     .param-top {
       display: flex;
@@ -377,16 +343,8 @@
       margin-bottom: 2px;
     }
 
-    .param-label {
-      color: #aaaaaa;
-      font-weight: 700;
-    }
-
-    .param-value {
-      color: #ffffff;
-      font-weight: 700;
-      white-space: nowrap;
-    }
+    .param-label { color: #aaaaaa; font-weight: 700; }
+    .param-value { color: #ffffff; font-weight: 700; white-space: nowrap; }
 
     input[type="range"] {
       -webkit-appearance: none;
@@ -474,10 +432,7 @@
       cursor: pointer;
     }
 
-    .btn-next:active {
-      background-color: #000000;
-      color: #ffffff;
-    }
+    .btn-next:active { background-color: #000000; color: #ffffff; }
 
     /* ---------- SWING / GROOVE SCREEN ---------- */
     .swing-screen {
@@ -548,9 +503,7 @@
       color: #888888;
     }
 
-    .swing-toggle-btn.active .swing-btn-sub {
-      color: #333333;
-    }
+    .swing-toggle-btn.active .swing-btn-sub { color: #333333; }
 
     /* ---------- FINALE SCREEN (60 SECONDS) ---------- */
     .finale-screen {
@@ -577,14 +530,14 @@
       background-color: #ffffff;
     }
 
-    /* 1. MUTE MATRIX & PADS (EQUAL WIDTH TO LPs, SPACED OUT) */
+    /* MUTE MATRIX: Moved down more with comfortable spacing */
     .mute-matrix-wrap {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       width: 100%;
-      max-width: 330px;
-      margin: clamp(10px, 1.8dvh, 18px) auto clamp(6px, 1.2dvh, 12px) auto;
+      max-width: 340px;
+      margin: clamp(14px, 2.6dvh, 26px) auto clamp(8px, 1.4dvh, 14px) auto;
       flex-shrink: 0;
     }
 
@@ -594,13 +547,8 @@
       width: 100%;
     }
 
-    .mute-row.drums-row {
-      grid-template-columns: repeat(5, 1fr);
-    }
-
-    .mute-row.melodic-row {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    .mute-row.drums-row { grid-template-columns: repeat(5, 1fr); }
+    .mute-row.melodic-row { grid-template-columns: repeat(2, 1fr); }
 
     .mute-pad {
       background: #ffffff;
@@ -627,7 +575,7 @@
     }
 
     .mute-pad.staged-mute {
-      background: #777777 !important;
+      background: #666666 !important;
       color: #000000 !important;
       border: 2px dashed #ffffff !important;
       animation: pulseQueue 0.8s infinite alternate;
@@ -641,7 +589,7 @@
     }
 
     @keyframes pulseQueue {
-      0% { opacity: 0.6; }
+      0% { opacity: 0.55; }
       100% { opacity: 1.0; }
     }
 
@@ -673,19 +621,25 @@
       touch-action: none;
     }
 
-    /* 4 BIG SPINNING LPS WITH CENTER ROUND MUTE QUEUE BUTTON */
-    .vinyls-grid {
-      position: relative;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(8px, 1.4dvh, 14px) clamp(12px, 3.5vw, 24px);
-      width: 100%;
-      max-width: 330px;
-      margin: 0 auto;
+    /* JAM SECTION: 4 LPs to the LEFT, MUTE QUEUE to the RIGHT */
+    .finale-jam-section {
+      display: flex;
       align-items: center;
-      justify-items: center;
+      justify-content: center;
+      gap: clamp(8px, 2.5vw, 16px);
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
       flex-shrink: 0;
       padding-bottom: 2px;
+    }
+
+    .vinyls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(6px, 1.1dvh, 10px) clamp(8px, 2vw, 14px);
+      align-items: center;
+      justify-items: center;
     }
 
     .vinyl-wrap {
@@ -697,37 +651,30 @@
 
     .vinyl-canvas {
       display: block;
-      width: clamp(98px, 16dvh, 130px);
-      height: clamp(98px, 16dvh, 130px);
+      width: clamp(82px, 13.5dvh, 106px);
+      height: clamp(82px, 13.5dvh, 106px);
       cursor: pointer;
       touch-action: none;
     }
 
     .vinyl-label {
-      font-size: 10px;
-      letter-spacing: 1.5px;
+      font-size: 9px;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
       color: #666666;
       font-weight: 800;
     }
 
-    .vinyl-label.active {
-      color: #ffffff;
-    }
+    .vinyl-label.active { color: #ffffff; }
 
-    /* ROUND MUTE QUEUE BUTTON CENTERED IN THE 4 LPs */
+    /* ROUND MUTE QUEUE BUTTON PLACED ON THE RIGHT */
     .mute-queue-btn {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: clamp(52px, 8dvh, 64px);
-      height: clamp(52px, 8dvh, 64px);
+      width: clamp(56px, 9dvh, 68px);
+      height: clamp(56px, 9dvh, 68px);
       border-radius: 50%;
       background: #000000;
       color: #ffffff;
       border: 2px solid #ffffff;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.9), 0 0 0 4px #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -736,7 +683,7 @@
       cursor: pointer;
       user-select: none;
       touch-action: none;
-      z-index: 30;
+      flex-shrink: 0;
       transition: background-color 0.1s ease, color 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
     }
 
@@ -744,8 +691,8 @@
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
-      transform: translate(-50%, -50%) scale(0.96);
-      box-shadow: 0 0 16px rgba(255, 255, 255, 0.8), 0 0 0 4px #000000;
+      transform: scale(0.95);
+      box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
     }
 
     .mq-title {
@@ -763,9 +710,7 @@
       color: #888888;
     }
 
-    .mute-queue-btn.active .mq-sub {
-      color: #333333;
-    }
+    .mute-queue-btn.active .mq-sub { color: #333333; }
 
     /* Modal dialogs */
     .modal-overlay {
@@ -906,7 +851,7 @@
           <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.0" />
         </div>
 
-        <!-- FULL WIDTH VOLUME SLIDER -->
+        <!-- FULL-WIDTH VOLUME SLIDER -->
         <div class="param-box full-width" id="boxVolume">
           <div class="param-top mono">
             <span class="param-label">Volume</span>
@@ -966,7 +911,7 @@
         <div class="progress-fill" id="progressFill"></div>
       </div>
 
-      <!-- 1. MUTE MATRIX (FULL WIDTH OF LPs & HARMONIOUS SPACING) -->
+      <!-- MUTE MATRIX (MOVED DOWN MORE WITH SPACIOUS MARGINS) -->
       <div class="mute-matrix-wrap" id="muteMatrixWrap">
         <!-- Row 1: 5 Drum Pads -->
         <div class="mute-row drums-row">
@@ -983,36 +928,39 @@
         </div>
       </div>
 
-      <!-- CENTERED PIXEL MONITOR (BUNNY / PIGEONS) -->
+      <!-- CENTERED PIXEL MONITOR -->
       <div class="monitor-center">
         <div class="pixel-monitor">
           <canvas class="pixel-canvas" id="pixelCanvas" width="32" height="32"></canvas>
         </div>
       </div>
 
-      <!-- 4 BIG SPINNING LPS WITH CENTER ROUND MUTE QUEUE BUTTON -->
-      <div class="vinyls-grid" id="vinylsGrid">
-        <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="vinylRewind" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="labelRewind">REWIND</span>
+      <!-- FINALE JAM SECTION: 4 LPs ON LEFT, ROUND MUTE QUEUE BUTTON ON RIGHT -->
+      <div class="finale-jam-section">
+        <!-- 4 Spinning LPs (2x2 Grid) -->
+        <div class="vinyls-grid" id="vinylsGrid">
+          <div class="vinyl-wrap">
+            <canvas class="vinyl-canvas" id="vinylRewind" width="144" height="144"></canvas>
+            <span class="vinyl-label mono" id="labelRewind">REWIND</span>
+          </div>
+
+          <div class="vinyl-wrap">
+            <canvas class="vinyl-canvas" id="vinylHighpass" width="144" height="144"></canvas>
+            <span class="vinyl-label mono" id="labelHighpass">HIGHPASS</span>
+          </div>
+
+          <div class="vinyl-wrap">
+            <canvas class="vinyl-canvas" id="vinylEcho" width="144" height="144"></canvas>
+            <span class="vinyl-label mono" id="labelEcho">SPACE ECHO</span>
+          </div>
+
+          <div class="vinyl-wrap">
+            <canvas class="vinyl-canvas" id="vinylCrush" width="144" height="144"></canvas>
+            <span class="vinyl-label mono" id="labelCrush">CRUSH/GATE</span>
+          </div>
         </div>
 
-        <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="vinylHighpass" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="labelHighpass">HIGHPASS</span>
-        </div>
-
-        <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="vinylEcho" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="labelEcho">SPACE ECHO</span>
-        </div>
-
-        <div class="vinyl-wrap">
-          <canvas class="vinyl-canvas" id="vinylCrush" width="144" height="144"></canvas>
-          <span class="vinyl-label mono" id="labelCrush">CRUSH/GATE</span>
-        </div>
-
-        <!-- ROUND MUTE QUEUE BUTTON CENTERED IN THE 4 LPs -->
+        <!-- MUTE QUEUE Button placed on the RIGHT at the horizontal centerline of the 4 LPs -->
         <button type="button" class="mute-queue-btn mono" id="holdBtn">
           <span class="mq-title">MUTE</span>
           <span class="mq-sub">QUEUE</span>
@@ -1090,7 +1038,6 @@
     ];
 
     var STEPS = 16;
-    // 60 SECONDS FINALE DURATION
     var FINALE_SECONDS = 60;
     var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
@@ -1118,6 +1065,7 @@
     var reviewStepsRemaining = 0;
     var lastHandledMoveTimestamp = 0;
     var oppDisconnectTimer = null;
+    var battleLaunched = false;
 
     function resetTracks() {
       tracks = [];
@@ -1269,7 +1217,7 @@
       return ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
     }
 
-    // 3. MODULAR LETGO TRANSITION (Air suction / release whoosh)
+    // Modular letgo transition (air suction release whoosh)
     function triggerLetgoTransition() {
       if (!audioCtx || !noiseBuffer || audioCtx.state !== 'running') return;
       try {
@@ -1316,7 +1264,7 @@
         };
 
         mixBus = audioCtx.createGain();
-        mixBus.gain.value = 0.62;
+        mixBus.gain.value = 0.60;
 
         dryMixGain = audioCtx.createGain();
         dryMixGain.gain.value = 1.0;
@@ -1465,15 +1413,16 @@
         crushGateGain.connect(crushOutGain);
         crushOutGain.connect(masterHPF);
 
+        // Brickwall master limiter to avoid distortion on second devices
         masterCompressor = audioCtx.createDynamicsCompressor();
-        masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
-        masterCompressor.knee.setValueAtTime(8, audioCtx.currentTime);
-        masterCompressor.ratio.setValueAtTime(5, audioCtx.currentTime);
-        masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
-        masterCompressor.release.setValueAtTime(0.09, audioCtx.currentTime);
+        masterCompressor.threshold.setValueAtTime(-4, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(4, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(16, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.001, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.06, audioCtx.currentTime);
 
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.88;
+        masterGain.gain.value = 0.82;
 
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
@@ -1602,7 +1551,7 @@
     function setTrackMuteAudio(idx, isMuted) {
       if (audioCtx && trackMuteGains[idx]) {
         trackMuteGains[idx].gain.cancelScheduledValues(audioCtx.currentTime);
-        trackMuteGains[idx].gain.setTargetAtTime(isMuted ? 0.0 : 1.0, audioCtx.currentTime, 0.008);
+        trackMuteGains[idx].gain.setTargetAtTime(isMuted ? 0.0 : 1.0, audioCtx.currentTime, 0.005);
       }
     }
 
@@ -1934,7 +1883,7 @@
           var ng = audioCtx.createGain();
           ng.gain.setValueAtTime(0.28, time);
           ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
-          ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
+          ng.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
           noise.connect(ng);
           ng.connect(hp);
           noise.start(time);
@@ -2238,10 +2187,13 @@
       try {
         initAndUnlockAudio();
       } catch (e) {}
-      if (isPlaying) return;
+      if (schedulerId) {
+        clearInterval(schedulerId);
+        schedulerId = null;
+      }
       if (audioCtx && masterGain) {
         masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-        masterGain.gain.setValueAtTime(0.88, audioCtx.currentTime);
+        masterGain.gain.setValueAtTime(0.82, audioCtx.currentTime);
         nextNoteTime = audioCtx.currentTime + 0.05;
       }
       setRewind(false);
@@ -2265,8 +2217,10 @@
 
     function stopSequencer() {
       isPlaying = false;
-      clearInterval(schedulerId);
-      schedulerId = null;
+      if (schedulerId) {
+        clearInterval(schedulerId);
+        schedulerId = null;
+      }
       visualQueue.length = 0;
       setRewind(false);
       setHighPass(false);
@@ -2467,7 +2421,7 @@
         tracks[i].steps = mt.steps ? mt.steps.slice() : tracks[i].steps;
         tracks[i].notes = mt.notes ? mt.notes.slice() : tracks[i].notes;
         tracks[i].tied = mt.tied ? mt.tied.slice() : tracks[i].tied;
-        tracks[i].waveform = mt.waveform || 'sine';
+        tracks[i].waveform = mt.waveform || (i === 5 ? 'sine' : 'sine');
         if (mt.params) {
           tracks[i].params = {
             pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch,
@@ -2492,6 +2446,7 @@
       myRole = null;
       currentRoomId = null;
       turnIndex = 0;
+      battleLaunched = false;
       clearTimeout(oppDisconnectTimer);
 
       startScreen.classList.add('hidden');
@@ -2542,8 +2497,10 @@
 
           roomRef.child('players/player1/connected').onDisconnect().set(false);
 
-          roomRef.child('players/player2/connected').on('value', function(snap) {
-            if (snap.val() === true) {
+          var p2JoinRef = roomRef.child('players/player2/connected');
+          p2JoinRef.on('value', function(snap) {
+            if (snap.val() === true && !battleLaunched) {
+              p2JoinRef.off();
               waitingQueue.onDisconnect().cancel();
               launchOnlineBattle();
             }
@@ -2560,6 +2517,9 @@
     }
 
     function launchOnlineBattle() {
+      if (battleLaunched) return;
+      battleLaunched = true;
+
       waitingScreen.classList.add('hidden');
       sequencerScreen.classList.remove('hidden');
       battleHeader.classList.remove('hidden');
@@ -2624,7 +2584,7 @@
             reviewStepsRemaining = 32;
           }
         } else {
-          if (turnIndex !== newInstIndex) {
+          if (turnIndex !== newInstIndex && !finaleActive && !swingScreenActive) {
             turnIndex = newInstIndex;
             renderTurn();
           }
@@ -2671,6 +2631,7 @@
 
     function cancelMatchmaking() {
       clearTimeout(oppDisconnectTimer);
+      battleLaunched = false;
       if (waitingQueueRef && myRole === 'player1') {
         waitingQueueRef.remove();
       }
@@ -2684,6 +2645,7 @@
 
     function exitToMainMenu() {
       clearTimeout(oppDisconnectTimer);
+      battleLaunched = false;
       if (roomRef) {
         roomRef.off();
         roomRef.child('players/' + myRole + '/connected').set(false);
@@ -3125,24 +3087,22 @@
     vinylCrush.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     // ---------------------------------------------------------
-    // 2. MUTE MATRIX & MUTE QUEUE (BRING STUFF IN AND OUT)
+    // MUTE MATRIX & MUTE QUEUE (BRING STUFF IN AND OUT)
     // ---------------------------------------------------------
     function updateMutePadsUI() {
       mutePads.forEach(function(pad) {
         var idx = parseInt(pad.getAttribute('data-inst'));
         var isCurrentlyMuted = trackMutes[idx];
 
-        // Normal state when not queueing
         if (!isHoldActive || !stagedMutes) {
           pad.classList.toggle('muted', isCurrentlyMuted);
           pad.classList.remove('staged-mute', 'staged-unmute');
           return;
         }
 
-        // QUEUE MODE: distinctly display staged cuts and staged drop-ins
         var willBeMuted = stagedMutes[idx];
-        var isStagedToMute = !isCurrentlyMuted && willBeMuted; // currently playing -> will mute
-        var isStagedToUnmute = isCurrentlyMuted && !willBeMuted; // currently muted -> will play
+        var isStagedToMute = !isCurrentlyMuted && willBeMuted;
+        var isStagedToUnmute = isCurrentlyMuted && !willBeMuted;
 
         pad.classList.toggle('muted', isCurrentlyMuted);
         pad.classList.toggle('staged-mute', isStagedToMute);
@@ -3157,11 +3117,9 @@
         var idx = parseInt(this.getAttribute('data-inst'));
 
         if (isHoldActive && stagedMutes) {
-          // Stage toggle: works both for bringing in and taking out
           stagedMutes[idx] = !stagedMutes[idx];
           updateMutePadsUI();
         } else {
-          // Instant live toggle
           trackMutes[idx] = !trackMutes[idx];
           setTrackMuteAudio(idx, trackMutes[idx]);
           updateMutePadsUI();
@@ -3534,7 +3492,7 @@
         ctx.moveTo(cx - 4, cy - 2);
         ctx.lineTo(cx + 4, cy - 2);
         ctx.moveTo(cx, cy - 2);
-        ctx.lineTo(cx + 4, cy + 4);
+        ctx.lineTo(cx, cy + 4);
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(cx, cy, 16, -0.6 * Math.PI, 0.4 * Math.PI, false);
