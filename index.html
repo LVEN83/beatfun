@@ -1152,7 +1152,7 @@
     var spaceEchoFeedback = null;
     var spaceEchoToneLPF = null;
     var spaceEchoToneHPF = null;
-    var spaceEchoLimiter = null;
+    var spaceEchoSaturator = null;
     var spaceEchoOutGain = null;
     var spaceEchoActive = false;
 
@@ -1217,6 +1217,16 @@
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
         curve[i] = (3 * x - Math.pow(x, 3)) / 2;
+      }
+      return curve;
+    }
+
+    function createEchoSaturationCurve() {
+      var n = 2048;
+      var curve = new Float32Array(n);
+      for (var i = 0; i < n; i++) {
+        var x = (i * 2) / (n - 1) - 1;
+        curve[i] = Math.tanh(x * 1.45) * 0.92;
       }
       return curve;
     }
@@ -1402,11 +1412,11 @@
         spaceEchoSend = audioCtx.createGain();
         spaceEchoSend.gain.value = 0.0;
 
-        spaceEchoDelay = audioCtx.createDelay(2.0);
+        spaceEchoDelay = audioCtx.createDelay(1.0);
         spaceEchoDelay.delayTime.value = (60 / bpm) * 0.75;
 
         spaceEchoFeedback = audioCtx.createGain();
-        spaceEchoFeedback.gain.value = 0.25;
+        spaceEchoFeedback.gain.value = 0.0;
 
         spaceEchoToneHPF = audioCtx.createBiquadFilter();
         spaceEchoToneHPF.type = 'highpass';
@@ -1416,11 +1426,9 @@
         spaceEchoToneLPF.type = 'lowpass';
         spaceEchoToneLPF.frequency.value = 2400;
 
-        spaceEchoLimiter = audioCtx.createDynamicsCompressor();
-        spaceEchoLimiter.threshold.setValueAtTime(-6, audioCtx.currentTime);
-        spaceEchoLimiter.ratio.setValueAtTime(20, audioCtx.currentTime);
-        spaceEchoLimiter.attack.setValueAtTime(0.002, audioCtx.currentTime);
-        spaceEchoLimiter.release.setValueAtTime(0.08, audioCtx.currentTime);
+        spaceEchoSaturator = audioCtx.createWaveShaper();
+        spaceEchoSaturator.curve = createEchoSaturationCurve();
+        spaceEchoSaturator.oversample = 'none';
 
         spaceEchoOutGain = audioCtx.createGain();
         spaceEchoOutGain.gain.value = 0.0;
@@ -1431,10 +1439,10 @@
         spaceEchoDelay.connect(spaceEchoToneHPF);
         spaceEchoToneHPF.connect(spaceEchoToneLPF);
         spaceEchoToneLPF.connect(spaceEchoFeedback);
-        spaceEchoFeedback.connect(spaceEchoLimiter);
-        spaceEchoLimiter.connect(spaceEchoDelay);
+        spaceEchoFeedback.connect(spaceEchoSaturator);
+        spaceEchoSaturator.connect(spaceEchoDelay);
 
-        spaceEchoLimiter.connect(spaceEchoOutGain);
+        spaceEchoSaturator.connect(spaceEchoOutGain);
         spaceEchoOutGain.connect(masterHPF);
 
         crushShaper = audioCtx.createWaveShaper();
@@ -1682,15 +1690,17 @@
         spaceEchoDelay.delayTime.setValueAtTime((60 / bpm) * 0.75, now);
         spaceEchoOutGain.gain.cancelScheduledValues(now);
         spaceEchoOutGain.gain.setValueAtTime(0.85, now);
+        spaceEchoSend.gain.cancelScheduledValues(now);
         spaceEchoSend.gain.setTargetAtTime(0.70, now, 0.02);
-        spaceEchoFeedback.gain.setTargetAtTime(0.88, now, 0.05);
+        spaceEchoFeedback.gain.cancelScheduledValues(now);
+        spaceEchoFeedback.gain.setTargetAtTime(0.78, now, 0.04);
       } else {
         spaceEchoSend.gain.cancelScheduledValues(now);
-        spaceEchoSend.gain.setValueAtTime(0.0, now);
+        spaceEchoSend.gain.setTargetAtTime(0.0, now, 0.01);
         spaceEchoFeedback.gain.cancelScheduledValues(now);
         spaceEchoFeedback.gain.setTargetAtTime(0.0, now, 0.015);
         spaceEchoOutGain.gain.cancelScheduledValues(now);
-        spaceEchoOutGain.gain.setTargetAtTime(0.0, now, 0.025);
+        spaceEchoOutGain.gain.setTargetAtTime(0.0, now, 0.02);
         if (wasOn) triggerLetgoTransition();
       }
     }
@@ -2171,10 +2181,13 @@
 
       if (crushGateActive && audioCtx && crushGateGain) {
         try {
+          var stepDurGate = 60 / bpm / 4;
+          var gateMid = Math.min(0.11, stepDurGate * 0.75);
+          var gateEnd = Math.min(0.14, stepDurGate * 0.90);
           crushGateGain.gain.cancelScheduledValues(time);
           crushGateGain.gain.setValueAtTime(1.0, time);
-          crushGateGain.gain.exponentialRampToValueAtTime(0.08, time + 0.11);
-          crushGateGain.gain.linearRampToValueAtTime(0.0, time + 0.14);
+          crushGateGain.gain.exponentialRampToValueAtTime(0.08, time + gateMid);
+          crushGateGain.gain.linearRampToValueAtTime(0.0, time + gateEnd);
         } catch (e) {}
       }
 
@@ -2680,7 +2693,6 @@
         roomTurn = nextTurn;
         renderTurn();
       } else {
-        // Final instrument (Synth) finished: hand off cleanly to local Swing & Jam
         var finalRef = roomRef;
         var finalRole = myRole;
         onlineMatchActive = false;
