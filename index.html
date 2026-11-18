@@ -786,7 +786,7 @@
         <div class="battle-badge" id="turnIndicator">YOUR TURN</div>
       </div>
 
-      <!-- Turn Locked / Reviewing Overlay -->
+      <!-- Turn Locked Overlay -->
       <div class="locked-overlay hidden" id="lockedOverlay">
         <div class="locked-card mono">
           <div class="waiting-radar" id="lockedTitle">OPPONENT'S TURN...</div>
@@ -1056,20 +1056,17 @@
     var stagedMutes = null;
 
     var gameMode = 'solo';
+    var onlineMatchActive = false;
     var myRole = null;
     var currentRoomId = null;
     var roomRef = null;
     var waitingQueueRef = null;
     var p2JoinRef = null;
     var roomTurn = 'player1';
-    var isReviewingMove = false;
-    var reviewStepsRemaining = 0;
     var lastHandledMoveTimestamp = 0;
     var oppDisconnectTimer = null;
     var battleLaunched = false;
     var isSendingMove = false;
-    var waitingForJamReady = false;
-    var jamTransitionSent = false;
 
     function resetTracks() {
       tracks = [];
@@ -2173,14 +2170,6 @@
         visualQueue.shift();
       }
       visualQueue.push({ step: step, time: time, kickHit: kickHit });
-
-      if (isReviewingMove) {
-        reviewStepsRemaining--;
-        if (reviewStepsRemaining <= 0) {
-          isReviewingMove = false;
-          updateTurnStatusUI();
-        }
-      }
     }
 
     function scheduler() {
@@ -2365,21 +2354,40 @@
     }
 
     // ---------------------------------------------------------
-    // ONLINE BATTLE MATCHMAKING & RECONNECT
+    // ONLINE BATTLE MATCHMAKING & CLEAN LOCAL HANDOFF
     // ---------------------------------------------------------
     db.ref('.info/connected').on('value', function(snap) {
-      if (snap.val() === true && roomRef && myRole) {
+      if (snap.val() === true && roomRef && myRole && onlineMatchActive) {
         roomRef.child('players/' + myRole + '/connected').set(true);
         roomRef.child('players/' + myRole + '/connected').onDisconnect().set(false);
       }
     });
 
+    function detachOnlineRoom() {
+      onlineMatchActive = false;
+      clearTimeout(oppDisconnectTimer);
+      oppDisconnectTimer = null;
+      if (p2JoinRef) {
+        p2JoinRef.off();
+        p2JoinRef = null;
+      }
+      if (roomRef) {
+        if (myRole) {
+          try {
+            roomRef.child('players/' + myRole + '/connected').onDisconnect().cancel();
+          } catch (e) {}
+        }
+        roomRef.off();
+        roomRef = null;
+      }
+    }
+
     function isMyTurn() {
-      return gameMode === 'online' && myRole === roomTurn && !isReviewingMove;
+      return gameMode === 'online' && onlineMatchActive && myRole === roomTurn;
     }
 
     function updateTurnStatusUI() {
-      if (gameMode !== 'online') {
+      if (gameMode !== 'online' || !onlineMatchActive) {
         lockedOverlay.classList.add('hidden');
         return;
       }
@@ -2388,15 +2396,7 @@
       playerBadge.textContent = myRole === 'player1' ? 'P1 (YOU)' : 'P2 (YOU)';
       roundBadge.textContent = (turnIndex + 1) + '/7: ' + curInstName;
 
-      if (isReviewingMove) {
-        var prevInstName = INSTRUMENTS[Math.max(0, turnIndex - 1)].name.toUpperCase();
-        lockedOverlay.classList.remove('hidden');
-        lockedTitle.textContent = "INCOMING BEAT...";
-        lockedSub.textContent = "LISTENING TO " + prevInstName;
-        turnIndicator.textContent = "LISTENING";
-        turnIndicator.classList.remove('active-turn');
-        nextBtn.textContent = 'LISTENING...';
-      } else if (isMyTurn()) {
+      if (isMyTurn()) {
         lockedOverlay.classList.add('hidden');
         turnIndicator.textContent = 'YOUR TURN';
         turnIndicator.classList.add('active-turn');
@@ -2493,17 +2493,15 @@
     function startOnlineMatchmaking() {
       initAndUnlockAudio();
       gameMode = 'online';
+      onlineMatchActive = true;
       myRole = null;
       currentRoomId = null;
       turnIndex = 0;
       battleLaunched = false;
       lastHandledMoveTimestamp = 0;
       isSendingMove = false;
-      waitingForJamReady = false;
-      jamTransitionSent = false;
       swingScreenActive = false;
       jamActive = false;
-      isReviewingMove = false;
       clearTimeout(oppDisconnectTimer);
 
       startScreen.classList.add('hidden');
@@ -2544,9 +2542,7 @@
             status: 'waiting',
             turn: 'player1',
             instrumentIndex: 0,
-            swingMode: 'straight',
             lastMove: null,
-            readyForJam: { player1: false, player2: false },
             players: {
               player1: { connected: true },
               player2: { connected: false }
@@ -2592,11 +2588,23 @@
       startSequencer();
 
       roomRef.on('value', function(snap) {
+        if (!onlineMatchActive) return;
         var data = snap.val();
         if (!data) return;
 
+        if (data.status === 'swing') {
+          if (data.lastMove) {
+            applyIncomingMoveIfNew(data.lastMove);
+          }
+          detachOnlineRoom();
+          if (!swingScreenActive && !jamActive) {
+            openSwingScreen();
+          }
+          return;
+        }
+
         var opp = myRole === 'player1' ? 'player2' : 'player1';
-        if ((data.status === 'playing' || data.status === 'swing' || data.status === 'jam') && data.players && data.players[opp]) {
+        if (data.status === 'playing' && data.players && data.players[opp]) {
           if (data.players[opp].connected === false) {
             if (!oppDisconnectTimer) {
               oppDisconnectTimer = setTimeout(function() {
@@ -2611,55 +2619,12 @@
           }
         }
 
-        if (data.swingMode && data.swingMode !== currentSwingMode) {
-          currentSwingMode = data.swingMode;
-          updateSwingUI();
-        }
-
-        if (data.status === 'jam') {
-          if (data.lastMove) {
-            applyIncomingMoveIfNew(data.lastMove);
-          }
-          if (!jamActive) {
-            swingScreenActive = false;
-            startJam();
-          }
-          return;
-        }
-
-        if (data.status === 'swing') {
-          if (data.lastMove) {
-            applyIncomingMoveIfNew(data.lastMove);
-          }
-          if (!swingScreenActive && !jamActive) {
-            isReviewingMove = false;
-            openSwingScreen();
-          }
-          if (
-            data.readyForJam &&
-            data.readyForJam.player1 &&
-            data.readyForJam.player2 &&
-            !jamTransitionSent
-          ) {
-            jamTransitionSent = true;
-            if (myRole === 'player1') {
-              roomRef.update({ status: 'jam' });
-            }
-          }
-          return;
-        }
-
         roomTurn = data.turn || 'player1';
         var newInstIndex = data.instrumentIndex !== undefined ? Math.min(INSTRUMENTS.length - 1, data.instrumentIndex) : 0;
 
         if (data.lastMove && applyIncomingMoveIfNew(data.lastMove)) {
           turnIndex = newInstIndex;
           renderTurn();
-
-          if (roomTurn === myRole) {
-            isReviewingMove = true;
-            reviewStepsRemaining = 32;
-          }
         } else if (turnIndex !== newInstIndex && !jamActive && !swingScreenActive) {
           turnIndex = newInstIndex;
           renderTurn();
@@ -2692,30 +2657,48 @@
         roomTurn = nextTurn;
         renderTurn();
       } else {
-        roomRef.update({
-          lastMove: move,
-          instrumentIndex: INSTRUMENTS.length,
-          swingMode: currentSwingMode,
-          status: 'swing'
-        }, function() {
+        // Final instrument (Synth) finished: hand off cleanly to local Swing & Jam
+        var finalRef = roomRef;
+        var finalRole = myRole;
+        onlineMatchActive = false;
+        clearTimeout(oppDisconnectTimer);
+        oppDisconnectTimer = null;
+        if (finalRef) {
+          finalRef.off();
+          finalRef.update({
+            lastMove: move,
+            instrumentIndex: INSTRUMENTS.length,
+            status: 'swing'
+          }, function() {
+            isSendingMove = false;
+            try {
+              if (finalRole) {
+                finalRef.child('players/' + finalRole + '/connected').onDisconnect().cancel();
+              }
+            } catch (e) {}
+            if (roomRef === finalRef) {
+              roomRef = null;
+            }
+          });
+        } else {
           isSendingMove = false;
-        });
+        }
         openSwingScreen();
       }
     }
 
     function handleOpponentDisconnected() {
-      clearTimeout(oppDisconnectTimer);
-      oppDisconnectTimer = null;
-      if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
-      if (roomRef) roomRef.off();
+      if (!onlineMatchActive) return;
+      detachOnlineRoom();
       stopSequencer();
       disconnectModal.classList.remove('hidden');
     }
 
     function cancelMatchmaking() {
       clearTimeout(oppDisconnectTimer);
+      oppDisconnectTimer = null;
       battleLaunched = false;
+      onlineMatchActive = false;
       if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
       if (waitingQueueRef && myRole === 'player1') {
         waitingQueueRef.onDisconnect().cancel();
@@ -2731,20 +2714,14 @@
     }
 
     function exitToMainMenu() {
-      clearTimeout(oppDisconnectTimer);
       battleLaunched = false;
-      waitingForJamReady = false;
-      jamTransitionSent = false;
       isSendingMove = false;
-      isReviewingMove = false;
-      if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
-      if (roomRef) {
-        roomRef.off();
-        if (myRole) {
+      if (roomRef && myRole) {
+        try {
           roomRef.child('players/' + myRole + '/connected').set(false);
-        }
-        roomRef = null;
+        } catch (e) {}
       }
+      detachOnlineRoom();
       disconnectModal.classList.add('hidden');
       sequencerScreen.classList.add('hidden');
       swingScreen.classList.add('hidden');
@@ -2759,6 +2736,7 @@
     bindTap(btnSoloMode, function() {
       initAndUnlockAudio();
       gameMode = 'solo';
+      onlineMatchActive = false;
       battleHeader.classList.add('hidden');
       startGame();
     });
@@ -3429,14 +3407,11 @@
     }
 
     // ---------------------------------------------------------
-    // SWING SCREEN INTERACTION
+    // SWING SCREEN INTERACTION (LOCAL FOR BOTH SOLO & 2P)
     // ---------------------------------------------------------
     function setSwingMode(mode) {
       currentSwingMode = mode;
       updateSwingUI();
-      if (gameMode === 'online' && roomRef) {
-        roomRef.update({ swingMode: mode });
-      }
     }
 
     function updateSwingUI() {
@@ -3451,8 +3426,6 @@
 
     function openSwingScreen() {
       swingScreenActive = true;
-      waitingForJamReady = false;
-      jamTransitionSent = false;
       swingBpmValue.textContent = bpm;
       btnProceedToJam.textContent = 'JAM';
       updateSwingUI();
@@ -3475,16 +3448,9 @@
     });
 
     bindTap(btnProceedToJam, function() {
-      if (gameMode === 'online') {
-        if (waitingForJamReady || !roomRef) return;
-        waitingForJamReady = true;
-        btnProceedToJam.textContent = 'WAITING...';
-        roomRef.child('readyForJam/' + myRole).set(true);
-      } else {
-        swingScreenActive = false;
-        swingScreen.classList.add('hidden');
-        startJam();
-      }
+      swingScreenActive = false;
+      swingScreen.classList.add('hidden');
+      startJam();
     });
 
     // ---------------------------------------------------------
@@ -3800,7 +3766,6 @@
     function startJam() {
       jamActive = true;
       swingScreenActive = false;
-      waitingForJamReady = false;
       fadeTriggered = false;
       jamStartMs = performance.now();
       lastKickMs = -1;
