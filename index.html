@@ -223,6 +223,26 @@
       flex-shrink: 0;
     }
 
+    .accent-banner {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      color: #ffffff;
+      text-transform: uppercase;
+      height: 14px;
+      line-height: 14px;
+      flex-shrink: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+    }
+
+    .accent-banner.visible {
+      opacity: 1;
+      transition: opacity 0.12s ease;
+    }
+
     .step-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -230,6 +250,9 @@
       touch-action: none;
       margin: 0;
       flex-shrink: 1;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .step-wrap {
@@ -245,22 +268,55 @@
       height: clamp(36px, 5.2dvh, 54px);
       background-color: #000000;
       border: 1px solid #3a3a3a;
-      color: #666666;
+      color: #555555;
       font-size: 11px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
       touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
-    .step-pad.beat-mark { border-left: 3px solid #777777; }
-    .step-pad.active {
-      background-color: #ffffff;
-      border-color: #ffffff;
-      color: #000000;
+    .step-pad.beat-mark { border-left: 3px solid #666666; }
+
+    /* State 3: Ghost (soft) */
+    .step-pad.vel-ghost {
+      background-color: #0a0a0a;
+      border: 1px solid #6a6a6a;
+      color: #8c8c8c;
     }
+    .step-pad.beat-mark.vel-ghost { border-left: 3px solid #888888; }
+    .step-pad.vel-ghost::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 3px;
+      height: 3px;
+      background-color: #999999;
+    }
+
+    /* State 1: Normal */
+    .step-pad.vel-normal {
+      background-color: #141414;
+      border: 2px solid #ffffff;
+      color: #ffffff;
+    }
+    .step-pad.beat-mark.vel-normal { border-left: 4px solid #ffffff; }
+
+    /* State 2: Accent (inverted bold) */
+    .step-pad.vel-accent {
+      background-color: #ffffff;
+      border: 2px solid #ffffff;
+      color: #000000;
+      font-weight: 900;
+    }
+    .step-pad.beat-mark.vel-accent { border-left: 4px solid #ffffff; }
 
     .playhead-bar {
       width: 100%;
@@ -804,6 +860,9 @@
         </div>
       </div>
 
+      <!-- Temporary Accent Mode Status Readout (Drum Tracks Only) -->
+      <div class="accent-banner mono" id="accentBanner">ACCENT ENABLED</div>
+
       <!-- Drum 4x4 step pads -->
       <div class="step-grid" id="stepGrid"></div>
 
@@ -1041,6 +1100,7 @@
     var JAM_SECONDS = 60;
     var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
+    var LONG_PRESS_MS = 500;
 
     var turnIndex = 0;
     var bpm = 118;
@@ -1048,6 +1108,7 @@
     var jamActive = false;
     var swingScreenActive = false;
     var currentSwingMode = 'straight';
+    var accentMode = false;
     var tracks = [];
 
     var trackMutes = [false, false, false, false, false, false, false];
@@ -1068,13 +1129,22 @@
     var battleLaunched = false;
     var isSendingMove = false;
 
+    function normalizeDrumStep(v) {
+      if (v === true) return 1;
+      if (v === false || v === null || v === undefined) return 0;
+      var n = Number(v);
+      if (n === 1 || n === 2 || n === 3) return n;
+      return 0;
+    }
+
     function resetTracks() {
       tracks = [];
       for (var i = 0; i < INSTRUMENTS.length; i++) {
         var inst = INSTRUMENTS[i];
+        var isDrum = i < 5;
         var arr = [], noteArr = [], tiedArr = [];
         for (var s = 0; s < STEPS; s++) {
-          arr.push(false);
+          arr.push(isDrum ? 0 : false);
           noteArr.push(0);
           tiedArr.push(false);
         }
@@ -1285,6 +1355,7 @@
           trackVolGains[i].gain.setValueAtTime(p.volume !== undefined ? p.volume : 1.0, now);
         }
         if (trackLPFs[i]) {
+          trackLPFs[i].frequency.cancelScheduledValues(now);
           trackLPFs[i].frequency.setValueAtTime(normToFilterHz(p.filter), now);
         }
         if (trackRevGains[i]) {
@@ -1873,7 +1944,7 @@
       return span;
     }
 
-    function triggerSound(instIdx, stepIdx, time) {
+    function triggerSound(instIdx, stepIdx, time, velState) {
       if (!audioCtx || audioCtx.state !== 'running') return;
       try {
         var inst = INSTRUMENTS[instIdx];
@@ -1890,16 +1961,36 @@
           decayVal = Math.min(0.14, decayVal * 0.65);
         }
 
+        // Velocity & Lowpass Cutoff modulation for drum tracks (0..4)
+        var isDrum = instIdx < 5;
+        var isAccent = isDrum && velState === 2;
+        var isGhost = isDrum && velState === 3;
+        var velGain = isDrum ? (isAccent ? 1.35 : (isGhost ? 0.45 : 1.0)) : 1.0;
+
+        if (isDrum && trackLPFs[instIdx]) {
+          var baseCutoff = normToFilterHz(p.filter);
+          var lpfParam = trackLPFs[instIdx].frequency;
+          lpfParam.cancelScheduledValues(time);
+          if (isAccent) {
+            lpfParam.setValueAtTime(Math.min(20000, baseCutoff * 1.30), time);
+            lpfParam.setTargetAtTime(baseCutoff, time + 0.02, 0.055);
+          } else if (isGhost) {
+            lpfParam.setValueAtTime(Math.max(220, baseCutoff * 0.60), time);
+          } else {
+            lpfParam.setValueAtTime(baseCutoff, time);
+          }
+        }
+
         var dest = trackVolGains[instIdx] || mixBus;
 
         if (inst.id === 'kick') {
           var osc = audioCtx.createOscillator();
           var g = audioCtx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(pitchVal * 2.8, time);
+          osc.frequency.setValueAtTime(pitchVal * (isAccent ? 3.25 : 2.8), time);
           osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
           g.gain.setValueAtTime(0.0001, time);
-          g.gain.linearRampToValueAtTime(0.66, time + 0.003);
+          g.gain.linearRampToValueAtTime(0.66 * velGain, time + 0.003);
           g.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
           osc.connect(g);
@@ -1910,9 +2001,9 @@
           var clickOsc = audioCtx.createOscillator();
           var clickGain = audioCtx.createGain();
           clickOsc.type = 'triangle';
-          clickOsc.frequency.setValueAtTime(1400, time);
+          clickOsc.frequency.setValueAtTime(isAccent ? 1850 : 1400, time);
           clickOsc.frequency.exponentialRampToValueAtTime(180, time + 0.006);
-          clickGain.gain.setValueAtTime(0.18, time);
+          clickGain.gain.setValueAtTime(0.18 * (isAccent ? 1.55 : velGain), time);
           clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.008);
           clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
           clickOsc.connect(clickGain);
@@ -1927,7 +2018,7 @@
           var hatTame = audioCtx.createBiquadFilter();
           hatTame.type = 'highshelf';
           hatTame.frequency.value = 11000;
-          hatTame.gain.value = -3.5;
+          hatTame.gain.value = isAccent ? -1.5 : -3.5;
 
           hp.connect(hatTame);
           hatTame.connect(dest);
@@ -1935,7 +2026,7 @@
           var noise = audioCtx.createBufferSource();
           noise.buffer = noiseBuffer;
           var ng = audioCtx.createGain();
-          ng.gain.setValueAtTime(0.28, time);
+          ng.gain.setValueAtTime(0.28 * velGain, time);
           ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
           noise.connect(ng);
@@ -1948,7 +2039,7 @@
             metal.buffer = metallicHatBuffer;
             metal.playbackRate.setValueAtTime(pitchVal, time);
             var mg = audioCtx.createGain();
-            mg.gain.setValueAtTime(0.55, time);
+            mg.gain.setValueAtTime(0.55 * velGain, time);
             mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
             mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
             metal.connect(mg);
@@ -1960,10 +2051,10 @@
           var tosc = audioCtx.createOscillator();
           var tg = audioCtx.createGain();
           tosc.type = 'sine';
-          tosc.frequency.setValueAtTime(pitchVal * 1.75, time);
+          tosc.frequency.setValueAtTime(pitchVal * (isAccent ? 2.0 : 1.75), time);
           tosc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.08, decayVal * 0.6));
           tg.gain.setValueAtTime(0.0001, time);
-          tg.gain.linearRampToValueAtTime(0.50, time + 0.003);
+          tg.gain.linearRampToValueAtTime(0.50 * velGain, time + 0.003);
           tg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
           tosc.connect(tg);
@@ -1986,13 +2077,13 @@
           var sTame = audioCtx.createBiquadFilter();
           sTame.type = 'highshelf';
           sTame.frequency.value = 9500;
-          sTame.gain.value = -3.0;
+          sTame.gain.value = isAccent ? -1.5 : -3.0;
 
-          var swellTime = Math.min(0.024, decayVal * 0.28);
+          var swellTime = Math.min(0.024, decayVal * 0.28) * (isAccent ? 0.65 : 1.0);
           var sEnv = audioCtx.createGain();
           sEnv.gain.setValueAtTime(0.0001, time);
-          sEnv.gain.linearRampToValueAtTime(0.09, time + swellTime * 0.45);
-          sEnv.gain.linearRampToValueAtTime(0.38, time + swellTime);
+          sEnv.gain.linearRampToValueAtTime(0.09 * velGain, time + swellTime * 0.45);
+          sEnv.gain.linearRampToValueAtTime(0.38 * velGain, time + swellTime);
           sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
 
@@ -2009,18 +2100,18 @@
           var b2 = audioCtx.createOscillator();
           b1.type = 'triangle';
           b2.type = 'sine';
-          b1.frequency.setValueAtTime(pitchVal * 1.9, time);
+          b1.frequency.setValueAtTime(pitchVal * (isAccent ? 2.15 : 1.9), time);
           b1.frequency.exponentialRampToValueAtTime(pitchVal * 0.95, time + 0.025);
-          b2.frequency.setValueAtTime(pitchVal * 2.8, time);
+          b2.frequency.setValueAtTime(pitchVal * (isAccent ? 3.1 : 2.8), time);
           b2.frequency.exponentialRampToValueAtTime(pitchVal * 1.65, time + 0.022);
 
           var bg1 = audioCtx.createGain();
           var bg2 = audioCtx.createGain();
           var bodyDec = Math.min(0.14, decayVal * 0.45);
-          bg1.gain.setValueAtTime(0.32, time);
+          bg1.gain.setValueAtTime(0.32 * velGain, time);
           bg1.gain.exponentialRampToValueAtTime(0.001, time + bodyDec);
           bg1.gain.linearRampToValueAtTime(0.0, time + bodyDec + 0.008);
-          bg2.gain.setValueAtTime(0.22, time);
+          bg2.gain.setValueAtTime(0.22 * velGain, time);
           bg2.gain.exponentialRampToValueAtTime(0.001, time + bodyDec * 0.85);
           bg2.gain.linearRampToValueAtTime(0.0, time + bodyDec * 0.85 + 0.008);
 
@@ -2042,14 +2133,14 @@
           sPeak.type = 'peaking';
           sPeak.frequency.setValueAtTime(4200, time);
           sPeak.Q.value = 1.2;
-          sPeak.gain.value = 5;
+          sPeak.gain.value = isAccent ? 7 : 5;
 
           var grit = audioCtx.createWaveShaper();
           grit.curve = snareGritCurve;
           grit.oversample = 'none';
 
           var sng = audioCtx.createGain();
-          sng.gain.setValueAtTime(0.38, time);
+          sng.gain.setValueAtTime(0.38 * velGain, time);
           sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
 
@@ -2170,12 +2261,14 @@
       var anyHit = false;
       var maxIdx = (jamActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
 
-      var kickActive = !trackMutes[0] && tracks[0].steps[step];
+      var kickState = normalizeDrumStep(tracks[0].steps[step]);
+      var kickActive = !trackMutes[0] && kickState > 0;
       if (kickActive && basslineDuckingGain && audioCtx) {
         var duckTime = Math.max(audioCtx.currentTime, time);
+        var duckLevel = kickState === 3 ? 0.45 : (kickState === 2 ? 0.16 : 0.20);
         basslineDuckingGain.gain.cancelScheduledValues(duckTime);
         basslineDuckingGain.gain.setValueAtTime(basslineDuckingGain.gain.value, duckTime);
-        basslineDuckingGain.gain.setTargetAtTime(0.20, duckTime, 0.006);
+        basslineDuckingGain.gain.setTargetAtTime(duckLevel, duckTime, 0.006);
         basslineDuckingGain.gain.setTargetAtTime(1.0, duckTime + 0.04, 0.07);
       }
 
@@ -2192,11 +2285,14 @@
       }
 
       for (var i = 0; i <= maxIdx; i++) {
-        if (tracks[i].steps[step] && !trackMutes[i]) {
+        var isDrum = i < 5;
+        var rawStep = tracks[i].steps[step];
+        var velState = isDrum ? normalizeDrumStep(rawStep) : (rawStep ? 1 : 0);
+        if (velState > 0 && !trackMutes[i]) {
           if (!tracks[i].tied[step]) {
             anyHit = true;
           }
-          triggerSound(i, step, time);
+          triggerSound(i, step, time, velState);
           if (INSTRUMENTS[i].id === 'kick') {
             kickHit = true;
           }
@@ -2323,6 +2419,7 @@
     var instName = document.getElementById('instName');
     var bpmSlider = document.getElementById('bpmSlider');
     var bpmValue = document.getElementById('bpmValue');
+    var accentBanner = document.getElementById('accentBanner');
     var stepGrid = document.getElementById('stepGrid');
     var waveBar = document.getElementById('waveBar');
     var pianoRollWrap = document.getElementById('pianoRollWrap');
@@ -2363,8 +2460,16 @@
     var mutePads = document.querySelectorAll('.mute-pad');
     var holdBtn = document.getElementById('holdBtn');
 
+    // Drum pad interaction state (tap, drag-paint, and 500ms long-press Accent Mode toggle)
     var dragPointerId = null;
-    var dragPaint = true;
+    var dragPaintVal = 1;
+    var pressStartStep = null;
+    var pressStartX = 0;
+    var pressStartY = 0;
+    var longPressTimer = null;
+    var longPressTriggered = false;
+    var didDragPaint = false;
+    var accentBannerTimer = null;
 
     var pianoPointerId = null;
     var pianoDrawMode = 'draw';
@@ -2392,6 +2497,39 @@
         e.preventDefault();
         handler(e);
       });
+    }
+
+    function cancelDrumLongPress() {
+      if (longPressTimer !== null) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    function showAccentBanner(enabled) {
+      accentBanner.textContent = enabled ? 'ACCENT ENABLED' : 'ACCENT DISABLED';
+      accentBanner.classList.add('visible');
+      clearTimeout(accentBannerTimer);
+      accentBannerTimer = setTimeout(function() {
+        accentBanner.classList.remove('visible');
+      }, 1500);
+    }
+
+    function hideAccentBannerImmediate() {
+      clearTimeout(accentBannerTimer);
+      accentBannerTimer = null;
+      accentBanner.classList.remove('visible');
+    }
+
+    function getNextDrumStepState(currentVal) {
+      var cur = normalizeDrumStep(currentVal);
+      if (!accentMode) {
+        return cur > 0 ? 0 : 1;
+      }
+      // Accent Mode ON: 0 -> 2 (Accent), 1 -> 2 (Accent), 2 -> 3 (Ghost), 3 -> 0 (Off)
+      if (cur === 0 || cur === 1) return 2;
+      if (cur === 2) return 3;
+      return 0;
     }
 
     // ---------------------------------------------------------
@@ -2468,8 +2606,14 @@
     function serializeMove() {
       var compactTracks = [];
       for (var i = 0; i < tracks.length; i++) {
+        var stepsOut = tracks[i].steps.slice();
+        if (i < 5) {
+          for (var s = 0; s < STEPS; s++) {
+            stepsOut[s] = normalizeDrumStep(stepsOut[s]);
+          }
+        }
         compactTracks.push({
-          steps: tracks[i].steps.slice(),
+          steps: stepsOut,
           notes: tracks[i].notes.slice(),
           tied: tracks[i].tied.slice(),
           waveform: tracks[i].waveform,
@@ -2500,7 +2644,17 @@
       for (var i = 0; i < moveData.tracks.length && i < tracks.length; i++) {
         var mt = moveData.tracks[i];
         if (!mt) continue;
-        tracks[i].steps = mt.steps ? toArray16(mt.steps, false) : tracks[i].steps;
+        if (i < 5) {
+          if (mt.steps) {
+            var drumSteps = toArray16(mt.steps, 0);
+            for (var s = 0; s < STEPS; s++) {
+              drumSteps[s] = normalizeDrumStep(drumSteps[s]);
+            }
+            tracks[i].steps = drumSteps;
+          }
+        } else {
+          tracks[i].steps = mt.steps ? toArray16(mt.steps, false) : tracks[i].steps;
+        }
         tracks[i].notes = mt.notes ? toArray16(mt.notes, 0) : tracks[i].notes;
         tracks[i].tied = mt.tied ? toArray16(mt.tied, false) : tracks[i].tied;
         tracks[i].waveform = mt.waveform || 'sine';
@@ -2533,6 +2687,7 @@
       myRole = null;
       currentRoomId = null;
       turnIndex = 0;
+      accentMode = false;
       battleLaunched = false;
       lastHandledMoveTimestamp = 0;
       isSendingMove = false;
@@ -2616,6 +2771,7 @@
       battleHeader.classList.remove('hidden');
 
       turnIndex = 0;
+      accentMode = false;
       roomTurn = 'player1';
       currentSwingMode = 'straight';
       updateSwingUI();
@@ -2673,6 +2829,7 @@
     function sendOnlineMove() {
       if (!isMyTurn() || isSendingMove) return;
       isSendingMove = true;
+      cancelDrumLongPress();
 
       var move = serializeMove();
       lastHandledMoveTimestamp = move.timestamp;
@@ -2724,6 +2881,7 @@
 
     function handleOpponentDisconnected() {
       if (!onlineMatchActive) return;
+      cancelDrumLongPress();
       detachOnlineRoom();
       stopSequencer();
       disconnectModal.classList.remove('hidden');
@@ -2749,6 +2907,8 @@
     }
 
     function exitToMainMenu() {
+      cancelDrumLongPress();
+      hideAccentBannerImmediate();
       battleLaunched = false;
       isSendingMove = false;
       if (roomRef && myRole) {
@@ -2790,11 +2950,13 @@
 
     bindTap(clearBtn, function() {
       if (gameMode === 'online' && !isMyTurn()) return;
-      tracks[turnIndex].steps.fill(false);
-      tracks[turnIndex].tied.fill(false);
-      renderStepPads();
       if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
+        tracks[turnIndex].steps.fill(false);
+        tracks[turnIndex].tied.fill(false);
         drawPianoRoll();
+      } else {
+        tracks[turnIndex].steps.fill(0);
+        renderStepPads();
       }
     });
 
@@ -2828,7 +2990,7 @@
     }
 
     // ---------------------------------------------------------
-    // ABLETON-STYLE 1-OCTAVE PIANO ROLL
+    // ABLETON-STYLE 1-OCTAVE PIANO ROLL (UNTOUCHED)
     // ---------------------------------------------------------
     var PIANO_KEY_W = 28;
 
@@ -2992,16 +3154,31 @@
     }
 
     // ---------------------------------------------------------
-    // STANDARD STEP GRID (DRUMS)
+    // STANDARD STEP GRID (DRUMS WITH 3 VELOCITY LEVELS + 500MS LONG PRESS)
     // ---------------------------------------------------------
+    function applyPadVisualClass(pad, velState) {
+      var v = normalizeDrumStep(velState);
+      pad.classList.remove('vel-normal', 'vel-accent', 'vel-ghost');
+      if (v === 1) {
+        pad.classList.add('vel-normal');
+      } else if (v === 2) {
+        pad.classList.add('vel-accent');
+      } else if (v === 3) {
+        pad.classList.add('vel-ghost');
+      }
+    }
+
     function paintStepPad(stepIdx, state) {
-      tracks[turnIndex].steps[stepIdx] = state;
+      var v = normalizeDrumStep(state);
+      tracks[turnIndex].steps[stepIdx] = v;
       var pad = stepGrid.querySelector('.step-pad[data-step="' + stepIdx + '"]');
-      if (pad) pad.classList.toggle('active', state);
+      if (pad) applyPadVisualClass(pad, v);
     }
 
     function buildStepGrid() {
       stepGrid.innerHTML = '';
+      stepGrid.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
       for (var i = 0; i < STEPS; i++) {
         (function(stepIdx) {
           var wrap = document.createElement('div');
@@ -3016,13 +3193,34 @@
           var bar = document.createElement('div');
           bar.className = 'playhead-bar';
 
+          pad.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
           pad.addEventListener('pointerdown', function(e) {
             if (gameMode === 'online' && !isMyTurn()) return;
+            if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
             e.preventDefault();
             ensureAudioUnlocked();
+
+            cancelDrumLongPress();
             dragPointerId = e.pointerId;
-            dragPaint = !tracks[turnIndex].steps[stepIdx];
-            paintStepPad(stepIdx, dragPaint);
+            pressStartStep = stepIdx;
+            pressStartX = e.clientX;
+            pressStartY = e.clientY;
+            longPressTriggered = false;
+            didDragPaint = false;
+            dragPaintVal = getNextDrumStepState(tracks[turnIndex].steps[stepIdx]);
+
+            longPressTimer = setTimeout(function() {
+              longPressTimer = null;
+              longPressTriggered = true;
+              dragPointerId = null;
+              pressStartStep = null;
+              accentMode = !accentMode;
+              showAccentBanner(accentMode);
+              if (navigator.vibrate) {
+                try { navigator.vibrate(25); } catch (err) {}
+              }
+            }, LONG_PRESS_MS);
           });
 
           wrap.appendChild(pad);
@@ -3121,17 +3319,54 @@
 
       if (dragPointerId === null || e.pointerId !== dragPointerId) return;
       if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
+
+      var dx = e.clientX - pressStartX;
+      var dy = e.clientY - pressStartY;
+      if (dx * dx + dy * dy > 196) {
+        cancelDrumLongPress();
+      }
+
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
         var s = Number(hitEl.getAttribute('data-step'));
-        if (!isNaN(s) && tracks[turnIndex].steps[s] !== dragPaint) {
-          paintStepPad(s, dragPaint);
+        if (!isNaN(s) && pressStartStep !== null && s !== pressStartStep) {
+          cancelDrumLongPress();
+          if (!didDragPaint) {
+            didDragPaint = true;
+            paintStepPad(pressStartStep, dragPaintVal);
+          }
+          if (normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
+            paintStepPad(s, dragPaintVal);
+          }
+        } else if (!isNaN(s) && didDragPaint && normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
+          paintStepPad(s, dragPaintVal);
         }
       }
     });
 
     function handlePointerRelease(e) {
-      if (e.pointerId === dragPointerId) dragPointerId = null;
+      if (e.pointerId === dragPointerId || (longPressTriggered && dragPointerId === null)) {
+        cancelDrumLongPress();
+
+        if (longPressTriggered) {
+          // Released after a 500ms hold: do NOT trigger a tap on the held pad
+          longPressTriggered = false;
+          dragPointerId = null;
+          pressStartStep = null;
+          didDragPaint = false;
+        } else if (e.pointerId === dragPointerId) {
+          if (e.type === 'pointerup' && !didDragPaint && pressStartStep !== null && !isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
+            if (gameMode !== 'online' || isMyTurn()) {
+              var nextVal = getNextDrumStepState(tracks[turnIndex].steps[pressStartStep]);
+              paintStepPad(pressStartStep, nextVal);
+            }
+          }
+          dragPointerId = null;
+          pressStartStep = null;
+          didDragPaint = false;
+        }
+      }
+
       if (e.pointerId === pianoPointerId) pianoPointerId = null;
 
       if (e.pointerId === vinylPointers.rewind) { vinylPointers.rewind = null; setRewind(false); }
@@ -3148,7 +3383,11 @@
     window.addEventListener('pointercancel', handlePointerRelease);
     window.addEventListener('touchend', function(e) {
       if (e.touches && e.touches.length === 0) {
+        cancelDrumLongPress();
         dragPointerId = null;
+        pressStartStep = null;
+        didDragPaint = false;
+        longPressTriggered = false;
         pianoPointerId = null;
         vinylPointers.rewind = null;
         vinylPointers.highpass = null;
@@ -3270,7 +3509,7 @@
       var track = tracks[turnIndex];
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
-        pads[i].classList.toggle('active', track.steps[i]);
+        applyPadVisualClass(pads[i], track.steps[i]);
         pads[i].textContent = i + 1;
       }
     }
@@ -3303,6 +3542,12 @@
     }
 
     function renderTurn() {
+      cancelDrumLongPress();
+      dragPointerId = null;
+      pressStartStep = null;
+      didDragPaint = false;
+      longPressTriggered = false;
+
       var inst = INSTRUMENTS[turnIndex];
       var track = tracks[turnIndex];
       var isPiano = isPianoRollInstrument(inst.id);
@@ -3313,6 +3558,10 @@
       instName.textContent = inst.name;
 
       stepGrid.classList.toggle('hidden', isPiano);
+      accentBanner.classList.toggle('hidden', isPiano);
+      if (isPiano) {
+        hideAccentBannerImmediate();
+      }
       waveBar.classList.toggle('hidden', !isWave);
       pianoRollWrap.classList.toggle('hidden', !isPiano);
 
@@ -3416,6 +3665,8 @@
     function startGame() {
       resetTracks();
       turnIndex = 0;
+      accentMode = false;
+      hideAccentBannerImmediate();
       jamActive = false;
       swingScreenActive = false;
       currentSwingMode = 'straight';
@@ -3435,6 +3686,7 @@
     }
 
     function nextTurn() {
+      cancelDrumLongPress();
       dragPointerId = null;
       pianoPointerId = null;
       if (turnIndex < INSTRUMENTS.length - 1) {
@@ -3464,6 +3716,8 @@
     bindTap(btnGroove, function() { setSwingMode('groove'); });
 
     function openSwingScreen() {
+      cancelDrumLongPress();
+      hideAccentBannerImmediate();
       swingScreenActive = true;
       swingBpmValue.textContent = bpm;
       btnProceedToJam.textContent = 'JAM';
