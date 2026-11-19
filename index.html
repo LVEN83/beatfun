@@ -1124,6 +1124,7 @@
     var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
     var LONG_PRESS_MS = 500;
+    var SNARE_POOL_SIZE = 8;
 
     var turnIndex = 0;
     var bpm = 118;
@@ -1217,6 +1218,7 @@
     var rewindProcessor = null;
     var rewindLPF = null;
     var rewindOutGain = null;
+    var rewindGraphConnected = false;
     var ringBuf = null;
     var ringLen = 0;
     var ringWriteIdx = 0;
@@ -1249,9 +1251,19 @@
 
     var trackVolGains = [];
     var trackLPFs = [];
+    var trackLpfModulated = [false, false, false, false, false, false, false];
     var trackMuteGains = [];
     var trackDryGains = [];
     var trackRevGains = [];
+
+    // Persistent track/pool filters to avoid per-hit BiquadFilterNode / WaveShaperNode leaks
+    var hihatHP = null;
+    var hihatTame = null;
+    var shakerHP = null;
+    var shakerBP = null;
+    var shakerTame = null;
+    var snarePool = [];
+    var snarePoolIdx = 0;
 
     var basslineDuckingGain = null;
 
@@ -1313,7 +1325,7 @@
     }
 
     function create909GritCurve() {
-      var n = 2048, curve = new Float32Array(n);
+      var n = 2049, curve = new Float32Array(n);
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
         curve[i] = Math.round(x * 24) / 24;
@@ -1322,7 +1334,7 @@
     }
 
     function createSoftClipCurve() {
-      var n = 4096;
+      var n = 4097;
       var curve = new Float32Array(n);
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
@@ -1332,7 +1344,7 @@
     }
 
     function createEchoSaturationCurve() {
-      var n = 2048;
+      var n = 2049;
       var curve = new Float32Array(n);
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
@@ -1342,7 +1354,7 @@
     }
 
     function createBitcrushCurve() {
-      var n = 2048, curve = new Float32Array(n);
+      var n = 2049, curve = new Float32Array(n);
       var steps = 16;
       for (var i = 0; i < n; i++) {
         var x = (i * 2) / (n - 1) - 1;
@@ -1357,6 +1369,21 @@
       var i0 = ((idx0 % ringLen) + ringLen) % ringLen;
       var i1 = (i0 + 1) % ringLen;
       return ringBuf[i0] * (1 - frac) + ringBuf[i1] * frac;
+    }
+
+    function setRewindGraphConnected(enable) {
+      if (!audioCtx || !rewindProcessor || !mixBus || !rewindOutGain || !masterHPF) return;
+      if (enable && !rewindGraphConnected) {
+        if (ringBuf) ringBuf.fill(0);
+        ringWriteIdx = 0;
+        mixBus.connect(rewindProcessor);
+        rewindOutGain.connect(masterHPF);
+        rewindGraphConnected = true;
+      } else if (!enable && rewindGraphConnected) {
+        try { mixBus.disconnect(rewindProcessor); } catch (e) {}
+        try { rewindOutGain.disconnect(masterHPF); } catch (e) {}
+        rewindGraphConnected = false;
+      }
     }
 
     function triggerLetgoTransition() {
@@ -1381,6 +1408,11 @@
         bp.connect(g);
         g.connect(masterHPF);
 
+        src.onended = function() {
+          src.onended = null;
+          try { src.disconnect(); bp.disconnect(); g.disconnect(); } catch (e) {}
+        };
+
         src.start(now);
         src.stop(now + 0.10);
       } catch (e) {}
@@ -1395,12 +1427,22 @@
           trackVolGains[i].gain.setValueAtTime(p.volume !== undefined ? p.volume : 1.0, now);
         }
         if (trackLPFs[i]) {
+          trackLpfModulated[i] = false;
           trackLPFs[i].frequency.cancelScheduledValues(now);
           trackLPFs[i].frequency.setValueAtTime(normToFilterHz(p.filter), now);
         }
         if (trackRevGains[i]) {
           trackRevGains[i].gain.setValueAtTime((p.reverb !== undefined ? p.reverb : 0.0) * 0.40, now);
         }
+      }
+      if (hihatHP && tracks[3]) {
+        var hhPitch = lerp(INSTRUMENTS[3].pitchRange[0], INSTRUMENTS[3].pitchRange[1], tracks[3].params.pitch);
+        hihatHP.frequency.setValueAtTime(4500 * hhPitch, now);
+      }
+      if (shakerHP && shakerBP && tracks[4]) {
+        var shkPitch = lerp(INSTRUMENTS[4].pitchRange[0], INSTRUMENTS[4].pitchRange[1], tracks[4].params.pitch);
+        shakerHP.frequency.setValueAtTime(2400 * shkPitch, now);
+        shakerBP.frequency.setValueAtTime(5200 * shkPitch, now);
       }
     }
 
@@ -1473,6 +1515,7 @@
 
         trackVolGains = [];
         trackLPFs = [];
+        trackLpfModulated = [false, false, false, false, false, false, false];
         trackMuteGains = [];
         trackDryGains = [];
         trackRevGains = [];
@@ -1513,6 +1556,62 @@
 
           muteG.connect(dryG);
           muteG.connect(revG);
+        }
+
+        // Persistent Hi-Hat filters (linear, zero per-note filter allocations)
+        hihatHP = audioCtx.createBiquadFilter();
+        hihatHP.type = 'highpass';
+        hihatHP.frequency.value = 4500 * lerp(INSTRUMENTS[3].pitchRange[0], INSTRUMENTS[3].pitchRange[1], tracks[3].params.pitch);
+
+        hihatTame = audioCtx.createBiquadFilter();
+        hihatTame.type = 'highshelf';
+        hihatTame.frequency.value = 11000;
+        hihatTame.gain.value = -2.8;
+
+        hihatHP.connect(hihatTame);
+        hihatTame.connect(trackVolGains[3]);
+
+        // Persistent Shaker filters (linear, zero per-note filter allocations)
+        var initShkPitch = lerp(INSTRUMENTS[4].pitchRange[0], INSTRUMENTS[4].pitchRange[1], tracks[4].params.pitch);
+        shakerHP = audioCtx.createBiquadFilter();
+        shakerHP.type = 'highpass';
+        shakerHP.frequency.value = 2400 * initShkPitch;
+
+        shakerBP = audioCtx.createBiquadFilter();
+        shakerBP.type = 'bandpass';
+        shakerBP.frequency.value = 5200 * initShkPitch;
+        shakerBP.Q.value = 1.1;
+
+        shakerTame = audioCtx.createBiquadFilter();
+        shakerTame.type = 'highshelf';
+        shakerTame.frequency.value = 9500;
+        shakerTame.gain.value = -2.2;
+
+        shakerHP.connect(shakerBP);
+        shakerBP.connect(shakerTame);
+        shakerTame.connect(trackVolGains[4]);
+
+        // Reusable Snare filter + waveshaper pool (eliminates per-hit WaveShaperNode allocations)
+        snarePool = [];
+        snarePoolIdx = 0;
+        for (var sp = 0; sp < SNARE_POOL_SIZE; sp++) {
+          var shp = audioCtx.createBiquadFilter();
+          shp.type = 'highpass';
+          shp.frequency.value = 1650;
+
+          var sPeak = audioCtx.createBiquadFilter();
+          sPeak.type = 'peaking';
+          sPeak.frequency.value = 4200;
+          sPeak.Q.value = 1.2;
+          sPeak.gain.value = 5.5;
+
+          var grit = audioCtx.createWaveShaper();
+          grit.curve = snareGritCurve;
+          grit.oversample = 'none';
+
+          shp.connect(sPeak);
+          sPeak.connect(grit);
+          snarePool.push({ shp: shp, sPeak: sPeak, grit: grit });
         }
 
         hpfReverbWet = audioCtx.createGain();
@@ -1590,6 +1689,7 @@
         mixBus.connect(dryMixGain);
         dryMixGain.connect(masterHPF);
 
+        // Create Rewind processor, but keep it disconnected until Swing/Jam to avoid main-thread callback churn while programming
         try {
           ringLen = audioCtx.sampleRate * 6;
           ringBuf = new Float32Array(ringLen);
@@ -1647,10 +1747,9 @@
           rewindOutGain = audioCtx.createGain();
           rewindOutGain.gain.value = 0.0;
 
-          mixBus.connect(rewindProcessor);
           rewindProcessor.connect(rewindLPF);
           rewindLPF.connect(rewindOutGain);
-          rewindOutGain.connect(masterHPF);
+          rewindGraphConnected = false;
         } catch (err) {
           rewindProcessor = null;
         }
@@ -1689,6 +1788,10 @@
           var silentSrc = audioCtx.createBufferSource();
           silentSrc.buffer = silentBuf;
           silentSrc.connect(audioCtx.destination);
+          silentSrc.onended = function() {
+            silentSrc.onended = null;
+            try { silentSrc.disconnect(); } catch (e) {}
+          };
           silentSrc.start(0);
           if (audioCtx.state === 'running') {
             audioUnlocked = true;
@@ -1729,6 +1832,7 @@
 
       var now = audioCtx.currentTime;
       if (on) {
+        if (!rewindGraphConnected) setRewindGraphConnected(true);
         var sr = audioCtx.sampleRate;
         var barSamples = Math.round((240 / bpm) * sr);
         rewindLoopSpan = Math.min(ringLen - 1024, Math.max(2048, barSamples));
@@ -1858,6 +1962,11 @@
       bp.connect(g);
       g.connect(masterHPF);
 
+      src.onended = function() {
+        src.onended = null;
+        try { src.disconnect(); bp.disconnect(); g.disconnect(); } catch (e) {}
+      };
+
       src.start(now);
       src.stop(now + 0.36);
     }
@@ -1938,7 +2047,11 @@
       src2.start(now, 0.9);
       lfo.start(now);
 
-      crowdNodes = { src1: src1, src2: src2, lfo: lfo, gain: crowdGain, revSend: revSend };
+      crowdNodes = {
+        src1: src1, src2: src2, lfo: lfo, lfoDepth: lfoDepth,
+        fLow: fLow, fMid: fMid, fHigh: fHigh, fAir: fAir,
+        sumGain: sumGain, toneLPF: toneLPF, gain: crowdGain, revSend: revSend
+      };
     }
 
     function stopCrowdSwell() {
@@ -1955,6 +2068,16 @@
         nodes.lfo.stop(now + 0.045);
         setTimeout(function() {
           try {
+            nodes.src1.disconnect();
+            nodes.src2.disconnect();
+            nodes.lfo.disconnect();
+            nodes.lfoDepth.disconnect();
+            nodes.fLow.disconnect();
+            nodes.fMid.disconnect();
+            nodes.fHigh.disconnect();
+            nodes.fAir.disconnect();
+            nodes.sumGain.disconnect();
+            nodes.toneLPF.disconnect();
             nodes.gain.disconnect();
             if (nodes.revSend) nodes.revSend.disconnect();
           } catch (err) {}
@@ -2010,14 +2133,19 @@
         if (isDrum && trackLPFs[instIdx]) {
           var baseCutoff = normToFilterHz(p.filter);
           var lpfParam = trackLPFs[instIdx].frequency;
-          lpfParam.cancelScheduledValues(time);
           if (isAccent) {
+            lpfParam.cancelScheduledValues(time);
             lpfParam.setValueAtTime(Math.min(20000, baseCutoff * 1.30), time);
             lpfParam.setTargetAtTime(baseCutoff, time + 0.02, 0.055);
+            trackLpfModulated[instIdx] = true;
           } else if (isGhost) {
+            lpfParam.cancelScheduledValues(time);
             lpfParam.setValueAtTime(Math.max(220, baseCutoff * 0.60), time);
-          } else {
+            trackLpfModulated[instIdx] = true;
+          } else if (trackLpfModulated[instIdx]) {
+            lpfParam.cancelScheduledValues(time);
             lpfParam.setValueAtTime(baseCutoff, time);
+            trackLpfModulated[instIdx] = false;
           }
         }
 
@@ -2035,6 +2163,10 @@
           g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
           osc.connect(g);
           g.connect(dest);
+          osc.onended = function() {
+            osc.onended = null;
+            try { osc.disconnect(); g.disconnect(); } catch (e) {}
+          };
           osc.start(time);
           osc.stop(time + decayVal + 0.015);
 
@@ -2048,20 +2180,18 @@
           clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
           clickOsc.connect(clickGain);
           clickGain.connect(dest);
+          clickOsc.onended = function() {
+            clickOsc.onended = null;
+            try { clickOsc.disconnect(); clickGain.disconnect(); } catch (e) {}
+          };
           clickOsc.start(time);
           clickOsc.stop(time + 0.012);
         } else if (inst.id === 'hihat') {
-          var hp = audioCtx.createBiquadFilter();
-          hp.type = 'highpass';
-          hp.frequency.setValueAtTime(4500 * pitchVal, time);
-
-          var hatTame = audioCtx.createBiquadFilter();
-          hatTame.type = 'highshelf';
-          hatTame.frequency.value = 11000;
-          hatTame.gain.value = isAccent ? -1.5 : -3.5;
-
-          hp.connect(hatTame);
-          hatTame.connect(dest);
+          var hhFreq = 4500 * pitchVal;
+          if (hihatHP && Math.abs(hihatHP.frequency.value - hhFreq) > 1) {
+            hihatHP.frequency.value = hhFreq;
+          }
+          var hhDest = hihatHP || dest;
 
           var noise = audioCtx.createBufferSource();
           noise.buffer = noiseBuffer;
@@ -2070,7 +2200,11 @@
           ng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           ng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
           noise.connect(ng);
-          ng.connect(hp);
+          ng.connect(hhDest);
+          noise.onended = function() {
+            noise.onended = null;
+            try { noise.disconnect(); ng.disconnect(); } catch (e) {}
+          };
           noise.start(time);
           noise.stop(time + decayVal + 0.012);
 
@@ -2083,7 +2217,11 @@
             mg.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
             mg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
             metal.connect(mg);
-            mg.connect(hp);
+            mg.connect(hhDest);
+            metal.onended = function() {
+              metal.onended = null;
+              try { metal.disconnect(); mg.disconnect(); } catch (e) {}
+            };
             metal.start(time);
             metal.stop(time + decayVal + 0.012);
           }
@@ -2099,25 +2237,24 @@
           tg.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
           tosc.connect(tg);
           tg.connect(dest);
+          tosc.onended = function() {
+            tosc.onended = null;
+            try { tosc.disconnect(); tg.disconnect(); } catch (e) {}
+          };
           tosc.start(time);
           tosc.stop(time + decayVal + 0.015);
         } else if (inst.id === 'shakers') {
+          var shkHPFreq = 2400 * pitchVal;
+          var shkBPFreq = 5200 * pitchVal;
+          if (shakerHP && Math.abs(shakerHP.frequency.value - shkHPFreq) > 1) {
+            shakerHP.frequency.value = shkHPFreq;
+          }
+          if (shakerBP && Math.abs(shakerBP.frequency.value - shkBPFreq) > 1) {
+            shakerBP.frequency.value = shkBPFreq;
+          }
+
           var sNoise = audioCtx.createBufferSource();
           sNoise.buffer = noiseBuffer;
-
-          var sHP = audioCtx.createBiquadFilter();
-          sHP.type = 'highpass';
-          sHP.frequency.setValueAtTime(2400 * pitchVal, time);
-
-          var sBP = audioCtx.createBiquadFilter();
-          sBP.type = 'bandpass';
-          sBP.frequency.setValueAtTime(5200 * pitchVal, time);
-          sBP.Q.value = 1.1;
-
-          var sTame = audioCtx.createBiquadFilter();
-          sTame.type = 'highshelf';
-          sTame.frequency.value = 9500;
-          sTame.gain.value = isAccent ? -1.5 : -3.0;
 
           var swellTime = Math.min(0.024, decayVal * 0.28) * (isAccent ? 0.65 : 1.0);
           var sEnv = audioCtx.createGain();
@@ -2127,11 +2264,13 @@
           sEnv.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           sEnv.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.008);
 
-          sNoise.connect(sHP);
-          sHP.connect(sBP);
-          sBP.connect(sTame);
-          sTame.connect(sEnv);
-          sEnv.connect(dest);
+          sNoise.connect(sEnv);
+          sEnv.connect(shakerHP || dest);
+
+          sNoise.onended = function() {
+            sNoise.onended = null;
+            try { sNoise.disconnect(); sEnv.disconnect(); } catch (e) {}
+          };
 
           sNoise.start(time, Math.random() * 0.8);
           sNoise.stop(time + decayVal + 0.015);
@@ -2159,6 +2298,14 @@
           b2.connect(bg2);
           bg1.connect(dest);
           bg2.connect(dest);
+          b1.onended = function() {
+            b1.onended = null;
+            try { b1.disconnect(); bg1.disconnect(); } catch (e) {}
+          };
+          b2.onended = function() {
+            b2.onended = null;
+            try { b2.disconnect(); bg2.disconnect(); } catch (e) {}
+          };
           b1.start(time);
           b2.start(time);
           b1.stop(time + bodyDec + 0.012);
@@ -2166,29 +2313,26 @@
 
           var sn = audioCtx.createBufferSource();
           sn.buffer = noiseBuffer;
-          var shp = audioCtx.createBiquadFilter();
-          shp.type = 'highpass';
-          shp.frequency.setValueAtTime(1650, time);
-          var sPeak = audioCtx.createBiquadFilter();
-          sPeak.type = 'peaking';
-          sPeak.frequency.setValueAtTime(4200, time);
-          sPeak.Q.value = 1.2;
-          sPeak.gain.value = isAccent ? 7 : 5;
-
-          var grit = audioCtx.createWaveShaper();
-          grit.curve = snareGritCurve;
-          grit.oversample = 'none';
-
           var sng = audioCtx.createGain();
           sng.gain.setValueAtTime(0.38 * velGain, time);
           sng.gain.exponentialRampToValueAtTime(0.001, time + decayVal);
           sng.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
 
-          sn.connect(shp);
-          shp.connect(sPeak);
-          sPeak.connect(grit);
-          grit.connect(sng);
+          var v = snarePool[snarePoolIdx];
+          snarePoolIdx = (snarePoolIdx + 1) % snarePool.length;
+          v.sPeak.gain.value = isAccent ? 7 : 5;
+
+          sn.connect(v.shp);
+          v.grit.connect(sng);
           sng.connect(dest);
+
+          sn.onended = function() {
+            sn.onended = null;
+            try { sn.disconnect(); } catch (e) {}
+            try { v.grit.disconnect(sng); } catch (e) {}
+            try { sng.disconnect(); } catch (e) {}
+          };
+
           sn.start(time);
           sn.stop(time + decayVal + 0.015);
         } else if (inst.id === 'bassline') {
@@ -2247,6 +2391,17 @@
           bassFilter.connect(bg);
           bg.connect(dest);
 
+          mainOsc.onended = function() {
+            mainOsc.onended = null;
+            try {
+              mainOsc.disconnect();
+              subOsc.disconnect();
+              subGain.disconnect();
+              bassFilter.disconnect();
+              bg.disconnect();
+            } catch (e) {}
+          };
+
           mainOsc.start(time);
           subOsc.start(time);
           mainOsc.stop(endTime);
@@ -2271,6 +2426,10 @@
 
           sOsc.connect(sG);
           sG.connect(dest);
+          sOsc.onended = function() {
+            sOsc.onended = null;
+            try { sOsc.disconnect(); sG.disconnect(); } catch (e) {}
+          };
           sOsc.start(time);
           sOsc.stop(time + decayVal + 0.008);
         }
@@ -2305,12 +2464,20 @@
       var kickStep = gStep % kickLen;
       var kickState = normalizeDrumStep(tracks[0].steps[kickStep]);
       var kickActive = !trackMutes[0] && kickState > 0;
-      if (kickActive && basslineDuckingGain && audioCtx) {
+
+      var bassHasNotes = false;
+      if (kickActive && !trackMutes[5] && maxIdx >= 5) {
+        var bSteps = tracks[5].steps;
+        for (var bs = 0; bs < STEPS; bs++) {
+          if (bSteps[bs]) { bassHasNotes = true; break; }
+        }
+      }
+
+      if (kickActive && bassHasNotes && basslineDuckingGain && audioCtx) {
         var duckTime = Math.max(audioCtx.currentTime, time);
         var duckLevel = kickState === 3 ? 0.45 : (kickState === 2 ? 0.16 : 0.20);
         basslineDuckingGain.gain.cancelScheduledValues(duckTime);
-        basslineDuckingGain.gain.setValueAtTime(basslineDuckingGain.gain.value, duckTime);
-        basslineDuckingGain.gain.setTargetAtTime(duckLevel, duckTime, 0.006);
+        basslineDuckingGain.gain.setTargetAtTime(duckLevel, duckTime, 0.004);
         basslineDuckingGain.gain.setTargetAtTime(1.0, duckTime + 0.04, 0.07);
       }
 
@@ -2363,13 +2530,14 @@
 
       var stepDur = 60 / bpm / 4;
 
-      if (nextNoteTime < audioCtx.currentTime - 0.25 || nextNoteTime > audioCtx.currentTime + 1.0) {
-        nextNoteTime = audioCtx.currentTime + 0.02;
+      if (nextNoteTime < audioCtx.currentTime - 0.06 || nextNoteTime > audioCtx.currentTime + 1.0) {
+        nextNoteTime = audioCtx.currentTime + 0.015;
       }
 
-      while (nextNoteTime < audioCtx.currentTime + 0.12) {
+      var scheduledInTick = 0;
+      while (nextNoteTime < audioCtx.currentTime + 0.12 && scheduledInTick < 2) {
         var offset = getSwingOffset(globalStep, stepDur);
-        var noteTime = Math.max(audioCtx.currentTime + 0.003, nextNoteTime + offset);
+        var noteTime = Math.max(audioCtx.currentTime + 0.005, nextNoteTime + offset);
         try {
           scheduleStep(globalStep, noteTime);
         } catch (e) {
@@ -2377,6 +2545,7 @@
         }
         nextNoteTime += stepDur;
         globalStep++;
+        scheduledInTick++;
       }
     }
 
@@ -2398,6 +2567,7 @@
       setHighPass(false);
       setSpaceEcho(false);
       setCrushGate(false);
+      setRewindGraphConnected(false);
       lastHitAudioTime = -1;
       prevHitAudioTime = -1;
       if (ringBuf) ringBuf.fill(0);
@@ -2405,6 +2575,7 @@
         hpfReverbWet.gain.setValueAtTime(0.0, audioCtx.currentTime);
       }
       if (basslineDuckingGain && audioCtx) {
+        basslineDuckingGain.gain.cancelScheduledValues(audioCtx.currentTime);
         basslineDuckingGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       }
       globalStep = 0;
@@ -2430,11 +2601,13 @@
       setHighPass(false);
       setSpaceEcho(false);
       setCrushGate(false);
+      setRewindGraphConnected(false);
       if (audioCtx && hpfReverbWet && hpfReverbSend) {
         hpfReverbSend.gain.setValueAtTime(0.0, audioCtx.currentTime);
         hpfReverbWet.gain.setValueAtTime(0.0, audioCtx.currentTime);
       }
       if (basslineDuckingGain && audioCtx) {
+        basslineDuckingGain.gain.cancelScheduledValues(audioCtx.currentTime);
         basslineDuckingGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       }
     }
@@ -3049,7 +3222,7 @@
     }
 
     // ---------------------------------------------------------
-    // ABLETON-STYLE 1-OCTAVE PIANO ROLL (UNTOUCHED)
+    // ABLETON-STYLE 1-OCTAVE PIANO ROLL
     // ---------------------------------------------------------
     var PIANO_KEY_W = 28;
 
@@ -3140,1192 +3313,4 @@
       for (var r = 0; r < numRows; r++) {
         var noteIdx = (numRows - 1) - r;
         var noteObj = noteList[noteIdx];
-        var y = r * rowH;
-
-        ctx.fillStyle = noteObj.sharp ? '#0f0f0f' : '#000000';
-        ctx.fillRect(PIANO_KEY_W, y, gridW, rowH);
-
-        ctx.fillStyle = noteObj.sharp ? '#1c1c1c' : '#d8d8d8';
-        ctx.fillRect(0, y, PIANO_KEY_W - 1, rowH - 0.5);
-
-        if (!noteObj.sharp) {
-          ctx.fillStyle = '#000000';
-          ctx.font = 'bold 8px "Courier New", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(midiToLabel(noteObj.midi + pitchShiftSemis), (PIANO_KEY_W - 1) / 2, y + rowH / 2 + 0.5);
-        }
-
-        ctx.strokeStyle = '#222222';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(PIANO_KEY_W, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      for (var s = 0; s <= STEPS; s++) {
-        var x = PIANO_KEY_W + s * colW;
-        ctx.strokeStyle = (s % 4 === 0) ? '#444444' : '#1b1b1b';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-
-      if (isPlaying) {
-        var px = PIANO_KEY_W + activePlayStep * colW;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
-        ctx.fillRect(px, 0, colW, h);
-      }
-
-      var canTie = (inst.id === 'bassline');
-      for (var st = 0; st < STEPS; st++) {
-        if (!track.steps[st]) continue;
-        var nIdx = track.notes[st];
-        if (nIdx < 0 || nIdx >= numRows) nIdx = 0;
-        var rowFromTop = (numRows - 1) - nIdx;
-
-        var tiedLeft = canTie && (st > 0 && track.steps[st - 1] && track.tied[st] && track.notes[st - 1] === nIdx);
-        var tiedRight = canTie && (st + 1 < STEPS && track.steps[st + 1] && track.tied[st + 1] && track.notes[st + 1] === nIdx);
-
-        var padL = tiedLeft ? 0 : 1.5;
-        var padR = tiedRight ? 0 : 1.5;
-        var nx = PIANO_KEY_W + st * colW + padL;
-        var ny = rowFromTop * rowH + 1.5;
-        var nw = Math.max(4, colW - padL - padR);
-        var nh = Math.max(4, rowH - 3);
-
-        ctx.fillStyle = (isPlaying && st === activePlayStep) ? '#ffffff' : '#dddddd';
-        ctx.fillRect(nx, ny, nw, nh);
-      }
-
-      if (isPlaying) {
-        var lineX = PIANO_KEY_W + activePlayStep * colW;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(lineX, 0);
-        ctx.lineTo(lineX, h);
-        ctx.stroke();
-      }
-    }
-
-    // ---------------------------------------------------------
-    // STANDARD STEP GRID (DRUMS: POLYMETER LENGTH + 3 VELOCITIES + 500MS LONG PRESS)
-    // ---------------------------------------------------------
-    function applyPadVisualClass(pad, velState, stepIdx, trackLen) {
-      var v = normalizeDrumStep(velState);
-      var outOfRange = stepIdx >= trackLen;
-      pad.classList.remove('vel-normal', 'vel-accent', 'vel-ghost', 'out-of-range');
-      if (outOfRange) {
-        pad.classList.add('out-of-range');
-        pad.disabled = true;
-      } else {
-        pad.disabled = false;
-        if (v === 1) {
-          pad.classList.add('vel-normal');
-        } else if (v === 2) {
-          pad.classList.add('vel-accent');
-        } else if (v === 3) {
-          pad.classList.add('vel-ghost');
-        }
-      }
-    }
-
-    function paintStepPad(stepIdx, state) {
-      var tLen = getTrackLength(turnIndex);
-      if (stepIdx < 0 || stepIdx >= tLen) return;
-      var v = normalizeDrumStep(state);
-      tracks[turnIndex].steps[stepIdx] = v;
-      var pad = stepGrid.querySelector('.step-pad[data-step="' + stepIdx + '"]');
-      if (pad) applyPadVisualClass(pad, v, stepIdx, tLen);
-    }
-
-    function updatePlayheadVisual() {
-      if (jamActive || swingScreenActive) return;
-      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-        drawPianoRoll();
-      } else {
-        var tLen = getTrackLength(turnIndex);
-        var drumPlayStep = isPlaying ? (activeGlobalStep % tLen) : -1;
-        var bars = stepGrid.querySelectorAll('.playhead-bar');
-        for (var i = 0; i < bars.length; i++) {
-          bars[i].classList.toggle('now', i < tLen && i === drumPlayStep);
-        }
-      }
-    }
-
-    function buildStepGrid() {
-      stepGrid.innerHTML = '';
-      stepGrid.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-      for (var i = 0; i < STEPS; i++) {
-        (function(stepIdx) {
-          var wrap = document.createElement('div');
-          wrap.className = 'step-wrap';
-
-          var pad = document.createElement('button');
-          pad.type = 'button';
-          pad.className = 'step-pad mono' + (stepIdx % 4 === 0 ? ' beat-mark' : '');
-          pad.setAttribute('data-step', stepIdx);
-          pad.textContent = stepIdx + 1;
-
-          var bar = document.createElement('div');
-          bar.className = 'playhead-bar';
-
-          pad.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-          pad.addEventListener('pointerdown', function(e) {
-            if (gameMode === 'online' && !isMyTurn()) return;
-            if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
-            if (stepIdx >= getTrackLength(turnIndex)) return;
-            e.preventDefault();
-            ensureAudioUnlocked();
-
-            cancelDrumLongPress();
-            dragPointerId = e.pointerId;
-            pressStartStep = stepIdx;
-            pressStartX = e.clientX;
-            pressStartY = e.clientY;
-            longPressTriggered = false;
-            didDragPaint = false;
-            dragPaintVal = getNextDrumStepState(tracks[turnIndex].steps[stepIdx]);
-
-            longPressTimer = setTimeout(function() {
-              longPressTimer = null;
-              longPressTriggered = true;
-              dragPointerId = null;
-              pressStartStep = null;
-              accentMode = !accentMode;
-              showAccentBanner(accentMode);
-              if (navigator.vibrate) {
-                try { navigator.vibrate(25); } catch (err) {}
-              }
-            }, LONG_PRESS_MS);
-          });
-
-          wrap.appendChild(pad);
-          wrap.appendChild(bar);
-          stepGrid.appendChild(wrap);
-        })(i);
-      }
-    }
-    buildStepGrid();
-
-    window.addEventListener('pointermove', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-
-      if (pianoPointerId !== null && e.pointerId === pianoPointerId) {
-        var cell = getPianoCellAt(e.clientX, e.clientY);
-        var instId = INSTRUMENTS[turnIndex].id;
-        var track = tracks[turnIndex];
-
-        if (pianoDrawMode === 'erase') {
-          var loE = Math.min(pianoLastStep, cell.step);
-          var hiE = Math.max(pianoLastStep, cell.step);
-          var changedE = false;
-          for (var ek = loE; ek <= hiE; ek++) {
-            if (track.steps[ek] || track.tied[ek]) {
-              track.steps[ek] = false;
-              track.tied[ek] = false;
-              changedE = true;
-            }
-          }
-          untieIfNeeded(track, hiE);
-          pianoLastStep = cell.step;
-          if (changedE) drawPianoRoll();
-          return;
-        }
-
-        if (instId === 'synth') {
-          var loS = Math.min(pianoLastStep, cell.step);
-          var hiS = Math.max(pianoLastStep, cell.step);
-          var changedS = false;
-          for (var sk = loS; sk <= hiS; sk++) {
-            if (!track.steps[sk] || track.notes[sk] !== cell.noteIdx || track.tied[sk]) {
-              track.steps[sk] = true;
-              track.notes[sk] = cell.noteIdx;
-              track.tied[sk] = false;
-              changedS = true;
-            }
-          }
-          pianoLastStep = cell.step;
-          if (changedS) drawPianoRoll();
-          return;
-        }
-
-        if (cell.step === pianoLastStep) {
-          if (!pianoMovedHoriz && track.notes[cell.step] !== cell.noteIdx) {
-            track.steps[cell.step] = true;
-            track.notes[cell.step] = cell.noteIdx;
-            track.tied[cell.step] = false;
-            pianoAnchorNote = cell.noteIdx;
-            untieIfNeeded(track, cell.step);
-            drawPianoRoll();
-          }
-          return;
-        }
-
-        pianoMovedHoriz = true;
-        var dir = cell.step > pianoLastStep ? 1 : -1;
-
-        if (cell.noteIdx === pianoAnchorNote) {
-          var k = pianoLastStep;
-          while (k !== cell.step) {
-            k += dir;
-            track.steps[k] = true;
-            track.notes[k] = pianoAnchorNote;
-          }
-          var runStart = Math.min(pianoLastStep, cell.step);
-          while (runStart > 0 && track.steps[runStart - 1] && track.notes[runStart - 1] === pianoAnchorNote && track.tied[runStart]) {
-            runStart--;
-          }
-          var runEnd = Math.max(pianoLastStep, cell.step);
-          for (var r = runStart + 1; r <= runEnd; r++) {
-            track.tied[r] = true;
-          }
-          untieIfNeeded(track, runEnd);
-        } else {
-          track.steps[cell.step] = true;
-          track.notes[cell.step] = cell.noteIdx;
-          track.tied[cell.step] = false;
-          pianoAnchorNote = cell.noteIdx;
-          untieIfNeeded(track, cell.step);
-        }
-
-        pianoLastStep = cell.step;
-        drawPianoRoll();
-        return;
-      }
-
-      if (dragPointerId === null || e.pointerId !== dragPointerId) return;
-      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
-
-      var dx = e.clientX - pressStartX;
-      var dy = e.clientY - pressStartY;
-      if (dx * dx + dy * dy > 196) {
-        cancelDrumLongPress();
-      }
-
-      var tLen = getTrackLength(turnIndex);
-      var hitEl = document.elementFromPoint(e.clientX, e.clientY);
-      if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
-        var s = Number(hitEl.getAttribute('data-step'));
-        if (!isNaN(s) && s < tLen && pressStartStep !== null && s !== pressStartStep) {
-          cancelDrumLongPress();
-          if (!didDragPaint) {
-            didDragPaint = true;
-            paintStepPad(pressStartStep, dragPaintVal);
-          }
-          if (normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
-            paintStepPad(s, dragPaintVal);
-          }
-        } else if (!isNaN(s) && s < tLen && didDragPaint && normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
-          paintStepPad(s, dragPaintVal);
-        }
-      }
-    });
-
-    function handlePointerRelease(e) {
-      if (e.pointerId === dragPointerId || (longPressTriggered && dragPointerId === null)) {
-        cancelDrumLongPress();
-
-        if (longPressTriggered) {
-          longPressTriggered = false;
-          dragPointerId = null;
-          pressStartStep = null;
-          didDragPaint = false;
-        } else if (e.pointerId === dragPointerId) {
-          if (e.type === 'pointerup' && !didDragPaint && pressStartStep !== null && !isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-            if ((gameMode !== 'online' || isMyTurn()) && pressStartStep < getTrackLength(turnIndex)) {
-              var nextVal = getNextDrumStepState(tracks[turnIndex].steps[pressStartStep]);
-              paintStepPad(pressStartStep, nextVal);
-            }
-          }
-          dragPointerId = null;
-          pressStartStep = null;
-          didDragPaint = false;
-        }
-      }
-
-      if (e.pointerId === pianoPointerId) pianoPointerId = null;
-
-      if (e.pointerId === vinylPointers.rewind) { vinylPointers.rewind = null; setRewind(false); }
-      if (e.pointerId === vinylPointers.highpass) { vinylPointers.highpass = null; setHighPass(false); }
-      if (e.pointerId === vinylPointers.echo) { vinylPointers.echo = null; setSpaceEcho(false); }
-      if (e.pointerId === vinylPointers.crush) { vinylPointers.crush = null; setCrushGate(false); }
-
-      if (e.pointerId === holdPointerId) {
-        releaseHoldMode();
-      }
-    }
-
-    window.addEventListener('pointerup', handlePointerRelease);
-    window.addEventListener('pointercancel', handlePointerRelease);
-    window.addEventListener('touchend', function(e) {
-      if (e.touches && e.touches.length === 0) {
-        cancelDrumLongPress();
-        dragPointerId = null;
-        pressStartStep = null;
-        didDragPaint = false;
-        longPressTriggered = false;
-        pianoPointerId = null;
-        vinylPointers.rewind = null;
-        vinylPointers.highpass = null;
-        vinylPointers.echo = null;
-        vinylPointers.crush = null;
-        setRewind(false);
-        setHighPass(false);
-        setSpaceEcho(false);
-        setCrushGate(false);
-        if (isHoldActive) releaseHoldMode();
-      }
-    });
-
-    vinylRewind.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      ensureAudioUnlocked();
-      vinylPointers.rewind = e.pointerId;
-      setRewind(true);
-    });
-    vinylRewind.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-    vinylHighpass.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      ensureAudioUnlocked();
-      vinylPointers.highpass = e.pointerId;
-      setHighPass(true);
-    });
-    vinylHighpass.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-    vinylEcho.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      ensureAudioUnlocked();
-      vinylPointers.echo = e.pointerId;
-      setSpaceEcho(true);
-    });
-    vinylEcho.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-    vinylCrush.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      ensureAudioUnlocked();
-      vinylPointers.crush = e.pointerId;
-      setCrushGate(true);
-    });
-    vinylCrush.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-    // ---------------------------------------------------------
-    // MUTE MATRIX & MUTE QUEUE (BRING STUFF IN AND OUT)
-    // ---------------------------------------------------------
-    function updateMutePadsUI() {
-      mutePads.forEach(function(pad) {
-        var idx = parseInt(pad.getAttribute('data-inst'));
-        var isCurrentlyMuted = trackMutes[idx];
-
-        if (!isHoldActive || !stagedMutes) {
-          pad.classList.toggle('muted', isCurrentlyMuted);
-          pad.classList.remove('staged-mute', 'staged-unmute');
-          return;
-        }
-
-        var willBeMuted = stagedMutes[idx];
-        var isStagedToMute = !isCurrentlyMuted && willBeMuted;
-        var isStagedToUnmute = isCurrentlyMuted && !willBeMuted;
-
-        pad.classList.toggle('muted', isCurrentlyMuted);
-        pad.classList.toggle('staged-mute', isStagedToMute);
-        pad.classList.toggle('staged-unmute', isStagedToUnmute);
-      });
-    }
-
-    mutePads.forEach(function(pad) {
-      pad.addEventListener('pointerdown', function(e) {
-        e.preventDefault();
-        ensureAudioUnlocked();
-        var idx = parseInt(this.getAttribute('data-inst'));
-
-        if (isHoldActive && stagedMutes) {
-          stagedMutes[idx] = !stagedMutes[idx];
-          updateMutePadsUI();
-        } else {
-          trackMutes[idx] = !trackMutes[idx];
-          setTrackMuteAudio(idx, trackMutes[idx]);
-          updateMutePadsUI();
-        }
-      });
-    });
-
-    holdBtn.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      ensureAudioUnlocked();
-      isHoldActive = true;
-      holdPointerId = e.pointerId;
-      stagedMutes = trackMutes.slice();
-      holdBtn.classList.add('active');
-      updateMutePadsUI();
-    });
-
-    function releaseHoldMode() {
-      if (!isHoldActive) return;
-      isHoldActive = false;
-      holdPointerId = null;
-      holdBtn.classList.remove('active');
-
-      if (stagedMutes) {
-        for (var i = 0; i < INSTRUMENTS.length; i++) {
-          if (trackMutes[i] !== stagedMutes[i]) {
-            trackMutes[i] = stagedMutes[i];
-            setTrackMuteAudio(i, trackMutes[i]);
-          }
-        }
-        stagedMutes = null;
-      }
-      updateMutePadsUI();
-    }
-
-    holdBtn.addEventListener('pointerup', releaseHoldMode);
-    holdBtn.addEventListener('pointercancel', releaseHoldMode);
-
-    function renderStepPads() {
-      var track = tracks[turnIndex];
-      var tLen = getTrackLength(turnIndex);
-      var pads = stepGrid.querySelectorAll('.step-pad');
-      for (var i = 0; i < pads.length; i++) {
-        applyPadVisualClass(pads[i], track.steps[i], i, tLen);
-        pads[i].textContent = i + 1;
-      }
-    }
-
-    function updateParamText() {
-      var inst = INSTRUMENTS[turnIndex];
-      var p = tracks[turnIndex].params;
-
-      if (inst.id === 'bassline') {
-        var stB = Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], p.pitch));
-        pitchVal.textContent = (stB > 0 ? '+' + stB : stB) + ' st';
-      } else if (inst.id === 'synth') {
-        var oct = Math.round(p.pitch);
-        pitchVal.textContent = (oct > 0 ? '+' + oct : oct) + ' oct';
-      } else {
-        pitchVal.textContent = Math.round(p.pitch * 100) + '%';
-      }
-
-      var rawDecay = lerp(inst.decayRange[0], inst.decayRange[1], p.decay);
-      decayVal.textContent = Math.round(rawDecay * 1000) + ' ms';
-
-      var hz = Math.round(normToFilterHz(p.filter));
-      filterVal.textContent = hz >= 1000 ? (hz / 1000).toFixed(1) + ' kHz' : hz + ' Hz';
-
-      var revPct = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100);
-      reverbVal.textContent = revPct + '%';
-
-      stepsVal.textContent = getTrackLength(turnIndex);
-
-      var volPct = Math.round((p.volume !== undefined ? p.volume : 1.0) * 100);
-      volumeVal.textContent = volPct + '%';
-    }
-
-    function renderTurn() {
-      cancelDrumLongPress();
-      dragPointerId = null;
-      pressStartStep = null;
-      didDragPaint = false;
-      longPressTriggered = false;
-
-      var inst = INSTRUMENTS[turnIndex];
-      var track = tracks[turnIndex];
-      var isPiano = isPianoRollInstrument(inst.id);
-      var isWave = isWaveformInstrument(inst.id);
-      var isBass = inst.id === 'bassline';
-      var isSynth = inst.id === 'synth';
-
-      instName.textContent = inst.name;
-
-      stepGrid.classList.toggle('hidden', isPiano);
-      accentBanner.classList.toggle('hidden', isPiano);
-      if (isPiano) {
-        hideAccentBannerImmediate();
-      }
-      waveBar.classList.toggle('hidden', !isWave);
-      pianoRollWrap.classList.toggle('hidden', !isPiano);
-
-      boxFilter.classList.toggle('hidden', isBass);
-      boxReverb.classList.toggle('hidden', isBass);
-      boxSteps.classList.toggle('hidden', isPiano);
-      boxVolume.classList.toggle('full-width', isPiano);
-
-      if (isWave) {
-        renderWaveButtons();
-      }
-
-      if (isSynth) {
-        pitchLabel.textContent = 'Transpose';
-        pitchSlider.min = '-1';
-        pitchSlider.max = '1';
-        pitchSlider.step = '1';
-      } else if (isBass) {
-        pitchLabel.textContent = 'Transpose';
-        pitchSlider.min = '0';
-        pitchSlider.max = '1';
-        pitchSlider.step = '0.01';
-      } else {
-        pitchLabel.textContent = 'Pitch';
-        pitchSlider.min = '0';
-        pitchSlider.max = '1';
-        pitchSlider.step = '0.01';
-      }
-
-      if (isPiano) {
-        requestAnimationFrame(drawPianoRoll);
-      } else {
-        renderStepPads();
-        updatePlayheadVisual();
-      }
-
-      pitchSlider.value = track.params.pitch;
-      decaySlider.value = track.params.decay;
-      filterSlider.value = track.params.filter;
-      reverbSlider.value = track.params.reverb !== undefined ? track.params.reverb : 0.0;
-      stepsSlider.value = getTrackLength(turnIndex);
-      volumeSlider.value = track.params.volume !== undefined ? track.params.volume : 1.0;
-      updateParamText();
-
-      if (gameMode === 'solo') {
-        nextBtn.textContent = 'NEXT';
-      } else {
-        updateTurnStatusUI();
-      }
-    }
-
-    bpmSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      bpm = Number(e.target.value);
-      bpmValue.textContent = bpm;
-      swingBpmValue.textContent = bpm;
-      updateParamText();
-    });
-
-    pitchSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      tracks[turnIndex].params.pitch = parseFloat(e.target.value);
-      updateParamText();
-      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-        drawPianoRoll();
-      }
-    });
-
-    decaySlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      tracks[turnIndex].params.decay = parseFloat(e.target.value);
-      updateParamText();
-    });
-
-    filterSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      var val = parseFloat(e.target.value);
-      tracks[turnIndex].params.filter = val;
-      updateParamText();
-      if (audioCtx && trackLPFs[turnIndex]) {
-        trackLPFs[turnIndex].frequency.setTargetAtTime(normToFilterHz(val), audioCtx.currentTime, 0.015);
-      }
-    });
-
-    reverbSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      var val = parseFloat(e.target.value);
-      tracks[turnIndex].params.reverb = val;
-      updateParamText();
-      if (audioCtx && trackRevGains[turnIndex]) {
-        trackRevGains[turnIndex].gain.setTargetAtTime(val * 0.40, audioCtx.currentTime, 0.02);
-      }
-    });
-
-    stepsSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
-      var newLen = sanitizeTrackLength(e.target.value);
-      tracks[turnIndex].trackLength = newLen;
-      updateParamText();
-      renderStepPads();
-      updatePlayheadVisual();
-    });
-
-    volumeSlider.addEventListener('input', function(e) {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      var val = parseFloat(e.target.value);
-      tracks[turnIndex].params.volume = val;
-      updateParamText();
-      if (audioCtx && trackVolGains[turnIndex]) {
-        trackVolGains[turnIndex].gain.setTargetAtTime(val, audioCtx.currentTime, 0.02);
-      }
-    });
-
-    function startGame() {
-      resetTracks();
-      turnIndex = 0;
-      accentMode = false;
-      hideAccentBannerImmediate();
-      jamActive = false;
-      swingScreenActive = false;
-      currentSwingMode = 'straight';
-      updateSwingUI();
-      trackMutes = [false, false, false, false, false, false, false];
-      updateMutePadsUI();
-      dragPointerId = null;
-      pianoPointerId = null;
-
-      startScreen.classList.add('hidden');
-      swingScreen.classList.add('hidden');
-      jamScreen.classList.add('hidden');
-      sequencerScreen.classList.remove('hidden');
-
-      renderTurn();
-      startSequencer();
-    }
-
-    function nextTurn() {
-      cancelDrumLongPress();
-      dragPointerId = null;
-      pianoPointerId = null;
-      if (turnIndex < INSTRUMENTS.length - 1) {
-        turnIndex++;
-        renderTurn();
-      } else {
-        openSwingScreen();
-      }
-    }
-
-    // ---------------------------------------------------------
-    // SWING SCREEN INTERACTION (LOCAL FOR BOTH SOLO & 2P)
-    // ---------------------------------------------------------
-    function setSwingMode(mode) {
-      currentSwingMode = mode;
-      updateSwingUI();
-    }
-
-    function updateSwingUI() {
-      btnPush.classList.toggle('active', currentSwingMode === 'push');
-      btnStraight.classList.toggle('active', currentSwingMode === 'straight');
-      btnGroove.classList.toggle('active', currentSwingMode === 'groove');
-    }
-
-    bindTap(btnPush, function() { setSwingMode('push'); });
-    bindTap(btnStraight, function() { setSwingMode('straight'); });
-    bindTap(btnGroove, function() { setSwingMode('groove'); });
-
-    function openSwingScreen() {
-      cancelDrumLongPress();
-      hideAccentBannerImmediate();
-      swingScreenActive = true;
-      swingBpmValue.textContent = bpm;
-      btnProceedToJam.textContent = 'JAM';
-      updateSwingUI();
-
-      sequencerScreen.classList.add('hidden');
-      swingScreen.classList.remove('hidden');
-
-      if (gameMode === 'online') {
-        btnBackFromSwing.classList.add('hidden');
-      } else {
-        btnBackFromSwing.classList.remove('hidden');
-      }
-    }
-
-    bindTap(btnBackFromSwing, function() {
-      swingScreenActive = false;
-      swingScreen.classList.add('hidden');
-      sequencerScreen.classList.remove('hidden');
-      renderTurn();
-    });
-
-    bindTap(btnProceedToJam, function() {
-      swingScreenActive = false;
-      swingScreen.classList.add('hidden');
-      startJam();
-    });
-
-    // ---------------------------------------------------------
-    // DJ VINYLS & ELECTRONIC SCHEMATIC SYMBOLS
-    // ---------------------------------------------------------
-    var vinylAngles = {
-      rewind: 0,
-      highpass: 0,
-      echo: 0,
-      crush: 0
-    };
-
-    function drawVinyl(canvas, angle, isPressed, symbolType) {
-      var ctx = canvas.getContext('2d');
-      var w = canvas.width;
-      var h = canvas.height;
-      var cx = w / 2;
-      var cy = h / 2;
-      var outerR = w / 2 - 2;
-
-      ctx.clearRect(0, 0, w, h);
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-      ctx.fillStyle = '#000000';
-      ctx.fill();
-      ctx.lineWidth = isPressed ? 2.5 : 1.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.stroke();
-
-      var radii = [outerR - 8, outerR - 16, outerR - 24, outerR - 32];
-      for (var i = 0; i < radii.length; i++) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, radii[i], 0, Math.PI * 2);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = isPressed ? '#555555' : '#282828';
-        ctx.stroke();
-      }
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(angle);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(28, 0);
-      ctx.lineTo(outerR - 4, 0);
-      ctx.stroke();
-      ctx.restore();
-
-      var labelR = 27;
-      ctx.beginPath();
-      ctx.arc(cx, cy, labelR, 0, Math.PI * 2);
-      ctx.fillStyle = isPressed ? '#ffffff' : '#000000';
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.stroke();
-
-      ctx.save();
-      ctx.strokeStyle = isPressed ? '#000000' : '#ffffff';
-      ctx.fillStyle = isPressed ? '#000000' : '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      if (symbolType === 'rewind') {
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy);
-        ctx.lineTo(cx - 7, cy);
-        ctx.moveTo(cx + 7, cy);
-        ctx.lineTo(cx + 15, cy);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - 7, cy - 9);
-        ctx.lineTo(cx - 7, cy + 9);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - 7, cy);
-        ctx.lineTo(cx + 7, cy - 8);
-        ctx.lineTo(cx + 7, cy + 8);
-        ctx.closePath();
-        ctx.stroke();
-      } else if (symbolType === 'highpass') {
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy);
-        ctx.lineTo(cx - 4, cy);
-        ctx.moveTo(cx + 4, cy);
-        ctx.lineTo(cx + 15, cy);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - 4, cy - 10);
-        ctx.lineTo(cx - 4, cy + 10);
-        ctx.moveTo(cx + 4, cy - 10);
-        ctx.lineTo(cx + 4, cy + 10);
-        ctx.stroke();
-      } else if (symbolType === 'echo') {
-        ctx.strokeRect(cx - 8, cy - 6, 16, 12);
-        ctx.beginPath();
-        ctx.moveTo(cx - 4, cy - 2);
-        ctx.lineTo(cx + 4, cy - 2);
-        ctx.moveTo(cx, cy - 2);
-        ctx.lineTo(cx, cy + 4);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx, cy, 16, -0.6 * Math.PI, 0.4 * Math.PI, false);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + 12, cy + 7);
-        ctx.lineTo(cx + 17, cy + 14);
-        ctx.lineTo(cx + 8, cy + 13);
-        ctx.fill();
-      } else if (symbolType === 'crush') {
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy);
-        ctx.lineTo(cx - 9, cy);
-        ctx.moveTo(cx + 9, cy);
-        ctx.lineTo(cx + 15, cy);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - 9, cy - 5);
-        ctx.lineTo(cx + 1, cy - 5);
-        ctx.lineTo(cx + 1, cy + 5);
-        ctx.lineTo(cx + 9, cy + 5);
-        ctx.moveTo(cx + 9, cy + 5);
-        ctx.lineTo(cx - 1, cy + 5);
-        ctx.lineTo(cx - 1, cy - 5);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-      ctx.fillStyle = isPressed ? '#ffffff' : '#000000';
-      ctx.fill();
-      ctx.strokeStyle = isPressed ? '#000000' : '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // ---------- SOLO JAM: SLIMMER 2-COLOR PLUSH BUNNY (32x32) ----------
-    var RABBIT_FRAMES = [
-      [
-        "................................",
-        "................................",
-        "................................",
-        "..........::........::..........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        "..........::........::..........",
-        "........::::::::::::::::........",
-        ".......::::::::::::::::::.......",
-        "......::::::::::::::::::::......",
-        ".....::::#::::::::::::#::::.....",
-        ".....::::#::::::::::::#::::.....",
-        ".....:::::::########:::::::.....",
-        "......:::::###::::###:::::......",
-        ".......:::####::::####:::.......",
-        "........::############::........",
-        ".........:############:.........",
-        "........::::::::::::::::........",
-        ".......:::::########:::::.......",
-        "......::::::########::::::......",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        "......:::::..######..:::::......",
-        "................................",
-        "................................"
-      ],
-      [
-        "................................",
-        "................................",
-        "................................",
-        "................................",
-        "..........::........::..........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        "..........::........::..........",
-        "........::::::::::::::::........",
-        ".......::::::::::::::::::.......",
-        "......::::::::::::::::::::......",
-        ".....::::#::::::::::::#::::.....",
-        ".....::::#::::::::::::#::::.....",
-        ".....:::::::########:::::::.....",
-        "......:::::###::::###:::::......",
-        ".......:::####::::####:::.......",
-        "........::############::........",
-        ".........:############:.........",
-        "........::::::::::::::::........",
-        ".......:::::########:::::.......",
-        "......::::::########::::::......",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        "....::::::::########::::::::....",
-        "....::::::::########::::::::....",
-        "....::::::::########::::::::....",
-        ".....::::::..######..::::::.....",
-        "................................",
-        "................................"
-      ],
-      [
-        "................................",
-        "................................",
-        "..........::........::..........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        ".........:##:......:##:.........",
-        "..........::........::..........",
-        "........::::::::::::::::........",
-        ".......::::::::::::::::::.......",
-        "......::::::::::::::::::::......",
-        ".....::::#::::::::::::#::::.....",
-        ".....::::#::::::::::::#::::.....",
-        ".....:::::::########:::::::.....",
-        "......:::::###::::###:::::......",
-        ".......:::####::::####:::.......",
-        "........::############::........",
-        ".........:############:.........",
-        "........::::::::::::::::........",
-        ".......:::::########:::::.......",
-        "......::::::########::::::......",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        ".....:::::::########:::::::.....",
-        "......:::::..######..:::::......",
-        "................................",
-        "................................",
-        "................................"
-      ]
-    ];
-
-    // ---------- ONLINE 2P JAM: ORIGINAL TWO PIGEONS (32x32) ----------
-    var PIGEON_P1_FRAMES = [
-      [
-        "...####......",
-        "..##::##.....",
-        "..######==...",
-        "...####......",
-        "...####......",
-        "..######.....",
-        ".########....",
-        "##########...",
-        "##########...",
-        ".########....",
-        "..######.....",
-        "#.####.......",
-        "##.##........",
-        ".#...........",
-        "...##........",
-        "...||........",
-        "..==.==......"
-      ],
-      [
-        ".............",
-        "....####.....",
-        "...##::##....",
-        "...######==..",
-        "....####.....",
-        "...####......",
-        "..######.....",
-        ".########....",
-        "##########...",
-        "##########...",
-        ".########....",
-        "..######.....",
-        "#.####.......",
-        "##.##........",
-        ".#...........",
-        "...##........",
-        "..==.==......"
-      ],
-      [
-        "..####.......",
-        ".##::##......",
-        ".######==....",
-        "..####.......",
-        "...####......",
-        "..######.....",
-        ".########....",
-        "##########...",
-        "##########...",
-        ".########....",
-        "..######.....",
-        "#.####.......",
-        "##.##........",
-        ".#...........",
-        "...##........",
-        "...||........",
-        "..==.==......"
-      ]
-    ];
-
-    var jamStartMs = 0;
-    var lastJamDrawMs = 0;
-    var fadeTriggered = false;
-    var lastKickMs = -1;
-
-    function startJam() {
-      jamActive = true;
-      swingScreenActive = false;
-      fadeTriggered = false;
-      jamStartMs = performance.now();
-      lastJamDrawMs = 0;
-      lastKickMs = -1;
-      progressFill.style.width = '0%';
-      setRewind(false);
-      setHighPass(false);
-      setSpaceEcho(false);
-      setCrushGate(false);
-
-      trackMutes = [false, false, false, false, false, false, false];
-      for (var i = 0; i < INSTRUMENTS.length; i++) {
-        setTrackMuteAudio(i, false);
-      }
-      updateMutePadsUI();
-
-      sequencerScreen.classList.add('hidden');
-      swingScreen.classList.add('hidden');
-      jamScreen.classList.remove('hidden');
-    }
-
-    function resetToNewRound() {
-      stopSequencer();
-      jamActive = false;
-      swingScreenActive = false;
-
-      appEl.classList.remove('vanishing');
-      jamScreen.classList.add('hidden');
-      swingScreen.classList.add('hidden');
-
-      if (gameMode === 'online') {
-        exitToMainMenu();
-      } else {
-        startScreen.classList.remove('hidden');
-      }
-    }
-
-    function getBopFrame(nowMs) {
-      if (lastKickMs < 0) return 0;
-      var dt = (nowMs - lastKickMs) / 1000;
-      var beatSec = 60 / bpm;
-      var cycleDur = Math.min(0.38, beatSec * 0.75);
-      var t = dt / cycleDur;
-
-      if (t < 0.42) {
-        return 1;
-      } else if (t < 0.82) {
-        return 2;
-      }
-      return 0;
-    }
-
-    function drawDancingRabbit(ctx, frameIdx) {
-      var sprite = RABBIT_FRAMES[frameIdx] || RABBIT_FRAMES[0];
-      for (var y = 0; y < 32; y++) {
-        var rowStr = sprite[y];
-        for (var x = 0; x < 32; x++) {
-          var ch = rowStr.charAt(x);
-          if (ch === '.') continue;
-          ctx.fillStyle = (ch === '#') ? '#ffffff' : '#666666';
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-    }
-
-    function drawTwoPigeons(ctx, frameIdx) {
-      var sprite = PIGEON_P1_FRAMES[frameIdx] || PIGEON_P1_FRAMES[0];
-      var startY = 11;
-
-      for (var r = 0; r < sprite.length; r++) {
-        var rowStr = sprite[r];
-        for (var c = 0; c < rowStr.length; c++) {
-          var ch = rowStr.charAt(c);
-          if (ch === '.') continue;
-          var color = (ch === '#' || ch === '=') ? '#ffffff' : '#666666';
-          ctx.fillStyle = color;
-
-          var xL = 2 + c;
-          var yL = startY + r;
-          if (xL >= 0 && xL < 32 && yL >= 0 && yL < 32) {
-            ctx.fillRect(xL, yL, 1, 1);
-          }
-
-          var xR = 29 - c;
-          var yR = startY + r;
-          if (xR >= 0 && xR < 32 && yR >= 0 && yR < 32) {
-            ctx.fillRect(xR, yR, 1, 1);
-          }
-        }
-      }
-    }
-
-    function drawJamDancer(nowMs) {
-      var ctx = pixelCanvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0, 0, 32, 32);
-
-      var frameIdx = getBopFrame(nowMs);
-
-      if (gameMode === 'online') {
-        drawTwoPigeons(ctx, frameIdx);
-      } else {
-        drawDancingRabbit(ctx, frameIdx);
-      }
-    }
-
-    var lastVisualGlobalStep = -1;
-    var prevFrameMs = performance.now();
-
-    function loop(nowMs) {
-      var frameDt = Math.min(0.05, (nowMs - prevFrameMs) / 1000);
-      prevFrameMs = nowMs;
-
-      if (isPlaying && audioCtx) {
-        while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
-          var ev = visualQueue.shift();
-          activeGlobalStep = ev.globalStep;
-          activePlayStep = activeGlobalStep % STEPS;
-          if (jamActive && ev.kickHit && !rewindActive) {
-            lastKickMs = nowMs;
-          }
-        }
-
-        if (activeGlobalStep !== lastVisualGlobalStep) {
-          lastVisualGlobalStep = activeGlobalStep;
-          updatePlayheadVisual();
-        }
-      }
-
-      if (jamActive) {
-        vinylAngles.rewind += frameDt * 2.6 * (rewindActive ? REWIND_SPEED * 2.5 : 1.0);
-        vinylAngles.highpass += frameDt * (hpfActive ? 5.2 : 2.6);
-        vinylAngles.echo += frameDt * (spaceEchoActive ? 4.2 : 2.6);
-        vinylAngles.crush += frameDt * (crushGateActive ? 1.8 : 2.6);
-
-        if (nowMs - lastJamDrawMs >= 32) {
-          lastJamDrawMs = nowMs;
-          drawJamDancer(nowMs);
-          drawVinyl(vinylRewind, vinylAngles.rewind, rewindActive, 'rewind');
-          drawVinyl(vinylHighpass, vinylAngles.highpass, hpfActive, 'highpass');
-          drawVinyl(vinylEcho, vinylAngles.echo, spaceEchoActive, 'echo');
-          drawVinyl(vinylCrush, vinylAngles.crush, crushGateActive, 'crush');
-        }
-
-        var elapsed = (nowMs - jamStartMs) / 1000;
-        var progress = Math.min(1, elapsed / JAM_SECONDS);
-        progressFill.style.width = (progress * 100) + '%';
-
-        if (elapsed >= JAM_SECONDS - 1.2 && !fadeTriggered) {
-          fadeTriggered = true;
-          appEl.classList.add('vanishing');
-          if (masterGain && audioCtx) {
-            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
-            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.1);
-          }
-        }
-
-        if (elapsed >= JAM_SECONDS) {
-          resetToNewRound();
-        }
-      }
-
-      requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
-  </script>
-</body>
-</html>
+        var y = r
