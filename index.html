@@ -2526,8 +2526,9 @@
       if (!accentMode) {
         return cur > 0 ? 0 : 1;
       }
-      // Accent Mode ON: 0 -> 2 (Accent), 1 -> 2 (Accent), 2 -> 3 (Ghost), 3 -> 0 (Off)
-      if (cur === 0 || cur === 1) return 2;
+      // Accent Mode ON: cycle through all states: Off (0) -> Normal (1) -> Accent (2) -> Ghost (3) -> Off (0)
+      if (cur === 0) return 1;
+      if (cur === 1) return 2;
       if (cur === 2) return 3;
       return 0;
     }
