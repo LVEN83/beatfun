@@ -318,6 +318,19 @@
     }
     .step-pad.beat-mark.vel-accent { border-left: 4px solid #ffffff; }
 
+    /* Inactive / Out-of-range polymeter steps */
+    .step-pad.out-of-range {
+      opacity: 0.22;
+      background-color: #050505 !important;
+      border: 1px solid #222222 !important;
+      color: #333333 !important;
+      pointer-events: none;
+      cursor: default;
+    }
+    .step-pad.out-of-range::after {
+      display: none;
+    }
+
     .playhead-bar {
       width: 100%;
       height: 2px;
@@ -370,7 +383,7 @@
       touch-action: none;
     }
 
-    /* ---------- PARAMETERS (2x2 GRID + FULL WIDTH VOLUME) ---------- */
+    /* ---------- PARAMETERS (2x2 GRID + STEPS & VOLUME) ---------- */
     .params-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -879,7 +892,7 @@
         <canvas class="piano-canvas" id="pianoCanvas"></canvas>
       </div>
 
-      <!-- 2x2 PARAMETERS + FULL-WIDTH VOLUME SLIDER -->
+      <!-- 2x2 PARAMETERS + SIDE-BY-SIDE STEPS & VOLUME SLIDERS -->
       <div class="params-grid" id="paramsGrid">
         <div class="param-box" id="boxPitch">
           <div class="param-top mono">
@@ -913,8 +926,17 @@
           <input type="range" id="reverbSlider" min="0" max="1" step="0.01" value="0.0" />
         </div>
 
-        <!-- FULL-WIDTH VOLUME SLIDER -->
-        <div class="param-box full-width" id="boxVolume">
+        <!-- POLYMETER STEPS SLIDER (DRUMS ONLY) -->
+        <div class="param-box" id="boxSteps">
+          <div class="param-top mono">
+            <span class="param-label">Steps</span>
+            <span class="param-value" id="stepsVal">16</span>
+          </div>
+          <input type="range" id="stepsSlider" min="3" max="16" step="1" value="16" />
+        </div>
+
+        <!-- VOLUME SLIDER (HALF-WIDTH NEXT TO STEPS ON DRUMS, FULL-WIDTH ON BASS/SYNTH) -->
+        <div class="param-box" id="boxVolume">
           <div class="param-top mono">
             <span class="param-label">Volume</span>
             <span class="param-value" id="volumeVal">100%</span>
@@ -1097,6 +1119,7 @@
     ];
 
     var STEPS = 16;
+    var MIN_DRUM_STEPS = 3;
     var JAM_SECONDS = 60;
     var BASE_HPF_HZ = 44;
     var REWIND_SPEED = -0.5;
@@ -1137,6 +1160,20 @@
       return 0;
     }
 
+    function sanitizeTrackLength(val) {
+      var n = parseInt(val, 10);
+      if (!n || isNaN(n)) return STEPS;
+      if (n < MIN_DRUM_STEPS) return MIN_DRUM_STEPS;
+      if (n > STEPS) return STEPS;
+      return n;
+    }
+
+    function getTrackLength(instIdx) {
+      if (instIdx >= 5) return STEPS;
+      var t = tracks[instIdx];
+      return t ? sanitizeTrackLength(t.trackLength || STEPS) : STEPS;
+    }
+
     function resetTracks() {
       tracks = [];
       for (var i = 0; i < INSTRUMENTS.length; i++) {
@@ -1152,6 +1189,7 @@
           steps: arr,
           notes: noteArr,
           tied: tiedArr,
+          trackLength: STEPS,
           waveform: 'sine',
           params: {
             pitch: inst.defaults.pitch,
@@ -1234,8 +1272,10 @@
 
     var crowdNodes = null;
 
+    // Free-running polymeter counter (never wraps at 16 or on turn switch)
+    var globalStep = 0;
+    var activeGlobalStep = 0;
     var activePlayStep = 0;
-    var currentStep = 0;
     var nextNoteTime = 0;
     var schedulerId = null;
     var visualQueue = [];
@@ -2239,16 +2279,16 @@
       }
     }
 
-    function getSwingOffset(step, stepDur) {
+    function getSwingOffset(gStep, stepDur) {
       if (currentSwingMode === 'groove') {
-        if (step % 2 === 1) {
+        if (gStep % 2 === 1) {
           return 0.14 * stepDur;
         }
         return 0;
       } else if (currentSwingMode === 'push') {
-        if (step % 2 === 1) {
+        if (gStep % 2 === 1) {
           return 0.24 * stepDur;
-        } else if (step % 4 === 2) {
+        } else if (gStep % 4 === 2) {
           return -0.04 * stepDur;
         }
         return 0;
@@ -2256,12 +2296,14 @@
       return 0;
     }
 
-    function scheduleStep(step, time) {
+    function scheduleStep(gStep, time) {
       var kickHit = false;
       var anyHit = false;
       var maxIdx = (jamActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
 
-      var kickState = normalizeDrumStep(tracks[0].steps[step]);
+      var kickLen = getTrackLength(0);
+      var kickStep = gStep % kickLen;
+      var kickState = normalizeDrumStep(tracks[0].steps[kickStep]);
       var kickActive = !trackMutes[0] && kickState > 0;
       if (kickActive && basslineDuckingGain && audioCtx) {
         var duckTime = Math.max(audioCtx.currentTime, time);
@@ -2286,13 +2328,15 @@
 
       for (var i = 0; i <= maxIdx; i++) {
         var isDrum = i < 5;
-        var rawStep = tracks[i].steps[step];
+        var tLen = isDrum ? getTrackLength(i) : STEPS;
+        var tStep = gStep % tLen;
+        var rawStep = tracks[i].steps[tStep];
         var velState = isDrum ? normalizeDrumStep(rawStep) : (rawStep ? 1 : 0);
         if (velState > 0 && !trackMutes[i]) {
-          if (!tracks[i].tied[step]) {
+          if (!tracks[i].tied[tStep]) {
             anyHit = true;
           }
-          triggerSound(i, step, time, velState);
+          triggerSound(i, tStep, time, velState);
           if (INSTRUMENTS[i].id === 'kick') {
             kickHit = true;
           }
@@ -2305,7 +2349,7 @@
       if (visualQueue.length > 64) {
         visualQueue.shift();
       }
-      visualQueue.push({ step: step, time: time, kickHit: kickHit });
+      visualQueue.push({ globalStep: gStep, time: time, kickHit: kickHit });
     }
 
     function scheduler() {
@@ -2324,15 +2368,15 @@
       }
 
       while (nextNoteTime < audioCtx.currentTime + 0.12) {
-        var offset = getSwingOffset(currentStep, stepDur);
+        var offset = getSwingOffset(globalStep, stepDur);
         var noteTime = Math.max(audioCtx.currentTime + 0.003, nextNoteTime + offset);
         try {
-          scheduleStep(currentStep, noteTime);
+          scheduleStep(globalStep, noteTime);
         } catch (e) {
           console.error('scheduleStep error:', e);
         }
         nextNoteTime += stepDur;
-        currentStep = (currentStep + 1) % STEPS;
+        globalStep++;
       }
     }
 
@@ -2363,8 +2407,10 @@
       if (basslineDuckingGain && audioCtx) {
         basslineDuckingGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       }
-      currentStep = 0;
+      globalStep = 0;
+      activeGlobalStep = 0;
       activePlayStep = 0;
+      lastVisualGlobalStep = -1;
       isPlaying = true;
       schedulerId = setInterval(scheduler, 25);
     }
@@ -2376,6 +2422,10 @@
         schedulerId = null;
       }
       visualQueue.length = 0;
+      globalStep = 0;
+      activeGlobalStep = 0;
+      activePlayStep = 0;
+      lastVisualGlobalStep = -1;
       setRewind(false);
       setHighPass(false);
       setSpaceEcho(false);
@@ -2427,6 +2477,7 @@
 
     var boxFilter = document.getElementById('boxFilter');
     var boxReverb = document.getElementById('boxReverb');
+    var boxSteps = document.getElementById('boxSteps');
     var boxVolume = document.getElementById('boxVolume');
 
     var pitchLabel = document.getElementById('pitchLabel');
@@ -2434,12 +2485,14 @@
     var decaySlider = document.getElementById('decaySlider');
     var filterSlider = document.getElementById('filterSlider');
     var reverbSlider = document.getElementById('reverbSlider');
+    var stepsSlider = document.getElementById('stepsSlider');
     var volumeSlider = document.getElementById('volumeSlider');
 
     var pitchVal = document.getElementById('pitchVal');
     var decayVal = document.getElementById('decayVal');
     var filterVal = document.getElementById('filterVal');
     var reverbVal = document.getElementById('reverbVal');
+    var stepsVal = document.getElementById('stepsVal');
     var volumeVal = document.getElementById('volumeVal');
 
     var swingBpmValue = document.getElementById('swingBpmValue');
@@ -2613,7 +2666,7 @@
             stepsOut[s] = normalizeDrumStep(stepsOut[s]);
           }
         }
-        compactTracks.push({
+        var trackPayload = {
           steps: stepsOut,
           notes: tracks[i].notes.slice(),
           tied: tracks[i].tied.slice(),
@@ -2625,7 +2678,11 @@
             reverb: tracks[i].params.reverb !== undefined ? tracks[i].params.reverb : 0.0,
             volume: tracks[i].params.volume !== undefined ? tracks[i].params.volume : 1.0
           }
-        });
+        };
+        if (i < 5) {
+          trackPayload.trackLength = getTrackLength(i);
+        }
+        compactTracks.push(trackPayload);
       }
       return {
         bpm: bpm,
@@ -2653,6 +2710,7 @@
             }
             tracks[i].steps = drumSteps;
           }
+          tracks[i].trackLength = sanitizeTrackLength(mt.trackLength || STEPS);
         } else {
           tracks[i].steps = mt.steps ? toArray16(mt.steps, false) : tracks[i].steps;
         }
@@ -3155,25 +3213,48 @@
     }
 
     // ---------------------------------------------------------
-    // STANDARD STEP GRID (DRUMS WITH 3 VELOCITY LEVELS + 500MS LONG PRESS)
+    // STANDARD STEP GRID (DRUMS: POLYMETER LENGTH + 3 VELOCITIES + 500MS LONG PRESS)
     // ---------------------------------------------------------
-    function applyPadVisualClass(pad, velState) {
+    function applyPadVisualClass(pad, velState, stepIdx, trackLen) {
       var v = normalizeDrumStep(velState);
-      pad.classList.remove('vel-normal', 'vel-accent', 'vel-ghost');
-      if (v === 1) {
-        pad.classList.add('vel-normal');
-      } else if (v === 2) {
-        pad.classList.add('vel-accent');
-      } else if (v === 3) {
-        pad.classList.add('vel-ghost');
+      var outOfRange = stepIdx >= trackLen;
+      pad.classList.remove('vel-normal', 'vel-accent', 'vel-ghost', 'out-of-range');
+      if (outOfRange) {
+        pad.classList.add('out-of-range');
+        pad.disabled = true;
+      } else {
+        pad.disabled = false;
+        if (v === 1) {
+          pad.classList.add('vel-normal');
+        } else if (v === 2) {
+          pad.classList.add('vel-accent');
+        } else if (v === 3) {
+          pad.classList.add('vel-ghost');
+        }
       }
     }
 
     function paintStepPad(stepIdx, state) {
+      var tLen = getTrackLength(turnIndex);
+      if (stepIdx < 0 || stepIdx >= tLen) return;
       var v = normalizeDrumStep(state);
       tracks[turnIndex].steps[stepIdx] = v;
       var pad = stepGrid.querySelector('.step-pad[data-step="' + stepIdx + '"]');
-      if (pad) applyPadVisualClass(pad, v);
+      if (pad) applyPadVisualClass(pad, v, stepIdx, tLen);
+    }
+
+    function updatePlayheadVisual() {
+      if (jamActive || swingScreenActive) return;
+      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
+        drawPianoRoll();
+      } else {
+        var tLen = getTrackLength(turnIndex);
+        var drumPlayStep = isPlaying ? (activeGlobalStep % tLen) : -1;
+        var bars = stepGrid.querySelectorAll('.playhead-bar');
+        for (var i = 0; i < bars.length; i++) {
+          bars[i].classList.toggle('now', i < tLen && i === drumPlayStep);
+        }
+      }
     }
 
     function buildStepGrid() {
@@ -3199,6 +3280,7 @@
           pad.addEventListener('pointerdown', function(e) {
             if (gameMode === 'online' && !isMyTurn()) return;
             if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
+            if (stepIdx >= getTrackLength(turnIndex)) return;
             e.preventDefault();
             ensureAudioUnlocked();
 
@@ -3327,10 +3409,11 @@
         cancelDrumLongPress();
       }
 
+      var tLen = getTrackLength(turnIndex);
       var hitEl = document.elementFromPoint(e.clientX, e.clientY);
       if (hitEl && hitEl.classList && hitEl.classList.contains('step-pad')) {
         var s = Number(hitEl.getAttribute('data-step'));
-        if (!isNaN(s) && pressStartStep !== null && s !== pressStartStep) {
+        if (!isNaN(s) && s < tLen && pressStartStep !== null && s !== pressStartStep) {
           cancelDrumLongPress();
           if (!didDragPaint) {
             didDragPaint = true;
@@ -3339,7 +3422,7 @@
           if (normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
             paintStepPad(s, dragPaintVal);
           }
-        } else if (!isNaN(s) && didDragPaint && normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
+        } else if (!isNaN(s) && s < tLen && didDragPaint && normalizeDrumStep(tracks[turnIndex].steps[s]) !== dragPaintVal) {
           paintStepPad(s, dragPaintVal);
         }
       }
@@ -3350,14 +3433,13 @@
         cancelDrumLongPress();
 
         if (longPressTriggered) {
-          // Released after a 500ms hold: do NOT trigger a tap on the held pad
           longPressTriggered = false;
           dragPointerId = null;
           pressStartStep = null;
           didDragPaint = false;
         } else if (e.pointerId === dragPointerId) {
           if (e.type === 'pointerup' && !didDragPaint && pressStartStep !== null && !isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-            if (gameMode !== 'online' || isMyTurn()) {
+            if ((gameMode !== 'online' || isMyTurn()) && pressStartStep < getTrackLength(turnIndex)) {
               var nextVal = getNextDrumStepState(tracks[turnIndex].steps[pressStartStep]);
               paintStepPad(pressStartStep, nextVal);
             }
@@ -3508,9 +3590,10 @@
 
     function renderStepPads() {
       var track = tracks[turnIndex];
+      var tLen = getTrackLength(turnIndex);
       var pads = stepGrid.querySelectorAll('.step-pad');
       for (var i = 0; i < pads.length; i++) {
-        applyPadVisualClass(pads[i], track.steps[i]);
+        applyPadVisualClass(pads[i], track.steps[i], i, tLen);
         pads[i].textContent = i + 1;
       }
     }
@@ -3537,6 +3620,8 @@
 
       var revPct = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100);
       reverbVal.textContent = revPct + '%';
+
+      stepsVal.textContent = getTrackLength(turnIndex);
 
       var volPct = Math.round((p.volume !== undefined ? p.volume : 1.0) * 100);
       volumeVal.textContent = volPct + '%';
@@ -3568,6 +3653,8 @@
 
       boxFilter.classList.toggle('hidden', isBass);
       boxReverb.classList.toggle('hidden', isBass);
+      boxSteps.classList.toggle('hidden', isPiano);
+      boxVolume.classList.toggle('full-width', isPiano);
 
       if (isWave) {
         renderWaveButtons();
@@ -3594,12 +3681,14 @@
         requestAnimationFrame(drawPianoRoll);
       } else {
         renderStepPads();
+        updatePlayheadVisual();
       }
 
       pitchSlider.value = track.params.pitch;
       decaySlider.value = track.params.decay;
       filterSlider.value = track.params.filter;
       reverbSlider.value = track.params.reverb !== undefined ? track.params.reverb : 0.0;
+      stepsSlider.value = getTrackLength(turnIndex);
       volumeSlider.value = track.params.volume !== undefined ? track.params.volume : 1.0;
       updateParamText();
 
@@ -3651,6 +3740,16 @@
       if (audioCtx && trackRevGains[turnIndex]) {
         trackRevGains[turnIndex].gain.setTargetAtTime(val * 0.40, audioCtx.currentTime, 0.02);
       }
+    });
+
+    stepsSlider.addEventListener('input', function(e) {
+      if (gameMode === 'online' && !isMyTurn()) return;
+      if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) return;
+      var newLen = sanitizeTrackLength(e.target.value);
+      tracks[turnIndex].trackLength = newLen;
+      updateParamText();
+      renderStepPads();
+      updatePlayheadVisual();
     });
 
     volumeSlider.addEventListener('input', function(e) {
@@ -4167,7 +4266,7 @@
       }
     }
 
-    var lastVisualStep = -1;
+    var lastVisualGlobalStep = -1;
     var prevFrameMs = performance.now();
 
     function loop(nowMs) {
@@ -4177,24 +4276,16 @@
       if (isPlaying && audioCtx) {
         while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
           var ev = visualQueue.shift();
-          activePlayStep = ev.step;
+          activeGlobalStep = ev.globalStep;
+          activePlayStep = activeGlobalStep % STEPS;
           if (jamActive && ev.kickHit && !rewindActive) {
             lastKickMs = nowMs;
           }
         }
 
-        if (activePlayStep !== lastVisualStep) {
-          lastVisualStep = activePlayStep;
-          if (!jamActive && !swingScreenActive) {
-            if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
-              drawPianoRoll();
-            } else {
-              var bars = stepGrid.querySelectorAll('.playhead-bar');
-              for (var i = 0; i < bars.length; i++) {
-                bars[i].classList.toggle('now', i === activePlayStep);
-              }
-            }
-          }
+        if (activeGlobalStep !== lastVisualGlobalStep) {
+          lastVisualGlobalStep = activeGlobalStep;
+          updatePlayheadVisual();
         }
       }
 
