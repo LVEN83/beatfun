@@ -465,7 +465,7 @@
     function resetMonoVoiceState(v) {
       if (!v) return;
       v.currentFreq = 0; v.glideStartFreq = 0; v.glideStartTime = 0; v.glideEndTime = 0;
-      v.noteEndTime = 0; v.lastTrigTime = 0; v.envStartTime = 0; v.envStartVal = 0;
+      v.noteEndTime = 0; v.lastScheduledEnd = 0; v.lastTrigTime = 0; v.envStartTime = 0; v.envStartVal = 0;
       v.envAttackEnd = 0; v.envPeakGain = 0; v.envHasKnee = false;
       v.envDecayEnd = 0; v.envKneeGain = 0; v.envFallEnd = 0; v.envSilenceVal = 0.0001;
     }
@@ -486,8 +486,16 @@
     function silenceMonoVoice(idx, fadeSec) {
       var v = monoVoices[idx]; if (!v || !audioCtx) return;
       var now = audioCtx.currentTime, fade = Math.max(MIN_MICRO_RAMP, fadeSec || 0.015), curEnv = evalMonoEnvAt(v, now);
-      try { cancelAndHoldParam(v.vca.gain, now, curEnv); v.vca.gain.linearRampToValueAtTime(0.0, now + fade); } catch (e) {}
-      resetMonoVoiceState(v); v.noteEndTime = now + fade; v.lastTrigTime = now;
+      try {
+        if (v.lastScheduledEnd > 0 && now < v.lastScheduledEnd - 0.0005 && typeof v.vca.gain.cancelAndHoldAtTime === 'function') {
+          v.vca.gain.cancelAndHoldAtTime(now);
+        } else {
+          v.vca.gain.cancelScheduledValues(now);
+          v.vca.gain.setValueAtTime(curEnv, now);
+        }
+        v.vca.gain.linearRampToValueAtTime(0.0, now + fade);
+      } catch (e) {}
+      resetMonoVoiceState(v); v.lastScheduledEnd = now + fade; v.noteEndTime = now + fade; v.lastTrigTime = now;
     }
 
     function updateMonoVoiceWaveform(idx) {
@@ -836,14 +844,28 @@
 
       updateMonoVoiceWaveform(instIdx);
       var glideSec = lerp(GLIDE_RANGE[0], GLIDE_RANGE[1], p.glide !== undefined ? p.glide : 0.04);
+      var hasFutureGlide = (v.glideEndTime > 0 && trigTime < v.glideEndTime - 0.0005);
+
       if (wasRinging) {
         var startFreq = evalMonoFreqAt(v, trigTime) || v.currentFreq;
         if (Math.abs(startFreq - freq) > 0.01) {
           var effGlide = Math.max(MIN_MICRO_RAMP, glideSec);
-          cancelAndHoldParam(v.mainOsc.frequency, trigTime, startFreq); v.mainOsc.frequency.exponentialRampToValueAtTime(freq, trigTime + effGlide);
-          if (v.subOsc) { cancelAndHoldParam(v.subOsc.frequency, trigTime, startFreq * 0.5); v.subOsc.frequency.exponentialRampToValueAtTime(freq * 0.5, trigTime + effGlide); }
+          if (hasFutureGlide && typeof v.mainOsc.frequency.cancelAndHoldAtTime === 'function') v.mainOsc.frequency.cancelAndHoldAtTime(trigTime);
+          else { v.mainOsc.frequency.cancelScheduledValues(trigTime); v.mainOsc.frequency.setValueAtTime(startFreq, trigTime); }
+          v.mainOsc.frequency.exponentialRampToValueAtTime(freq, trigTime + effGlide);
+          if (v.subOsc) {
+            if (hasFutureGlide && typeof v.subOsc.frequency.cancelAndHoldAtTime === 'function') v.subOsc.frequency.cancelAndHoldAtTime(trigTime);
+            else { v.subOsc.frequency.cancelScheduledValues(trigTime); v.subOsc.frequency.setValueAtTime(startFreq * 0.5, trigTime); }
+            v.subOsc.frequency.exponentialRampToValueAtTime(freq * 0.5, trigTime + effGlide);
+          }
           v.glideStartTime = trigTime; v.glideEndTime = trigTime + effGlide; v.glideStartFreq = startFreq;
-        } else { v.glideStartTime = trigTime; v.glideEndTime = trigTime; v.glideStartFreq = freq; }
+        } else {
+          if (hasFutureGlide) {
+            v.mainOsc.frequency.cancelScheduledValues(trigTime); v.mainOsc.frequency.setValueAtTime(freq, trigTime);
+            if (v.subOsc) { v.subOsc.frequency.cancelScheduledValues(trigTime); v.subOsc.frequency.setValueAtTime(freq * 0.5, trigTime); }
+          }
+          v.glideStartTime = trigTime; v.glideEndTime = trigTime; v.glideStartFreq = freq;
+        }
       } else {
         v.mainOsc.frequency.cancelScheduledValues(trigTime); v.mainOsc.frequency.setValueAtTime(freq, trigTime);
         if (v.subOsc) { v.subOsc.frequency.cancelScheduledValues(trigTime); v.subOsc.frequency.setValueAtTime(freq * 0.5, trigTime); }
@@ -865,16 +887,25 @@
       var silenceVal = 0.0001, kneeGain = Math.max(silenceVal * 2, peakGain * 0.22), attackEnd = trigTime + attackSec;
       var l1 = Math.log(peakGain / kneeGain), l2 = Math.log(kneeGain / silenceVal), hasKnee = (l2 * decaySec) < (l1 * releaseSec);
       var decayEnd = attackEnd + decaySec, fallEnd = attackEnd + decaySec + releaseSec, startEnv = wasRinging ? curEnvAtTrig : 0.0;
+      var hasFutureEnv = (v.lastScheduledEnd > 0 && trigTime < v.lastScheduledEnd - 0.0005);
 
       v.envStartTime = trigTime; v.envStartVal = startEnv; v.envAttackEnd = attackEnd; v.envPeakGain = peakGain;
       v.envHasKnee = hasKnee; v.envDecayEnd = decayEnd; v.envKneeGain = kneeGain; v.envFallEnd = fallEnd;
-      v.envSilenceVal = silenceVal; v.noteEndTime = fallEnd + 0.006;
+      v.envSilenceVal = silenceVal; v.noteEndTime = fallEnd + 0.006; v.lastScheduledEnd = fallEnd + 0.006;
 
-      cancelAndHoldParam(v.vca.gain, trigTime, startEnv);
-      v.vca.gain.linearRampToValueAtTime(peakGain, attackEnd);
-      if (hasKnee) v.vca.gain.exponentialRampToValueAtTime(kneeGain, decayEnd);
-      v.vca.gain.exponentialRampToValueAtTime(silenceVal, fallEnd);
-      v.vca.gain.linearRampToValueAtTime(0.0, fallEnd + 0.006);
+      if (typeof v.vca.gain.cancelAndHoldAtTime === 'function') {
+        if (hasFutureEnv) v.vca.gain.cancelAndHoldAtTime(trigTime);
+        else { v.vca.gain.cancelScheduledValues(trigTime); v.vca.gain.setValueAtTime(startEnv, trigTime); }
+        v.vca.gain.linearRampToValueAtTime(peakGain, attackEnd);
+        if (hasKnee) v.vca.gain.exponentialRampToValueAtTime(kneeGain, decayEnd);
+        v.vca.gain.exponentialRampToValueAtTime(silenceVal, fallEnd);
+        v.vca.gain.linearRampToValueAtTime(0.0, fallEnd + 0.006);
+      } else {
+        v.vca.gain.cancelScheduledValues(trigTime); v.vca.gain.setValueAtTime(startEnv, trigTime);
+        v.vca.gain.linearRampToValueAtTime(peakGain, attackEnd);
+        if (hasKnee) { v.vca.gain.setTargetAtTime(kneeGain * 0.5, attackEnd, Math.max(0.004, decaySec / 1.8)); v.vca.gain.setTargetAtTime(0.0, decayEnd, Math.max(0.005, releaseSec / 5.0)); }
+        else { v.vca.gain.setTargetAtTime(0.0, attackEnd, Math.max(0.005, (decaySec + releaseSec) / 5.5)); }
+      }
     }
 
     function triggerSound(instIdx, stepIdx, time, velState) {
@@ -1659,7 +1690,7 @@
     function drawTwoPigeons(ctx, fi) { var sp = PIGEON_P1_FRAMES[fi] || PIGEON_P1_FRAMES[0]; for (var r = 0; r < sp.length; r++) { var rs = sp[r]; for (var c = 0; c < rs.length; c++) { var ch = rs.charAt(c); if (ch === '.') continue; ctx.fillStyle = (ch === '#' || ch === '=') ? '#fff' : '#666'; var xL = 2 + c, yL = 11 + r, xR = 29 - c; if (xL >= 0 && xL < 32 && yL >= 0 && yL < 32) ctx.fillRect(xL, yL, 1, 1); if (xR >= 0 && xR < 32 && yL >= 0 && yL < 32) ctx.fillRect(xR, yL, 1, 1); } } }
     function drawJamDancer(nowMs) { var ctx = pixelCtx; ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, 32, 32); var fi = getBopFrame(nowMs); if (gameMode === 'online') drawTwoPigeons(ctx, fi); else drawDancingRabbit(ctx, fi); }
 
-var lastVisualGlobalStep = -1, prevFrameMs = performance.now();
+    var lastVisualGlobalStep = -1, prevFrameMs = performance.now();
     function loop(nowMs) {
       var frameDt = Math.min(0.05, (nowMs - prevFrameMs) / 1000); prevFrameMs = nowMs;
       if (isPlaying && audioCtx) {
