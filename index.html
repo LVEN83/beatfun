@@ -46,12 +46,11 @@
 
     <div id="waitingScreen" class="start-screen hidden">
       <div>
-        <div class="waiting-radar mono" id="waitingStatusText">WAITING FOR OPPONENT...</div>
-        <div class="sub-logo mono" style="margin-top: 14px;">FIREBASE REALTIME DB</div>
+        <div class="waiting-radar mono" id="waitingStatusText">SEARCHING FOR BEATFRIEND...</div>
       </div>
       <div class="menu-buttons"><button type="button" class="btn-secondary" id="btnCancelMatchmaking">CANCEL</button></div>
     </div>
-
+    
     <div id="sequencerScreen" class="seq-screen hidden">
       <div class="battle-header mono hidden" id="battleHeader">
         <div class="battle-badge" id="playerBadge">P1 (YOU)</div>
@@ -60,10 +59,11 @@
       </div>
       <div class="locked-overlay hidden" id="lockedOverlay">
         <div class="locked-card mono">
-          <div class="waiting-radar" id="lockedTitle">OPPONENT'S TURN...</div>
+          <div class="waiting-radar" id="lockedTitle">BEATFRIEND'S TURN...</div>
           <div class="sub-logo" id="lockedSub" style="margin-top: 8px;">WAITING FOR NEXT MOVE</div>
         </div>
       </div>
+      
       <div class="top-bar">
         <h2 class="inst-name" id="instName">BASS DRUM</h2>
         <div class="bpm-box mono" id="bpmBox"><span>BPM</span><input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 76px;" /><span id="bpmValue">118</span></div>
