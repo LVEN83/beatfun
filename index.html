@@ -16,7 +16,9 @@ html, body { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .mono { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
 button { touch-action: manipulation; outline: none; font-family: inherit; }
 
-.start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #fff; padding: 20px 14px; gap: clamp(14px, 2.5dvh, 22px); text-align: center; position: relative; }
+.heart-svg { display: inline-block; width: 10px; height: 9px; vertical-align: middle; margin: 0 3px; transform: translateY(-0.5px); flex-shrink: 0; }
+
+.start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 14px; gap: clamp(14px, 2.5dvh, 22px); text-align: center; position: relative; }
 .start-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .start-scene-canvas { display: block; width: clamp(220px, 68vw, 300px); height: auto; aspect-ratio: 112 / 64; image-rendering: pixelated; image-rendering: crisp-edges; }
 .title-logo { font-size: 28px; font-weight: 900; letter-spacing: 5px; margin: 0; text-transform: uppercase; }
@@ -29,6 +31,11 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .btn-lets-go.primary:active { background: #ccc; color: #000; }
 .btn-help-tab { position: absolute; right: 12px; bottom: 12px; width: 44px; height: 44px; background: #000; color: #fff; border: 1px solid #fff; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .btn-help-tab:active { background: #fff; color: #000; }
+.online-counter { position: absolute; left: 12px; bottom: 12px; height: 44px; display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: #777; text-transform: uppercase; pointer-events: none; }
+.online-counter.has-others { color: #fff; }
+.online-dot { width: 5px; height: 5px; border-radius: 50%; background: #555; flex-shrink: 0; }
+.online-counter.is-connected .online-dot { background: #999; }
+.online-counter.has-others .online-dot { background: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.75); }
 .waiting-radar { font-size: 13px; letter-spacing: 3px; animation: blink 1.2s infinite; color: #fff; text-transform: uppercase; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
@@ -73,17 +80,13 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .shot-circle.hi { border-color: #fff; background: #fff; color: #000; box-shadow: 0 0 8px rgba(255,255,255,0.6); }
 .shot-circle.hi-outline { border-color: #fff; color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.45); }
 
-.battle-header { display: flex; flex-direction: column; gap: 3px; padding: 4px 8px; border: 1px solid #333; background: #0a0a0a; font-size: 10px; letter-spacing: 1.5px; flex-shrink: 0; }
-.battle-players-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1.4px; color: #777; border-bottom: 1px solid #222; padding-bottom: 3px; }
+.battle-header { display: flex; flex-direction: column; padding: 5px 8px; border: 1px solid #333; background: #0a0a0a; font-size: 10px; letter-spacing: 1.5px; flex-shrink: 0; }
+.battle-players-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1.4px; color: #777; }
 .battle-country-tag { font-weight: 800; color: #888; }
 .battle-country-tag.is-me { color: #fff; }
-.battle-vs { font-size: 8px; color: #555; letter-spacing: 1px; }
-.battle-turn-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.battle-badge { font-weight: 800; padding: 2px 5px; border: 1px solid #fff; }
-.battle-badge.active-turn { background: #fff; color: #000; }
-.battle-status-msg { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; }
+.battle-vs { display: inline-flex; align-items: center; justify-content: center; color: #fff; }
 
-.seq-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: clamp(6px, 1.1dvh, 10px) clamp(8px, 2vw, 12px); min-height: 0; gap: clamp(3px, 0.7dvh, 6px); position: relative; overflow: hidden; }
+.seq-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(6px, 1.1dvh, 10px) clamp(8px, 2vw, 12px); min-height: 0; gap: clamp(3px, 0.7dvh, 6px); position: relative; overflow: hidden; }
 .locked-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(2px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 12px; }
 .locked-card { border: 1px solid #fff; background: #000; padding: 18px 20px; max-width: 320px; width: 100%; }
 
@@ -169,7 +172,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
 .btn-next:active { background: #000; color: #fff; }
 .btn-next:disabled, .btn-secondary:disabled { opacity: 0.35; cursor: default; }
 
-.swing-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: 16px 14px; min-height: 0; gap: 16px; }
+.swing-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 14px; min-height: 0; gap: 16px; }
 .swing-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
 .swing-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
 .swing-toggles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
@@ -178,12 +181,12 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
 .swing-btn-title { font-size: 13px; font-weight: 900; letter-spacing: 2px; }
 .swing-btn-sub { font-size: 9px; letter-spacing: 0.5px; color: #888; }
 .swing-toggle-btn.active .swing-btn-sub { color: #333; }
-.swing-screen .actions-row { grid-template-columns: 1fr 1.5fr; gap: 8px; }
+.swing-screen .actions-row { grid-template-columns: 1fr; gap: 8px; }
 
-.jam-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: 6px 10px calc(10px + env(safe-area-inset-bottom)) 10px; min-height: 0; overflow: hidden; --jam-circle: clamp(54px, min(17.5vw, 10.5dvh), 78px); }
+.jam-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 10px calc(10px + env(safe-area-inset-bottom)) 10px; min-height: 0; overflow: hidden; --jam-circle: clamp(54px, min(17.5vw, 10.5dvh), 78px); }
 .progress-track { width: 100%; height: 3px; background: #222; flex-shrink: 0; }
 .progress-fill { width: 0%; height: 100%; background: #fff; }
-.jam-matchup { text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: #888; margin-top: 4px; flex-shrink: 0; text-transform: uppercase; }
+.jam-matchup { text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: #aaa; margin-top: 4px; flex-shrink: 0; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .mute-matrix-wrap { display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 340px; margin: clamp(10px, 1.8dvh, 18px) auto clamp(6px, 1dvh, 10px) auto; flex-shrink: 0; }
 .mute-row { display: grid; gap: 5px; width: 100%; }
 .mute-row.drums-row { grid-template-columns: repeat(5, 1fr); }
@@ -212,12 +215,12 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
 .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 18px; }
 .modal-card { border: 1px solid #fff; background: #000; padding: 20px; max-width: 340px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 12px; }
 .jam-end-title { font-size: 16px; font-weight: 900; letter-spacing: 2.5px; text-transform: uppercase; }
-.jam-end-sub { font-size: 10px; letter-spacing: 1.2px; color: #888; text-transform: uppercase; }
+.jam-end-sub { font-size: 11px; font-weight: 800; letter-spacing: 1.8px; color: #fff; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .jam-name-wrap { display: flex; flex-direction: column; gap: 5px; text-align: left; }
 .jam-name-label { font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: #888; text-transform: uppercase; }
 .jam-name-input { width: 100%; background: #0a0a0a; color: #fff; border: 1px solid #666; padding: 10px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; font-family: inherit; outline: none; border-radius: 0; }
 .jam-name-input:focus { border-color: #fff; background: #121212; }
-.jam-end-status { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #fff; min-height: 14px; text-transform: uppercase; }
+.jam-end-status { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #fff; text-transform: uppercase; }
 .jam-end-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .jam-end-actions .btn-next, .jam-end-actions .btn-secondary { width: 100%; height: 44px; min-height: 44px; }
 
@@ -260,6 +263,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
         <button type="button" class="btn-lets-go" id="btnOnlineMode">ONLINE / 2 PLAYER</button>
         <button type="button" class="btn-lets-go subtle" id="btnOpenLibrary">LIBRARY</button>
       </div>
+      <div class="online-counter mono" id="onlineCounter"><span class="online-dot"></span><span id="onlineCountText">- ONLINE</span></div>
       <button type="button" class="btn-help-tab mono" id="btnOpenHelp" aria-label="Instructions">?</button>
     </div>
 
@@ -311,13 +315,8 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
       <div class="battle-header mono hidden" id="battleHeader">
         <div class="battle-players-row">
           <span class="battle-country-tag" id="p1CountryBadge">P1 · ---</span>
-          <span class="battle-vs">VS</span>
+          <span class="battle-vs" aria-hidden="true"><svg class="heart-svg" viewBox="0 0 10 9"><path d="M5 8.6L1.35 5.15C0.45 4.3 0 3.45 0 2.5C0 1.1 1.05 0 2.45 0C3.35 0 4.2 0.48 5 1.25C5.8 0.48 6.65 0 7.55 0C8.95 0 10 1.1 10 2.5C10 3.45 9.55 4.3 8.65 5.15L5 8.6Z" fill="#fff"/></svg></span>
           <span class="battle-country-tag" id="p2CountryBadge">P2 · ---</span>
-        </div>
-        <div class="battle-turn-row">
-          <div class="battle-badge" id="playerBadge">P1 (YOU)</div>
-          <div class="battle-status-msg" id="roundBadge">1/7: BASS DRUM</div>
-          <div class="battle-badge" id="turnIndicator">YOUR TURN</div>
         </div>
       </div>
       <div class="locked-overlay hidden" id="lockedOverlay">
@@ -405,7 +404,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
           <button type="button" class="swing-toggle-btn mono" id="btnGroove" data-mode="groove"><span class="swing-btn-title">GROOVE</span><span class="swing-btn-sub">+14% SWING</span></button>
         </div>
       </div>
-      <div class="actions-row"><button type="button" class="btn-secondary" id="btnBackFromSwing">BACK</button><button type="button" class="btn-next" id="btnProceedToJam">JAM</button></div>
+      <div class="actions-row"><button type="button" class="btn-next" id="btnProceedToJam">JAM</button></div>
     </div>
 
     <div id="jamScreen" class="jam-screen hidden">
@@ -439,12 +438,12 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
     <div id="jamEndModal" class="modal-overlay hidden">
       <div class="modal-card mono">
         <div class="jam-end-title">JAM COMPLETE</div>
-        <div class="jam-end-sub" id="jamEndMeta">60S LIVE RECORDING</div>
+        <div class="jam-end-sub hidden" id="jamEndMeta"></div>
         <div class="jam-name-wrap">
           <label class="jam-name-label" for="jamNameInput">TRACK NAME (TAP TO RENAME)</label>
           <input type="text" id="jamNameInput" class="jam-name-input" maxlength="60" autocomplete="off" spellcheck="false" />
         </div>
-        <div class="jam-end-status" id="jamEndStatus">FINALIZING AUDIO...</div>
+        <div class="jam-end-status hidden" id="jamEndStatus"></div>
         <div class="jam-end-actions">
           <button type="button" class="btn-next" id="btnJamSave">SAVE</button>
           <button type="button" class="btn-secondary" id="btnJamShare">SHARE</button>
@@ -455,8 +454,8 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
 
     <div id="disconnectModal" class="modal-overlay hidden">
       <div class="modal-card mono">
-        <div style="font-size: 15px; font-weight: 800; letter-spacing: 2px;">OPPONENT LEFT</div>
-        <div style="font-size: 11px; color: #aaa; line-height: 1.5;">The opponent disconnected from the battle.</div>
+        <div style="font-size: 15px; font-weight: 800; letter-spacing: 2px;">BEATFRIEND LEFT</div>
+        <div style="font-size: 11px; color: #aaa; line-height: 1.5;">Your beatfriend disconnected from the session.</div>
         <button type="button" class="btn-next" id="btnBackToMenu">MAIN MENU</button>
       </div>
     </div>
@@ -478,6 +477,8 @@ var firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
+
+var HEART_HTML = '<svg class="heart-svg" viewBox="0 0 10 9" aria-hidden="true"><path d="M5 8.6L1.35 5.15C0.45 4.3 0 3.45 0 2.5C0 1.1 1.05 0 2.45 0C3.35 0 4.2 0.48 5 1.25C5.8 0.48 6.65 0 7.55 0C8.95 0 10 1.1 10 2.5C10 3.45 9.55 4.3 8.65 5.15L5 8.6Z" fill="#fff"/></svg>';
 
 document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
@@ -554,6 +555,8 @@ var tiedChancePass = [true, true, true, true, true, true, true];
 var gameMode = 'solo', onlineMatchActive = false, myRole = null, currentRoomId = null, roomRef = null, waitingQueueRef = null, p2JoinRef = null, roomTurn = 'player1';
 var lastHandledMoveTimestamp = 0, oppDisconnectTimer = null, battleLaunched = false, isSendingMove = false;
 var myCountryCode = '---', roomCountries = { player1: '---', player2: '---' };
+var presenceId = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+var presenceRef = db.ref('presence/' + presenceId);
 
 // COUNTRY CODE DETECTION (SHORT 3-LETTER SPORTS/IOC FORMAT)
 var ISO2_TO_SHORT = {
@@ -1881,9 +1884,21 @@ function shareOrDownloadAudio(blob, trackName, ext, mimeType, recBpm, statusCb) 
 }
 
 var appEl = $('app'), startScreen = $('startScreen'), waitingScreen = $('waitingScreen'), sequencerScreen = $('sequencerScreen'), swingScreen = $('swingScreen'), jamScreen = $('jamScreen'), disconnectModal = $('disconnectModal');
+var onlineCounterEl = $('onlineCounter'), onlineCountText = $('onlineCountText');
 var jamEndModal = $('jamEndModal'), jamEndMeta = $('jamEndMeta'), jamNameInput = $('jamNameInput'), jamEndStatus = $('jamEndStatus');
 var btnJamSave = $('btnJamSave'), btnJamShare = $('btnJamShare'), btnJamLetGo = $('btnJamLetGo');
 var btnOpenLibrary = $('btnOpenLibrary'), libraryOverlay = $('libraryOverlay'), btnLibraryClose = $('btnLibraryClose'), libraryList = $('libraryList');
+
+db.ref('presence').on('value', function(snap) {
+  var count = snap ? snap.numChildren() : 0;
+  if (onlineCountText) onlineCountText.textContent = count + ' ONLINE';
+  if (onlineCounterEl) onlineCounterEl.classList.toggle('has-others', count >= 2);
+});
+
+function setJamEndStatus(msg) {
+  jamEndStatus.textContent = msg || '';
+  jamEndStatus.classList.toggle('hidden', !msg);
+}
 
 function refreshLibraryBadge() {
   dbGetAllRecordings().then(function(list) {
@@ -2021,9 +2036,14 @@ btnLibraryClose.addEventListener('click', function() {
 function openJamEndModal() {
   activeJamRecordName = makeTimestampName();
   jamNameInput.value = activeJamRecordName;
-  var matchupSuffix = (gameMode === 'online') ? (' · ' + roomCountries.player1 + ' VS ' + roomCountries.player2) : '';
-  jamEndMeta.textContent = '60S LIVE RECORDING · ' + bpm + ' BPM' + matchupSuffix;
-  jamEndStatus.textContent = 'FINALIZING AUDIO...';
+  if (gameMode === 'online') {
+    jamEndMeta.innerHTML = escapeHtml(roomCountries.player1) + ' ' + HEART_HTML + ' ' + escapeHtml(roomCountries.player2);
+    jamEndMeta.classList.remove('hidden');
+  } else {
+    jamEndMeta.textContent = '';
+    jamEndMeta.classList.add('hidden');
+  }
+  setJamEndStatus('FINALIZING AUDIO...');
   btnJamSave.disabled = true;
   btnJamShare.disabled = true;
   savedRecordId = null;
@@ -2031,11 +2051,11 @@ function openJamEndModal() {
 
   stopJamRecording(function(blob) {
     if (blob && blob.size > 0) {
-      jamEndStatus.textContent = 'READY TO SAVE OR SHARE';
+      setJamEndStatus('');
       btnJamSave.disabled = false;
       btnJamShare.disabled = false;
     } else {
-      jamEndStatus.textContent = 'NO AUDIO CAPTURED IN THIS BROWSER';
+      setJamEndStatus('NO AUDIO CAPTURED IN THIS BROWSER');
       btnJamSave.disabled = true;
       btnJamShare.disabled = true;
     }
@@ -2060,11 +2080,11 @@ btnJamSave.addEventListener('click', function() {
   dbPutRecording(rec).then(function() {
     savedRecordId = rec.id;
     btnJamSave.disabled = false;
-    jamEndStatus.textContent = isUpdate ? 'RENAMED & SAVED TO LIBRARY' : 'SAVED TO LIBRARY';
+    setJamEndStatus(isUpdate ? 'RENAMED & SAVED TO LIBRARY' : 'SAVED TO LIBRARY');
     refreshLibraryBadge();
   }).catch(function() {
     btnJamSave.disabled = false;
-    jamEndStatus.textContent = 'SAVE FAILED (STORAGE FULL/BLOCKED)';
+    setJamEndStatus('SAVE FAILED (STORAGE FULL/BLOCKED)');
   });
 });
 
@@ -2073,7 +2093,7 @@ btnJamShare.addEventListener('click', function() {
   var chosenName = sanitizeTrackName(jamNameInput.value) || activeJamRecordName || makeTimestampName();
   jamNameInput.value = chosenName;
   shareOrDownloadAudio(recordedBlob, chosenName, recMimeInfo.ext, recMimeInfo.mime, bpm, function(msg) {
-    if (msg) jamEndStatus.textContent = msg;
+    setJamEndStatus(msg);
   });
 });
 
@@ -2160,7 +2180,8 @@ var HELP_CONTENT = {
 function renderHelpModal(resetScroll) {
   var data = HELP_CONTENT[helpLang] || HELP_CONTENT.en;
   btnHelpBack.textContent = data.back; btnHelpClose.textContent = data.close; helpGateQ.textContent = data.gateQ; helpGateSub.textContent = data.gateSub; btnHelpYes.textContent = data.btnYes; btnHelpNo.textContent = data.btnNo;
-  for (var i = 0; i < langBtns.length; i++) langBtns[i].classList.toggle('active', langBtns[i].getAttribute('data-lang') === helpLang);
+  for (var i = 0; i < langBtns.length
+; i++) langBtns[i].classList.toggle('active', langBtns[i].getAttribute('data-lang') === helpLang);
   if (helpView === 'gate') { helpHeaderTitle.textContent = data.headerGate; helpGate.classList.remove('hidden'); helpGuideScroll.classList.add('hidden'); btnHelpBack.classList.add('hidden'); }
   else {
     helpHeaderTitle.textContent = helpView === 'yes' ? data.headerYes : data.headerNo; helpGate.classList.add('hidden'); helpGuideScroll.classList.remove('hidden'); btnHelpBack.classList.remove('hidden');
@@ -2171,7 +2192,7 @@ function renderHelpModal(resetScroll) {
 }
 
 var btnSoloMode = $('btnSoloMode'), btnOnlineMode = $('btnOnlineMode'), btnCancelMatchmaking = $('btnCancelMatchmaking'), btnBackToMenu = $('btnBackToMenu');
-var battleHeader = $('battleHeader'), p1CountryBadge = $('p1CountryBadge'), p2CountryBadge = $('p2CountryBadge'), playerBadge = $('playerBadge'), roundBadge = $('roundBadge'), turnIndicator = $('turnIndicator');
+var battleHeader = $('battleHeader'), p1CountryBadge = $('p1CountryBadge'), p2CountryBadge = $('p2CountryBadge');
 var lockedOverlay = $('lockedOverlay'), lockedTitle = $('lockedTitle'), lockedSub = $('lockedSub'), perStepBtn = $('perStepBtn'), perStepMain = $('perStepMain'), perStepSub = $('perStepSub'), clearBtn = $('clearBtn'), nextBtn = $('nextBtn');
 var drumModeRow = $('drumModeRow'), actionsRow = $('actionsRow'), modeSwitchBtns = document.querySelectorAll('#modeSwitcherRow .mode-switch-btn');
 var instName = $('instName'), bpmBox = $('bpmBox'), bpmSlider = $('bpmSlider'), bpmValue = $('bpmValue');
@@ -2183,7 +2204,7 @@ var filterLabel = $('filterLabel'), filterToggleLabel = $('filterToggleLabel'), 
 var reverbLabel = $('reverbLabel'), reverbToggleLabel = $('reverbToggleLabel'), reverbAmtWord = $('reverbAmtWord'), reverbGlideWord = $('reverbGlideWord');
 var pitchSlider = $('pitchSlider'), decaySlider = $('decaySlider'), filterSlider = $('filterSlider'), reverbSlider = $('reverbSlider'), stepsSlider = $('stepsSlider'), volumeSlider = $('volumeSlider');
 var pitchVal = $('pitchVal'), decayVal = $('decayVal'), filterVal = $('filterVal'), reverbVal = $('reverbVal'), stepsVal = $('stepsVal'), volumeVal = $('volumeVal');
-var swingBpmValue = $('swingBpmValue'), swingSubLogo = $('swingSubLogo'), btnPush = $('btnPush'), btnStraight = $('btnStraight'), btnGroove = $('btnGroove'), btnBackFromSwing = $('btnBackFromSwing'), btnProceedToJam = $('btnProceedToJam');
+var swingBpmValue = $('swingBpmValue'), swingSubLogo = $('swingSubLogo'), btnPush = $('btnPush'), btnStraight = $('btnStraight'), btnGroove = $('btnGroove'), btnProceedToJam = $('btnProceedToJam');
 var progressFill = $('progressFill'), jamMatchup = $('jamMatchup'), pixelCanvas = $('pixelCanvas'), pixelCtx = pixelCanvas.getContext('2d');
 var vinylRewind = $('vinylRewind'), vinylHighpass = $('vinylHighpass'), vinylEcho = $('vinylEcho'), vinylCrush = $('vinylCrush');
 var vinylCtxs = { rewind: vinylRewind.getContext('2d'), highpass: vinylHighpass.getContext('2d'), echo: vinylEcho.getContext('2d'), crush: vinylCrush.getContext('2d') };
@@ -2567,12 +2588,20 @@ bindTap(barRemoveBtn, function() {
   track.barCount = count - 1; if ((viewedBar[turnIndex] || 0) >= track.barCount) viewedBar[turnIndex] = track.barCount - 1; renderBarSwitcher(); drawPianoRoll();
 });
 
-// ONLINE MATCHMAKING & SYNC
+// ONLINE PRESENCE, MATCHMAKING & SYNC
 db.ref('.info/connected').on('value', function(snap) {
-  if (snap.val() === true && roomRef && myRole && onlineMatchActive) {
-    roomRef.child('players/' + myRole + '/connected').set(true);
-    roomRef.child('players/' + myRole + '/country').set(myCountryCode);
-    roomRef.child('players/' + myRole + '/connected').onDisconnect().set(false);
+  var isConn = snap.val() === true;
+  if (onlineCounterEl) onlineCounterEl.classList.toggle('is-connected', isConn);
+  if (isConn) {
+    try {
+      presenceRef.onDisconnect().remove();
+      presenceRef.set(firebase.database.ServerValue.TIMESTAMP);
+    } catch (e) {}
+    if (roomRef && myRole && onlineMatchActive) {
+      roomRef.child('players/' + myRole + '/connected').set(true);
+      roomRef.child('players/' + myRole + '/country').set(myCountryCode);
+      roomRef.child('players/' + myRole + '/connected').onDisconnect().set(false);
+    }
   }
 });
 function detachOnlineRoom() {
@@ -2587,11 +2616,12 @@ function updateOnlineCountryBadges() {
   p2CountryBadge.textContent = 'P2 · ' + c2 + (myRole === 'player2' ? ' (YOU)' : '');
   p1CountryBadge.classList.toggle('is-me', myRole === 'player1');
   p2CountryBadge.classList.toggle('is-me', myRole === 'player2');
-  swingSubLogo.textContent = (gameMode === 'online') ? (c1 + ' VS ' + c2 + ' · TIMING FEEL') : 'SELECT TIMING FEEL';
   if (gameMode === 'online') {
-    jamMatchup.textContent = c1 + '  VS  ' + c2;
+    swingSubLogo.innerHTML = escapeHtml(c1) + ' ' + HEART_HTML + ' ' + escapeHtml(c2) + ' · TIMING FEEL';
+    jamMatchup.innerHTML = escapeHtml(c1) + ' ' + HEART_HTML + ' ' + escapeHtml(c2);
     jamMatchup.classList.remove('hidden');
   } else {
+    swingSubLogo.textContent = 'SELECT TIMING FEEL';
     jamMatchup.classList.add('hidden');
   }
 }
@@ -2599,12 +2629,16 @@ function updateTurnStatusUI() {
   if (gameMode !== 'online' || !onlineMatchActive) { lockedOverlay.classList.add('hidden'); return; }
   updateOnlineCountryBadges();
   var cname = getActiveInstConfig(turnIndex).name.toUpperCase();
-  var myC = roomCountries[myRole] || myCountryCode;
   var turnC = roomCountries[roomTurn] || '---';
-  playerBadge.textContent = (myRole === 'player1' ? 'P1' : 'P2') + ' · ' + myC;
-  roundBadge.textContent = (turnIndex + 1) + '/7: ' + cname;
-  if (isMyTurn()) { lockedOverlay.classList.add('hidden'); turnIndicator.textContent = 'YOUR TURN'; turnIndicator.classList.add('active-turn'); nextBtn.textContent = 'NEXT'; }
-  else { lockedOverlay.classList.remove('hidden'); lockedTitle.textContent = "BEATFRIEND'S TURN..."; lockedSub.textContent = (roomTurn === 'player1' ? 'P1' : 'P2') + ' (' + turnC + ') IS ADDING ' + cname; turnIndicator.textContent = 'WAITING'; turnIndicator.classList.remove('active-turn'); nextBtn.textContent = 'WAITING...'; }
+  if (isMyTurn()) {
+    lockedOverlay.classList.add('hidden');
+    nextBtn.textContent = 'NEXT';
+  } else {
+    lockedOverlay.classList.remove('hidden');
+    lockedTitle.textContent = "BEATFRIEND'S TURN...";
+    lockedSub.textContent = (roomTurn === 'player1' ? 'P1' : 'P2') + ' (' + turnC + ') IS ADDING ' + cname;
+    nextBtn.textContent = 'WAITING...';
+  }
 }
 function toArrayN(val, len, def) { var out = []; for (var i = 0; i < len; i++) out.push((val && val[i] !== undefined) ? val[i] : def); return out; }
 function serializeStepLocks(locksObj) {
@@ -3282,8 +3316,7 @@ function nextTurn() { cancelDrumLongPress(); cancelAllDualLongPresses(); release
 function setSwingMode(m) { currentSwingMode = m; updateSwingUI(); }
 function updateSwingUI() { btnPush.classList.toggle('active', currentSwingMode === 'push'); btnStraight.classList.toggle('active', currentSwingMode === 'straight'); btnGroove.classList.toggle('active', currentSwingMode === 'groove'); }
 bindTap(btnPush, function() { setSwingMode('push'); }); bindTap(btnStraight, function() { setSwingMode('straight'); }); bindTap(btnGroove, function() { setSwingMode('groove'); });
-function openSwingScreen() { cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate(); swingScreenActive = true; ensureRewindFallbackConnected(true); swingBpmValue.textContent = bpm; btnProceedToJam.textContent = 'JAM'; updateSwingUI(); updateOnlineCountryBadges(); sequencerScreen.classList.add('hidden'); swingScreen.classList.remove('hidden'); btnBackFromSwing.classList.toggle('hidden', gameMode === 'online'); }
-bindTap(btnBackFromSwing, function() { swingScreenActive = false; ensureRewindFallbackConnected(false); swingScreen.classList.add('hidden'); sequencerScreen.classList.remove('hidden'); renderTurn(); });
+function openSwingScreen() { cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate(); swingScreenActive = true; ensureRewindFallbackConnected(true); swingBpmValue.textContent = bpm; btnProceedToJam.textContent = 'JAM'; updateSwingUI(); updateOnlineCountryBadges(); sequencerScreen.classList.add('hidden'); swingScreen.classList.remove('hidden'); }
 bindTap(btnProceedToJam, function() { swingScreenActive = false; swingScreen.classList.add('hidden'); startJam(); });
 
 var vinylAngles = { rewind: 0, highpass: 0, echo: 0, crush: 0 };
@@ -3322,69 +3355,106 @@ function drawStartScene() {
   ctx.fillRect(0, 0, W, H);
 
   // Subtle stars in night sky
-  var stars = [[7,6],[19,11],[31,4],[96,8],[105,15],[88,4],[13,24],[101,29]];
+  var stars = [[7,6],[19,11],[31,4],[62,5],[104,7],[107,18],[12,24],[103,28]];
   ctx.fillStyle = '#555';
   for (var st = 0; st < stars.length; st++) ctx.fillRect(stars[st][0], stars[st][1], 1, 1);
 
-  // Full moon behind the brutalist building
-  var mx = 74, my = 18, mr = 14;
+  // Larger, clearly visible full moon behind the right shoulder of the bunker
+  var mx = 84, my = 16, mr = 15;
   for (var y = -mr; y <= mr; y++) {
     for (var x = -mr; x <= mr; x++) {
       if (x * x + y * y <= mr * mr) {
         var d = Math.sqrt(x * x + y * y);
         var isRim = d > mr - 1.3;
-        var isCrater = ((x + 4) * (x + 4) + (y - 2) * (y - 2) <= 7) || ((x - 5) * (x - 5) + (y + 4) * (y + 4) <= 5) || ((x + 1) * (x + 1) + (y + 7) * (y + 7) <= 3);
+        var isCrater = ((x + 4) * (x + 4) + (y - 3) * (y - 3) <= 8) || ((x - 5) * (x - 5) + (y + 4) * (y + 4) <= 6) || ((x + 1) * (x + 1) + (y + 7) * (y + 7) <= 4);
         ctx.fillStyle = isRim ? '#bbb' : (isCrater ? '#ccc' : '#fff');
         ctx.fillRect(mx + x, my + y, 1, 1);
       }
     }
   }
 
-  // Brutalist concrete monolith & cantilevered wing in background
-  // Main tower
-  ctx.fillStyle = '#181818';
-  ctx.fillRect(28, 12, 56, 46);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(28, 12, 56, 2);
-  ctx.fillRect(28, 12, 2, 46);
-  ctx.fillStyle = '#0c0c0c';
-  ctx.fillRect(72, 14, 12, 44);
+  // Soviet / Berlinesque concrete brutalist bunker (stepped monolith, no columns)
+  // Rooftop mechanical/ventilation block & antenna mast
+  ctx.fillStyle = '#252525';
+  ctx.fillRect(24, 8, 19, 5);
+  ctx.fillStyle = '#484848';
+  ctx.fillRect(24, 8, 19, 1);
+  ctx.fillRect(29, 3, 1, 5);
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(27, 10, 4, 2);
+  ctx.fillRect(34, 10, 6, 2);
 
-  // Cantilevered brutalist upper slab
-  ctx.fillStyle = '#242424';
-  ctx.fillRect(16, 21, 78, 9);
-  ctx.fillStyle = '#4a4a4a';
-  ctx.fillRect(16, 21, 78, 1);
-  ctx.fillRect(16, 21, 1, 9);
-  ctx.fillStyle = '#111';
-  ctx.fillRect(16, 29, 78, 2);
-
-  // Concrete horizontal slab bands & vertical recessed window slits
-  for (var wy = 15; wy < 20; wy += 3) {
-    for (var wx = 33; wx < 69; wx += 6) {
-      ctx.fillStyle = '#070707';
-      ctx.fillRect(wx, wy, 3, 2);
-    }
-  }
-  for (var wx2 = 20; wx2 < 88; wx2 += 6) {
-    ctx.fillStyle = (wx2 % 12 === 2) ? '#555' : '#080808';
-    ctx.fillRect(wx2, 24, 3, 3);
-  }
-  // Lower colonnade pillars & deep concrete shadow
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(30, 31, 52, 27);
-  for (var px = 31; px <= 77; px += 11) {
-    ctx.fillStyle = '#2a2a2a';
-    ctx.fillRect(px, 31, 4, 27);
-    ctx.fillStyle = '#444';
-    ctx.fillRect(px, 31, 1, 27);
-  }
-  // Brutalist roof antenna / stairwell bulkhead
+  // Main upper bunker block (left-of-center so the moon stays prominent on the right)
+  ctx.fillStyle = '#191919';
+  ctx.fillRect(18, 13, 44, 45);
+  ctx.fillStyle = '#0e0e0e';
+  ctx.fillRect(52, 13, 10, 45);
+  ctx.fillStyle = '#3c3c3c';
+  ctx.fillRect(18, 13, 44, 1);
   ctx.fillStyle = '#2c2c2c';
-  ctx.fillRect(41, 7, 18, 5);
-  ctx.fillStyle = '#4a4a4a';
-  ctx.fillRect(41, 7, 18, 1);
-  ctx.fillRect(46, 3, 1, 4);
+  ctx.fillRect(18, 13, 1, 45);
+
+  // Armored horizontal bunker slits on upper tier
+  for (var sx = 22; sx <= 44; sx += 7) {
+    ctx.fillStyle = '#060606';
+    ctx.fillRect(sx, 16, 4, 2);
+  }
+
+  // Cantilevered heavy concrete bunker hood / cornice
+  ctx.fillStyle = '#262626';
+  ctx.fillRect(12, 21, 53, 5);
+  ctx.fillStyle = '#4c4c4c';
+  ctx.fillRect(12, 21, 53, 1);
+  ctx.fillRect(12, 21, 1, 5);
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(12, 26, 53, 2);
+  for (var hx = 16; hx <= 58; hx += 8) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(hx, 23, 4, 2);
+  }
+
+  // Lower right stepped concrete bunker wing (sits below the moon arc)
+  ctx.fillStyle = '#151515';
+  ctx.fillRect(62, 31, 35, 27);
+  ctx.fillStyle = '#0c0c0c';
+  ctx.fillRect(88, 31, 9, 27);
+  ctx.fillStyle = '#383838';
+  ctx.fillRect(62, 31, 35, 1);
+
+  // Reinforced concrete flank shoulder on far left (bunker blast wall)
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(14, 34, 4, 24);
+  ctx.fillStyle = '#2e2e2e';
+  ctx.fillRect(14, 34, 4, 1);
+  ctx.fillRect(14, 34, 1, 24);
+
+  // Plattenbau / board-formed concrete slab seams across solid bunker walls (no columns)
+  var seamRows = [33, 39, 45, 51];
+  for (var sr = 0; sr < seamRows.length; sr++) {
+    ctx.fillStyle = '#0c0c0c';
+    ctx.fillRect(18, seamRows[sr], 44, 1);
+    ctx.fillStyle = '#212121';
+    ctx.fillRect(18, seamRows[sr] + 1, 34, 1);
+  }
+  var rightSeams = [40, 46, 52];
+  for (var rs = 0; rs < rightSeams.length; rs++) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(62, rightSeams[rs], 35, 1);
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(62, rightSeams[rs] + 1, 26, 1);
+  }
+  // Vertical concrete slab joints
+  ctx.fillStyle = '#0b0b0b';
+  ctx.fillRect(30, 28, 1, 30);
+  ctx.fillRect(42, 28, 1, 30);
+  ctx.fillRect(74, 32, 1, 26);
+  ctx.fillRect(85, 32, 1, 26);
+
+  // Small recessed bunker embrasure slits on right wing & lower left
+  ctx.fillStyle = '#060606';
+  ctx.fillRect(66, 35, 5, 2);
+  ctx.fillRect(77, 35, 5, 2);
+  ctx.fillRect(22, 30, 5, 2);
 
   // Ground concrete plaza line
   ctx.fillStyle = '#555';
@@ -3436,7 +3506,11 @@ function startJam() {
     var nowIn = audioCtx.currentTime;
     masterGain.gain.cancelScheduledValues(nowIn);
     masterGain.gain.setValueAtTime(0.0001, nowIn);
-    masterGain.gain.linearRampToValueAtTime(0.85, nowIn + 0.9);
+    masterGain.gain.setValueAtTime(0.0001, nowIn + 0.05);
+    masterGain.gain.exponentialRampToValueAtTime(0.02, nowIn + 0.65);
+    masterGain.gain.exponentialRampToValueAtTime(0.12, nowIn + 1.35);
+    masterGain.gain.exponentialRampToValueAtTime(0.38, nowIn + 2.05);
+    masterGain.gain.linearRampToValueAtTime(0.85, nowIn + 2.65);
   }
   startJamRecording();
 }
