@@ -74,30 +74,36 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .battle-badge.active-turn { background: #fff; color: #000; }
 .battle-status-msg { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; }
 
-.seq-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: clamp(6px, 1.2dvh, 10px) clamp(8px, 2vw, 12px); min-height: 0; gap: clamp(3px, 0.8dvh, 6px); position: relative; overflow: hidden; }
+.seq-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: clamp(6px, 1.1dvh, 10px) clamp(8px, 2vw, 12px); min-height: 0; gap: clamp(3px, 0.7dvh, 6px); position: relative; overflow: hidden; }
 .locked-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(2px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 12px; }
 .locked-card { border: 1px solid #fff; background: #000; padding: 18px 20px; max-width: 320px; width: 100%; }
-.top-bar { display: flex; justify-content: space-between; align-items: center; gap: 6px; border-bottom: 1px solid #333; padding-bottom: clamp(3px, 0.8dvh, 6px); min-height: clamp(38px, 5.4dvh, 48px); flex-shrink: 0; }
-.inst-name { font-size: clamp(15px, 2.5dvh, 20px); font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.inst-header { display: flex; flex-direction: column; gap: clamp(3px, 0.55dvh, 5px); border-bottom: 1px solid #333; padding-bottom: clamp(4px, 0.7dvh, 6px); flex-shrink: 0; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: clamp(32px, 4.4dvh, 42px); flex-shrink: 0; }
+.inst-name { font-size: clamp(15px, 2.4dvh, 20px); font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .inst-opt { color: #555; cursor: pointer; padding: 4px 0; transition: color 0.12s ease; }
 .inst-opt.active { color: #fff; font-weight: 900; }
 .inst-sep { color: #444; font-weight: 400; }
-.bpm-box { display: flex; align-items: center; gap: 6px; border: 1px solid #333; padding: 0 8px; height: clamp(34px, 4.8dvh, 42px); font-size: 10px; letter-spacing: 1px; flex-shrink: 0; }
+.bpm-box { display: flex; align-items: center; gap: 6px; border: 1px solid #333; padding: 0 8px; height: clamp(32px, 4.4dvh, 40px); font-size: 10px; letter-spacing: 1px; flex-shrink: 0; }
 
-.bar-switcher { display: flex; align-items: center; gap: 4px; height: clamp(34px, 4.8dvh, 42px); flex-shrink: 0; }
-.bar-btn { width: 30px; height: clamp(30px, 4.2dvh, 36px); background: #000; color: #fff; border: 1px solid #444; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; padding: 0; }
+.mode-switcher-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.mode-switch-btn { background: #000; color: #777; border: 1px solid #333; height: clamp(24px, 3.3dvh, 28px); padding: 0 4px; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.mode-switch-btn.active { background: #fff; color: #000; border-color: #fff; font-weight: 900; }
+
+.bar-switcher { display: flex; align-items: center; gap: 4px; height: clamp(32px, 4.4dvh, 40px); flex-shrink: 0; }
+.bar-btn { width: 30px; height: clamp(28px, 3.9dvh, 34px); background: #000; color: #fff; border: 1px solid #444; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; padding: 0; }
 .bar-btn.active-bar { background: #fff; color: #000; border-color: #fff; font-weight: 900; }
 .bar-btn.playing-bar::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 2px; height: 2px; background: #fff; }
 .bar-btn.active-bar.playing-bar::after { background: #000; }
-.bar-mod-btn { width: 28px; height: clamp(30px, 4.2dvh, 36px); background: #000; color: #aaa; border: 1px solid #333; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.bar-mod-btn { width: 28px; height: clamp(28px, 3.9dvh, 34px); background: #000; color: #aaa; border: 1px solid #333; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
 .bar-mod-btn:active { background: #222; color: #fff; border-color: #fff; }
 
 .accent-banner { text-align: center; font-size: 10px; font-weight: 800; letter-spacing: 2.5px; color: #fff; text-transform: uppercase; height: 14px; line-height: 14px; flex-shrink: 0; opacity: 0; pointer-events: none; transition: opacity 0.45s ease; }
 .accent-banner.visible { opacity: 1; transition: opacity 0.12s ease; }
 
-.step-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(3px, 0.7dvh, 5px); touch-action: none; margin: 0; flex-shrink: 1; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.step-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(3px, 0.6dvh, 5px); touch-action: none; margin: 0; flex-shrink: 1; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .step-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.step-pad { width: 100%; min-height: 36px; height: clamp(36px, 5.2dvh, 54px); background: #000; border: 1px solid #3a3a3a; color: #555; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.step-pad { width: 100%; min-height: 34px; height: clamp(34px, 4.8dvh, 50px); background: #000; border: 1px solid #3a3a3a; color: #555; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .step-pad.beat-mark { border-left: 3px solid #666; }
 .step-pad.vel-ghost { background: #0a0a0a; border: 1px solid #6a6a6a; color: #8c8c8c; }
 .step-pad.beat-mark.vel-ghost { border-left: 3px solid #888; }
@@ -116,13 +122,13 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .playhead-bar.now { background: #fff; }
 
 .wave-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; flex-shrink: 0; }
-.wave-btn { min-height: 36px; height: clamp(36px, 4.8dvh, 42px); background: #000; color: #777; border: 1px solid #333; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; }
+.wave-btn { min-height: 34px; height: clamp(34px, 4.5dvh, 40px); background: #000; color: #777; border: 1px solid #333; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; }
 .wave-btn.active { background: #fff; color: #000; border-color: #fff; }
-.piano-roll-wrap { flex: 1; min-height: 115px; border: 1px solid #444; background: #000; position: relative; overflow: hidden; touch-action: none; }
+.piano-roll-wrap { flex: 1; min-height: 110px; border: 1px solid #444; background: #000; position: relative; overflow: hidden; touch-action: none; }
 .piano-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-.params-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(4px, 0.7dvh, 6px); flex-shrink: 0; width: 100%; }
-.param-box { min-width: 0; overflow: hidden; border: 1px solid #333; padding: 4px 8px; min-height: 48px; height: clamp(48px, 6dvh, 56px); display: flex; flex-direction: column; justify-content: center; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.params-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(4px, 0.65dvh, 6px); flex-shrink: 0; width: 100%; }
+.param-box { min-width: 0; overflow: hidden; border: 1px solid #333; padding: 3px 8px; min-height: 44px; height: clamp(44px, 5.6dvh, 54px); display: flex; flex-direction: column; justify-content: center; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .param-box.full-width { grid-column: 1 / -1; }
 .param-top { display: flex; justify-content: space-between; align-items: center; min-width: 0; font-size: clamp(7.5px, 2.05vw, 9px); letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 2px; gap: 4px; }
 .param-top.tri-mode { font-size: clamp(6.5px, 1.8vw, 8.5px); letter-spacing: 0.2px; }
@@ -132,18 +138,21 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .dual-word.active { color: #fff; }
 .dual-sep { color: #555; }
 
-input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; margin: 0; background: transparent; outline: none; touch-action: pan-x; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 0; background: transparent; outline: none; touch-action: pan-x; }
 input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: #3a3a3a; border-radius: 2px; }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -12px; background: #fff; border: none; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.8); cursor: pointer; }
 input[type="range"]::-moz-range-track { height: 4px; background: #3a3a3a; border-radius: 2px; }
 input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #fff; border: none; border-radius: 2px; cursor: pointer; }
 
-.actions-row { display: grid; grid-template-columns: 0.85fr 1.3fr 1.05fr; gap: 6px; padding-top: 2px; flex-shrink: 0; }
-.btn-secondary { background: #000; color: #fff; border: 1px solid #555; min-height: 42px; height: clamp(42px, 5.6dvh, 48px); padding: 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.drum-mode-row { display: grid; grid-template-columns: 0.85fr 1.3fr; gap: 6px; padding-top: 2px; flex-shrink: 0; }
+.actions-row { display: grid; grid-template-columns: 0.85fr 1.3fr; gap: 6px; padding-top: 2px; flex-shrink: 0; }
+.actions-row.drum-actions { grid-template-columns: 0.85fr 1.3fr; }
+.actions-row.piano-actions { grid-template-columns: 0.8fr 1.05fr 1.25fr; }
+.btn-secondary { background: #000; color: #fff; border: 1px solid #555; min-height: 38px; height: clamp(38px, 5.0dvh, 46px); padding: 6px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
 .btn-secondary:active { border-color: #fff; background: #222; }
-.btn-per-step { font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 6px 4px; border-color: #777; }
+.btn-per-step { font-size: 10px; font-weight: 800; letter-spacing: 0.9px; padding: 6px 4px; border-color: #777; }
 .btn-per-step.armed { background: #fff; color: #000; border-color: #fff; font-weight: 900; box-shadow: 0 0 10px rgba(255, 255, 255, 0.55); }
-.btn-next { background: #fff; color: #000; border: 1px solid #fff; min-height: 42px; height: clamp(42px, 5.6dvh, 48px); padding: 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; }
+.btn-next { background: #fff; color: #000; border: 1px solid #fff; min-height: 38px; height: clamp(38px, 5.0dvh, 46px); padding: 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; }
 .btn-next:active { background: #000; color: #fff; }
 
 .swing-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fff; padding: 16px 14px; min-height: 0; gap: 16px; }
@@ -192,7 +201,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
   .btn-lets-go.primary:hover { background: #ddd; color: #000; }
   .btn-help-tab:hover, .btn-next:hover { background: #fff; color: #000; }
   .btn-next:hover { background: #000; color: #fff; }
-  .help-mini-btn:hover, .step-pad:hover, .bar-btn:hover, .wave-btn:hover, .btn-secondary:hover, .swing-toggle-btn:hover { border-color: #fff; }
+  .help-mini-btn:hover, .step-pad:hover, .bar-btn:hover, .wave-btn:hover, .btn-secondary:hover, .swing-toggle-btn:hover, .mode-switch-btn:hover { border-color: #fff; }
   .bar-mod-btn:hover { border-color: #fff; color: #fff; }
   .mute-pad:hover { opacity: 0.85; }
   .inst-opt:hover { color: #bbb; }
@@ -256,16 +265,23 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
         </div>
       </div>
       
-      <div class="top-bar">
-        <h2 class="inst-name" id="instName">BASS DRUM</h2>
-        <div class="bpm-box mono" id="bpmBox"><span>BPM</span><input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 76px;" /><span id="bpmValue">118</span></div>
-        <div class="bar-switcher mono hidden" id="barSwitcher">
-          <button type="button" class="bar-btn mono active-bar" data-bar="0">1</button>
-          <button type="button" class="bar-btn mono hidden" data-bar="1">2</button>
-          <button type="button" class="bar-btn mono hidden" data-bar="2">3</button>
-          <button type="button" class="bar-btn mono hidden" data-bar="3">4</button>
-          <button type="button" class="bar-mod-btn mono" id="barAddBtn">+</button>
-          <button type="button" class="bar-mod-btn mono hidden" id="barRemoveBtn">-</button>
+      <div class="inst-header">
+        <div class="top-bar">
+          <h2 class="inst-name" id="instName">BASS DRUM</h2>
+          <div class="bpm-box mono" id="bpmBox"><span>BPM</span><input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 76px;" /><span id="bpmValue">118</span></div>
+          <div class="bar-switcher mono hidden" id="barSwitcher">
+            <button type="button" class="bar-btn mono active-bar" data-bar="0">1</button>
+            <button type="button" class="bar-btn mono hidden" data-bar="1">2</button>
+            <button type="button" class="bar-btn mono hidden" data-bar="2">3</button>
+            <button type="button" class="bar-btn mono hidden" data-bar="3">4</button>
+            <button type="button" class="bar-mod-btn mono" id="barAddBtn">+</button>
+            <button type="button" class="bar-mod-btn mono hidden" id="barRemoveBtn">-</button>
+          </div>
+        </div>
+        <div class="mode-switcher-row mono" id="modeSwitcherRow">
+          <button type="button" class="mode-switch-btn active" data-edit-mode="perStep">PER STEP</button>
+          <button type="button" class="mode-switch-btn" data-edit-mode="retrig">RETRIG</button>
+          <button type="button" class="mode-switch-btn" data-edit-mode="chance">CHANCE</button>
         </div>
       </div>
       <div class="accent-banner mono" id="accentBanner">ACCENT ENABLED</div>
@@ -306,10 +322,12 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
         <div class="param-box" id="boxSteps"><div class="param-top mono"><span class="param-label">Steps</span><span class="param-value" id="stepsVal">16</span></div><input type="range" id="stepsSlider" min="3" max="16" step="1" value="16" /></div>
         <div class="param-box" id="boxVolume"><div class="param-top mono"><span class="param-label">Volume</span><span class="param-value" id="volumeVal">100%</span></div><input type="range" id="volumeSlider" min="0" max="1.5" step="0.01" value="1.0" /></div>
       </div>
-      <div class="actions-row">
+      <div class="drum-mode-row" id="drumModeRow">
+        <button type="button" class="btn-secondary btn-per-step mono" id="perStepBtn">PER STEP</button>
+      </div>
+      <div class="actions-row drum-actions" id="actionsRow">
         <button type="button" class="btn-secondary" id="clearBtn">Clear</button>
         <button type="button" class="btn-next" id="nextBtn">NEXT</button>
-        <button type="button" class="btn-secondary btn-per-step mono" id="perStepBtn">PER STEP</button>
       </div>
     </div>
 
@@ -397,6 +415,8 @@ function buildNoteRange(a, b) { var l = []; for (var m = a; m <= b; m++) l.push(
 
 var BASS_NOTES = buildNoteRange(24, 36), SYNTH_NOTES = buildNoteRange(60, 72);
 var ATTACK_RANGE = [0.005, 0.300], DECAY_RANGE = [0.010, 1.000], RELEASE_RANGE = [0.020, 2.500], GLIDE_RANGE = [0.000, 0.500], MIN_MICRO_RAMP = 0.003;
+var RETRIG_CYCLE = [1, 2, 3, 4, 6, 8];
+var CHANCE_CYCLE = [100, 90, 80, 75, 67, 50, 33, 25, 20, 10];
 
 var INSTRUMENTS = [
   { id: 'kick',     name: 'Bass Drum',  defaults: { pitch: 0.45, decay: 0.55, filter: 0.78, reverb: 0.0, volume: 1.0 }, pitchRange: [42, 115],    decayRange: [0.12, 0.75] },
@@ -449,7 +469,8 @@ var JAM_SECONDS = 60, BASE_HPF_HZ = 44, REWIND_SPEED = -0.5, LONG_PRESS_MS = 500
 var turnIndex = 0, bpm = 118, isPlaying = false, jamActive = false, swingScreenActive = false, currentSwingMode = 'straight', accentMode = false;
 var envEditMode = { 5: 'decay', 6: 'decay' }, filterEditMode = { 5: 'filter', 6: 'filter' }, reverbEditMode = { 5: 'reverb', 6: 'reverb' };
 var viewedBar = { 5: 0, 6: 0 }, tracks = [], trackMutes = [false, false, false, false, false, false, false], isHoldActive = false, holdPointerId = null, stagedMutes = null;
-var perStepArmed = false, perStepPointerId = null, perStepTargets = [], perStepFocus = null;
+var stepEditMode = 'perStep', perStepArmed = false, perStepPointerId = null, perStepTargets = [], perStepFocus = null, modeHoldStatusText = '';
+var tiedChancePass = [true, true, true, true, true, true, true];
 var gameMode = 'solo', onlineMatchActive = false, myRole = null, currentRoomId = null, roomRef = null, waitingQueueRef = null, p2JoinRef = null, roomTurn = 'player1';
 var lastHandledMoveTimestamp = 0, oppDisconnectTimer = null, battleLaunched = false, isSendingMove = false;
 
@@ -484,6 +505,42 @@ function hasStepLocks(instIdx, stepIdx) {
   if (!sl) return false;
   for (var k in sl) if (Object.prototype.hasOwnProperty.call(sl, k) && sl[k] !== undefined) return true;
   return false;
+}
+
+function getStepRetrig(instIdx, stepIdx) {
+  var v = tracks[instIdx] && tracks[instIdx].retrigLocks && tracks[instIdx].retrigLocks[stepIdx];
+  return (v && RETRIG_CYCLE.indexOf(v) !== -1) ? v : 1;
+}
+
+function setStepRetrig(instIdx, stepIdx, val) {
+  if (stepIdx === null || stepIdx === undefined) return;
+  if (!tracks[instIdx].retrigLocks) tracks[instIdx].retrigLocks = {};
+  var targets = instIdx >= 5 ? getTiedNoteGroup(instIdx, stepIdx) : [stepIdx];
+  for (var i = 0; i < targets.length; i++) {
+    var ts = targets[i];
+    if (!val || val <= 1) delete tracks[instIdx].retrigLocks[ts];
+    else tracks[instIdx].retrigLocks[ts] = val;
+  }
+}
+
+function getStepChance(instIdx, stepIdx) {
+  var v = tracks[instIdx] && tracks[instIdx].chanceLocks && tracks[instIdx].chanceLocks[stepIdx];
+  return (v !== undefined && CHANCE_CYCLE.indexOf(v) !== -1) ? v : 100;
+}
+
+function setStepChance(instIdx, stepIdx, val) {
+  if (stepIdx === null || stepIdx === undefined) return;
+  if (!tracks[instIdx].chanceLocks) tracks[instIdx].chanceLocks = {};
+  var targets = instIdx >= 5 ? getTiedNoteGroup(instIdx, stepIdx) : [stepIdx];
+  for (var i = 0; i < targets.length; i++) {
+    var ts = targets[i];
+    if (val === undefined || val >= 100) delete tracks[instIdx].chanceLocks[ts];
+    else tracks[instIdx].chanceLocks[ts] = val;
+  }
+}
+
+function isStepModified(instIdx, stepIdx) {
+  return hasStepLocks(instIdx, stepIdx) || getStepRetrig(instIdx, stepIdx) > 1 || getStepChance(instIdx, stepIdx) < 100;
 }
 
 function trackHasLockForParam(instIdx, paramName) {
@@ -533,6 +590,16 @@ function clearStepLock(instIdx, stepIdx) {
   }
 }
 
+function clearStepAllMods(instIdx, stepIdx) {
+  clearStepLock(instIdx, stepIdx);
+  if (tracks[instIdx] && tracks[instIdx].retrigLocks && tracks[instIdx].retrigLocks[stepIdx] !== undefined) {
+    delete tracks[instIdx].retrigLocks[stepIdx];
+  }
+  if (tracks[instIdx] && tracks[instIdx].chanceLocks && tracks[instIdx].chanceLocks[stepIdx] !== undefined) {
+    delete tracks[instIdx].chanceLocks[stepIdx];
+  }
+}
+
 function cloneStepLockObj(obj) {
   if (!obj) return null;
   var out = {}, hasAny = false;
@@ -552,10 +619,11 @@ function resetTracks() {
     for (var s = 0; s < len; s++) { arr.push(isDrum ? 0 : false); noteArr.push(0); tiedArr.push(false); }
     var pObj = { pitch: inst.defaults.pitch, decay: inst.defaults.decay, filter: inst.defaults.filter, reverb: 0.0, volume: 1.0 };
     if (!isDrum) { pObj.attack = inst.defaults.attack; pObj.release = inst.defaults.release; pObj.resonance = inst.defaults.resonance; pObj.glide = inst.defaults.glide; }
-    tracks.push({ variant: inst.id, steps: arr, notes: noteArr, tied: tiedArr, trackLength: STEPS, barCount: 1, waveform: 'sine', params: pObj, stepLocks: {} });
+    tracks.push({ variant: inst.id, steps: arr, notes: noteArr, tied: tiedArr, trackLength: STEPS, barCount: 1, waveform: 'sine', params: pObj, stepLocks: {}, retrigLocks: {}, chanceLocks: {} });
   }
   envEditMode[5] = 'decay'; envEditMode[6] = 'decay'; filterEditMode[5] = 'filter'; filterEditMode[6] = 'filter';
   reverbEditMode[5] = 'reverb'; reverbEditMode[6] = 'reverb'; viewedBar[5] = 0; viewedBar[6] = 0;
+  stepEditMode = 'perStep';
 }
 resetTracks();
 
@@ -1018,7 +1086,7 @@ function getTiedSpanCount(track, tLen, stepIdx, noteIdx) {
   return count;
 }
 
-function triggerMonoNote(instIdx, stepIdx, time) {
+function triggerMonoNote(instIdx, stepIdx, time, forceRetrig, retrigCount, isLastRetrig) {
   var v = monoVoices[instIdx]; if (!v || !audioCtx) return;
   var inst = INSTRUMENTS[instIdx], track = tracks[instIdx], effP = getEffectiveStepParams(instIdx, stepIdx);
   var tLen = getTrackLength(instIdx);
@@ -1032,7 +1100,7 @@ function triggerMonoNote(instIdx, stepIdx, time) {
   var prevSame = (stepIdx > 0 || (track.tied[0] && track.steps[prevIdx])) && track.steps[prevIdx] && track.notes[prevIdx] === noteIdx;
   var curEnvAtTrig = evalMonoEnvAt(v, trigTime);
   var wasRinging = (v.currentFreq > 0 && (curEnvAtTrig > 0.0002 || trigTime < v.noteEndTime - 0.004));
-  if (track.tied[stepIdx] && (wasRinging || prevSame)) return;
+  if (!forceRetrig && track.tied[stepIdx] && (wasRinging || prevSame)) return;
 
   v.lastTrigTime = trigTime;
   var freq = instIdx === 5 ? midiToHz(noteList[noteIdx].midi + Math.round(lerp(inst.pitchRange[0], inst.pitchRange[1], effP.pitch))) : midiToHz(noteList[noteIdx].midi + Math.round(effP.pitch) * 12);
@@ -1072,6 +1140,14 @@ function triggerMonoNote(instIdx, stepIdx, time) {
   var attackSec = Math.max(MIN_MICRO_RAMP, lerp(ATTACK_RANGE[0], ATTACK_RANGE[1], effP.attack !== undefined ? effP.attack : 0.0));
   var decaySec = Math.max(0.010, lerp(DECAY_RANGE[0], DECAY_RANGE[1], effP.decay !== undefined ? effP.decay : inst.defaults.decay));
   var releaseSec = Math.max(0.020, lerp(RELEASE_RANGE[0], RELEASE_RANGE[1], effP.release !== undefined ? effP.release : inst.defaults.release));
+  if (forceRetrig && retrigCount > 1) {
+    var subDur = (60 / bpm / 4) / retrigCount;
+    attackSec = Math.min(attackSec, Math.max(MIN_MICRO_RAMP, subDur * 0.22));
+    if (!isLastRetrig) {
+      decaySec = Math.min(decaySec, Math.max(0.008, subDur * 0.45));
+      releaseSec = Math.min(releaseSec, Math.max(0.010, subDur * 0.35));
+    }
+  }
   if (crushGateActive) {
     attackSec = Math.max(MIN_MICRO_RAMP, Math.min(0.012, attackSec));
     decaySec = Math.max(0.010, Math.min(0.060, decaySec * 0.4));
@@ -1081,7 +1157,7 @@ function triggerMonoNote(instIdx, stepIdx, time) {
   var wave = track.waveform || 'sine';
   var peakGain = instIdx === 5 ? 0.36 * ((wave === 'sawtooth') ? 0.41 : (wave === 'square' ? 0.43 : 1.0)) : ((wave === 'sawtooth' || wave === 'square') ? 0.15 : 0.40);
   var silenceVal = 0.0001;
-  var heldSteps = getTiedSpanCount(track, tLen, stepIdx, noteIdx);
+  var heldSteps = (!forceRetrig) ? getTiedSpanCount(track, tLen, stepIdx, noteIdx) : 1;
   var startEnv = wasRinging ? curEnvAtTrig : 0.0;
   var hasFutureEnv = (v.lastScheduledEnd > 0 && trigTime < v.lastScheduledEnd - 0.0005);
 
@@ -1144,12 +1220,13 @@ function triggerMonoNote(instIdx, stepIdx, time) {
   }
 }
 
-function triggerSound(instIdx, stepIdx, time, velState) {
+function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount, isLastRetrig) {
   if (!audioCtx || audioCtx.state !== 'running') return;
   try {
-    if (instIdx === 5 || instIdx === 6) { triggerMonoNote(instIdx, stepIdx, time); return; }
+    if (instIdx === 5 || instIdx === 6) { triggerMonoNote(instIdx, stepIdx, time, forceRetrig, retrigCount, isLastRetrig); return; }
     var inst = getActiveInstConfig(instIdx), effP = getEffectiveStepParams(instIdx, stepIdx);
     var pitchVal = lerp(inst.pitchRange[0], inst.pitchRange[1], effP.pitch), decayVal = lerp(inst.decayRange[0], inst.decayRange[1], effP.decay);
+    if (retrigCount && retrigCount > 1) decayVal = Math.min(decayVal, Math.max(0.025, ((60 / bpm / 4) / retrigCount) * 1.45));
     if (crushGateActive) decayVal = Math.min(0.14, decayVal * 0.65);
     var isAccent = velState === 2, isGhost = velState === 3, velGain = isAccent ? 1.35 : (isGhost ? 0.45 : 1.0);
     var trigTime = Math.max(audioCtx.currentTime, time);
@@ -1284,24 +1361,61 @@ function getSwingOffset(gStep, stepDur) {
 
 function scheduleStep(gStep, time) {
   var kickHit = false, anyHit = false, maxIdx = (jamActive || swingScreenActive || gameMode === 'online') ? INSTRUMENTS.length - 1 : turnIndex;
-  var kickLen = getTrackLength(0), kickState = normalizeDrumStep(tracks[0].steps[gStep % kickLen]);
-  if (!trackMutes[0] && kickState > 0 && basslineDuckingGain && audioCtx) {
-    var duckTime = Math.max(audioCtx.currentTime + 0.001, time, lastDuckTime + 0.001); lastDuckTime = duckTime;
-    var duckLevel = kickState === 3 ? 0.45 : (kickState === 2 ? 0.16 : 0.20);
-    basslineDuckingGain.gain.cancelScheduledValues(duckTime); basslineDuckingGain.gain.setTargetAtTime(duckLevel, duckTime, 0.006); basslineDuckingGain.gain.setTargetAtTime(1.0, duckTime + 0.04, 0.07);
-  }
+  var stepDur = 60 / bpm / 4;
+
   if (crushGateActive && audioCtx && crushGateGain) {
     try {
-      var stepDurGate = 60 / bpm / 4, gateTime = Math.max(audioCtx.currentTime, time, lastCrushGateTime + 0.001); lastCrushGateTime = gateTime;
+      var gateTime = Math.max(audioCtx.currentTime, time, lastCrushGateTime + 0.001); lastCrushGateTime = gateTime;
       crushGateGain.gain.cancelScheduledValues(gateTime); crushGateGain.gain.setValueAtTime(1.0, gateTime);
-      crushGateGain.exponentialRampToValueAtTime(0.08, gateTime + Math.min(0.11, stepDurGate * 0.75));
-      crushGateGain.linearRampToValueAtTime(0.0, gateTime + Math.min(0.14, stepDurGate * 0.90));
+      crushGateGain.exponentialRampToValueAtTime(0.08, gateTime + Math.min(0.11, stepDur * 0.75));
+      crushGateGain.linearRampToValueAtTime(0.0, gateTime + Math.min(0.14, stepDur * 0.90));
     } catch (e) {}
   }
+
   for (var i = 0; i <= maxIdx; i++) {
     var isDrum = i < 5, tLen = getTrackLength(i), tStep = gStep % tLen, rawStep = tracks[i].steps[tStep];
     var velState = isDrum ? normalizeDrumStep(rawStep) : (rawStep ? 1 : 0);
-    if (velState > 0 && !trackMutes[i]) { if (!tracks[i].tied[tStep]) anyHit = true; triggerSound(i, tStep, time, velState); if (INSTRUMENTS[i].id === 'kick') kickHit = true; }
+    if (velState <= 0) {
+      if (!isDrum) tiedChancePass[i] = true;
+      continue;
+    }
+
+    var chancePct = getStepChance(i, tStep);
+    var shouldTrigger = true;
+    if (!isDrum && tracks[i].tied[tStep]) {
+      var prevIdx = (tStep - 1 + tLen) % tLen;
+      var prevSame = (tStep > 0 || (tracks[i].tied[0] && tracks[i].steps[prevIdx])) && tracks[i].steps[prevIdx] && tracks[i].notes[prevIdx] === tracks[i].notes[tStep];
+      if (prevSame) shouldTrigger = tiedChancePass[i];
+      else {
+        shouldTrigger = (chancePct >= 100) || (Math.random() * 100 < chancePct);
+        tiedChancePass[i] = shouldTrigger;
+      }
+    } else {
+      shouldTrigger = (chancePct >= 100) || (Math.random() * 100 < chancePct);
+      if (!isDrum) tiedChancePass[i] = shouldTrigger;
+    }
+    if (!shouldTrigger) continue;
+
+    var retrig = getStepRetrig(i, tStep);
+    if (i === 0 && !trackMutes[0] && basslineDuckingGain && audioCtx) {
+      var duckTime = Math.max(audioCtx.currentTime + 0.001, time, lastDuckTime + 0.001); lastDuckTime = duckTime;
+      var duckLevel = velState === 3 ? 0.45 : (velState === 2 ? 0.16 : 0.20);
+      basslineDuckingGain.gain.cancelScheduledValues(duckTime); basslineDuckingGain.gain.setTargetAtTime(duckLevel, duckTime, 0.006); basslineDuckingGain.gain.setTargetAtTime(1.0, duckTime + 0.04, 0.07);
+    }
+    if (!trackMutes[i]) {
+      if (retrig > 1) {
+        var subDur = stepDur / retrig;
+        for (var r = 0; r < retrig; r++) {
+          var subTime = time + r * subDur;
+          triggerSound(i, tStep, subTime, velState, true, retrig, r === retrig - 1);
+        }
+        anyHit = true;
+      } else {
+        if (!tracks[i].tied[tStep]) anyHit = true;
+        triggerSound(i, tStep, time, velState, false, 1, true);
+      }
+      if (INSTRUMENTS[i].id === 'kick') kickHit = true;
+    }
   }
   if (anyHit) { prevHitAudioTime = lastHitAudioTime; lastHitAudioTime = time; }
   if (visualQueue.length > 64) visualQueue.shift();
@@ -1325,6 +1439,7 @@ function startSequencer() {
   try { initAndUnlockAudio(); } catch (e) {}
   if (schedulerId) { clearInterval(schedulerId); schedulerId = null; }
   lastDuckTime = 0; lastCrushGateTime = 0;
+  tiedChancePass = [true, true, true, true, true, true, true];
   lastLpfModTime = [0, 0, 0, 0, 0, 0, 0]; lastResModTime = [0, 0, 0, 0, 0, 0, 0];
   lastVolModTime = [0, 0, 0, 0, 0, 0, 0]; lastRevModTime = [0, 0, 0, 0, 0, 0, 0];
   silenceMonoVoice(5, 0.01); silenceMonoVoice(6, 0.01);
@@ -1345,6 +1460,7 @@ function stopSequencer() {
   silenceMonoVoice(5, 0.015); silenceMonoVoice(6, 0.015);
   visualQueue.length = 0; globalStep = 0; activeGlobalStep = 0; activePlayStep = 0; lastVisualGlobalStep = -1;
   lastDuckTime = 0; lastCrushGateTime = 0;
+  tiedChancePass = [true, true, true, true, true, true, true];
   lastLpfModTime = [0, 0, 0, 0, 0, 0, 0]; lastResModTime = [0, 0, 0, 0, 0, 0, 0];
   lastVolModTime = [0, 0, 0, 0, 0, 0, 0]; lastRevModTime = [0, 0, 0, 0, 0, 0, 0];
   setRewind(false); setHighPass(false); setSpaceEcho(false); setCrushGate(false); ensureRewindFallbackConnected(false);
@@ -1370,7 +1486,7 @@ var SHOTS = {
   polymeter: '<div class="shot-frame"><div class="shot-grid-4">' + se('on','9') + se('on','10') + se('on','11') + se('dim','12') + se('dim','13') + se('dim','14') + se('dim','15') + se('dim','16') + '</div>' + se('hi','STEPS: 11 (POLYMETER)') + '</div>',
   dualBox: function(b) { return '<div class="shot-frame"><div class="shot-badge">' + b + '</div><div class="shot-grid-2">' + se('','TRANSPOSE') + se('hi-outline','ATK / <span style="background:#fff;color:#000;padding:0 2px;">DEC</span> / REL') + se('hi-outline','<span style="background:#fff;color:#000;padding:0 2px;">LOWPASS</span> / RES') + se('hi-outline','<span style="background:#fff;color:#000;padding:0 2px;">REVERB</span> / GLIDE') + '</div></div>'; },
   pianoTies: '<div class="shot-frame"><div class="shot-row">' + se('','SYNTH') + '<div class="shot-row" style="gap:3px;">' + se('hi','1') + se('on','2') + se('hi-outline','+') + se('hi-outline','-') + '</div></div>' + pShot('E4','D#','D4', [0,0,0,0,1,1,0,0], [0,1,1,1,0,0,0,0]) + '</div>',
-  perStep: function(b) { return '<div class="shot-frame"><div class="shot-badge">' + b + '</div><div class="shot-grid-4">' + se('dashed-hi','1 BLINK') + se('','2') + se('dashed-hi','3 BLINK') + se('','4') + '</div><div class="shot-grid-3" style="margin-top:4px;">' + se('','CLEAR') + se('on','NEXT') + se('hi','PER STEP') + '</div></div>'; },
+  perStep: function(b) { return '<div class="shot-frame"><div class="shot-badge">' + b + '</div><div class="shot-grid-3">' + se('hi','PER STEP') + se('on','RETRIG') + se('on','CHANCE') + '</div><div class="shot-grid-4" style="margin-top:4px;">' + se('dashed-hi','1 BLINK') + se('on','2 4x·') + se('dashed-hi','3 BLINK') + se('on','4 50%·') + '</div></div>'; },
   pairSwitch: '<div class="shot-frame"><div class="shot-grid-2">' + se('hi','SNARE') + se('dim','CLAP') + '</div><div class="shot-grid-2">' + se('dim','SHAKER') + se('hi','WOODBLOCK') + '</div></div>',
   jamFx: '<div class="shot-frame"><div class="shot-grid-5">' + se('on','BD') + se('dashed-hi','SD') + se('on','TOM') + se('dashed-hi','HH') + se('','SHK') + '</div><div class="shot-grid-4" style="margin-top:4px;"><div><div class="shot-circle hi-outline">REW</div></div><div><div class="shot-circle hi-outline">HPF</div></div><div><div class="shot-circle hi-outline">ECHO</div></div><div><div class="shot-circle hi-outline">CRSH</div></div></div><div style="margin-top:2px;"><div class="shot-circle hi">QUEUE</div></div></div>',
   startModes: '<div class="shot-frame"><div class="shot-grid-2">' + se('hi','LOCAL / SOLO') + se('hi-outline','ONLINE / 2 PLAYER') + '</div><div class="shot-badge">7 TRACKS → GROOVE → 60S LIVE JAM</div></div>',
@@ -1387,7 +1503,7 @@ var HELP_CONTENT = {
     btnYes: 'YES — HIDDEN FEATURES', btnNo: 'NO — EXPLAIN EVERYTHING',
     yesCards: [
       { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('HOLD ANY PAD TO TOGGLE'), body: 'Press &amp; hold any drum pad to toggle <strong>Accent Mode</strong> (<strong>ACCENT ENABLED</strong> flashes at the top). When active, tapping pads cycles: <strong>Normal → Accent (loud &amp; bright) → Ghost (soft &amp; muted) → Off</strong>. Hold again to return to simple On/Off. You can also <strong>swipe across pads</strong> to paint patterns fast.' },
-      { title: '2. PER STEP: MULTI-STEP PARAMETER LOCKS', shot: SHOTS.perStep('HOLD PER STEP → TAP STEPS → TWEAK'), body: 'Hold down <strong>PER STEP</strong> (bottom right) to arm parameter-lock mode. While holding, tap <strong>one or multiple</strong> active drum pads or piano roll notes to select them (all selected steps blink—tied notes are selected as one). Adjust any slider while selected to lock custom values onto all blinking steps at once! Locked steps show a <strong>dot indicator</strong>.' },
+      { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('SWITCH IN HEADER → HOLD BUTTON → TAP STEPS'), body: 'Use the 3-way switcher in the header (<strong>PER STEP</strong> / <strong>RETRIG</strong> / <strong>CHANCE</strong>), then press &amp; hold the matching action button below:<br/>• <strong>PER STEP:</strong> Tap one or more active steps (all blink—tied notes select together) and move any slider to lock custom sound values.<br/>• <strong>RETRIG:</strong> Tap active steps while holding to cycle sub-hits inside the step: <strong>2x → 3x → 4x → 6x → 8x → Off</strong>.<br/>• <strong>CHANCE:</strong> Tap active steps while holding to set trigger probability: <strong>100% → 90% → 80% → 75% → 67% → 50% → 33% → 25% → 20% → 10%</strong>.<br/>Any step modified by Per Step, Retrig, or Chance is marked with a <strong>small dot</strong> (on the first step for tied synth/bass notes).' },
       { title: '3. SWITCHABLE PAIRS: SNARE/CLAP & SHAKER/WOODBLOCK', shot: SHOTS.pairSwitch, body: 'On the <strong>SNARE / CLAP</strong> and <strong>SHAKER / WOODBLOCK</strong> screens, both names appear in the header (active bright, other dimmed). Tap the dimmed name at any time to switch that track to the other instrument while keeping your pattern.' },
       { title: '4. DRUMS: POLYMETER LOOP LENGTHS', shot: SHOTS.polymeter, body: 'Drag the <strong>STEPS</strong> slider below 16 (down to <strong>3 steps</strong>) on any drum track. That track loops on its own step count while the rest of your beat keeps running in 16/32/64 steps, creating evolving polyrhythms.' },
       { title: '5. SYNTH & BASS: HOLD MULTI-SLIDERS', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'On <strong>Bassline</strong> and <strong>Synth</strong>, three slider boxes hide multiple independent parameters. <strong>Press &amp; hold anywhere on a box</strong> to switch/cycle between the bright white active parameter and the dimmed ones:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-way cycle, defaults to <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms portamento)' },
@@ -1398,7 +1514,7 @@ var HELP_CONTENT = {
       { title: '1. HOW BEATFRIENDS WORKS', shot: SHOTS.startModes, body: 'Build a full track layer by layer across <strong>7 tracks</strong>: Bass Drum, Snare/Clap, Toms, Hi-Hats, Shaker/Woodblock, Bassline, and Synth. Next choose a Groove feel, then perform live for 60 seconds!<br/>• <strong>LOCAL / SOLO:</strong> Program all 7 parts yourself (or pass the phone).<br/>• <strong>ONLINE / 2 PLAYER:</strong> Match with another player and take turns building one track at a time.' },
       { title: '2. THE DRUM GRID, PAIRS & BPM', shot: SHOTS.drumGrid, body: 'The 16 pads represent <strong>one 4-beat bar</strong> (every 4th pad has a thicker left line marking beats 1, 2, 3, 4).<br/>• <strong>Tap</strong> pads to place/remove hits, or <strong>swipe</strong> across pads to draw fast.<br/>• <strong>Hold any pad</strong> to unlock Accent Mode (loud/normal/soft hits).<br/>• <strong>Switchable Pairs:</strong> On <strong>SNARE / CLAP</strong> and <strong>SHAKER / WOODBLOCK</strong>, tap the dimmed name in the header to switch instruments.<br/>• <strong>BPM</strong> (Bass Drum header) sets song speed (75–155). Tap <strong>CLEAR</strong> to wipe the track, or <strong>NEXT</strong> to continue.' },
       { title: '3. DRUM SOUND CONTROLS', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> Tunes the drum deeper or higher.<br/>• <strong>DECAY:</strong> Controls how short (punchy) or long (boomy) the hit rings.<br/>• <strong>LOWPASS:</strong> Dims sharp high frequencies for a warmer tone.<br/>• <strong>REVERB:</strong> Adds room echo.<br/>• <strong>STEPS:</strong> Changes loop length (3–16) for rhythmic twists.<br/>• <strong>VOLUME:</strong> Sets instrument loudness in the mix.' },
-      { title: '4. PER STEP: CUSTOMIZE SINGLE OR MULTIPLE HITS', shot: SHOTS.perStep('HOLD PER STEP → TAP STEPS → MOVE SLIDERS'), body: 'Want one or several drum hits or synth notes to sound higher, louder, or more echoed?<br/>• <strong>Hold PER STEP</strong> (bottom right under the sliders).<br/>• While holding it, <strong>tap one or more active steps or notes</strong>—they all start blinking.<br/>• <strong>Move any slider</strong> to lock custom values onto all blinking steps at once (a <strong>small dot</strong> marks locked notes).' },
+      { title: '4. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('PICK MODE IN HEADER → HOLD BUTTON → TAP STEPS'), body: 'Select <strong>PER STEP</strong>, <strong>RETRIG</strong>, or <strong>CHANCE</strong> in the header, then press &amp; hold the matching button below:<br/>• <strong>PER STEP:</strong> Tap one or more active steps (all blink) and move sliders to customize them.<br/>• <strong>RETRIG:</strong> Tap active steps while holding to repeat hits rapidly (<strong>2x, 3x, 4x, 6x, 8x</strong>).<br/>• <strong>CHANCE:</strong> Tap active steps while holding to set how often they play (<strong>100% down to 10%</strong>).<br/>Modified steps show a <strong>small dot</strong> (on the first step of long tied notes).' },
       { title: '5. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: '• <strong>Waveforms:</strong> Pick a tone: <strong>SINE</strong> (smooth sub), <strong>SAW</strong> (bright &amp; buzzy), <strong>SQR</strong> (hollow retro), or <strong>TRI</strong> (warm/soft).<br/>• <strong>Notes &amp; Ties:</strong> Tap cells to place notes (higher = higher pitch). <strong>Drag sideways</strong> to sustain one long held note.<br/>• <strong>1–4 Bars (top right):</strong> Tap <strong>+</strong> to add up to 4 bars (automatically copying your first 16 steps into each new bar), tap <strong>1–4</strong> to edit each bar, or <strong>-</strong> to remove the last bar.' },
       { title: '6. SYNTH & BASS MULTI-SLIDERS', shot: SHOTS.dualBox('HOLD HIGHLIGHTED BOX TO CYCLE'), body: '• <strong>TRANSPOSE:</strong> Shifts your whole melody higher or lower.<br/>• <strong>ATTACK / DECAY / RELEASE (hold to cycle):</strong> <strong>Attack</strong> fades notes in; <strong>Decay</strong> drops the peak down for punchy plucks; <strong>Release</strong> sets how long the note smoothly fades out to silence.<br/>• <strong>LOWPASS / RESONANCE (hold to switch):</strong> <strong>Lowpass</strong> cuts brightness; <strong>Resonance</strong> sharpens the filter edge.<br/>• <strong>REVERB / GLIDE (hold to switch):</strong> <strong>Reverb</strong> adds echo; <strong>Glide</strong> bends pitch smoothly between notes.' },
       { title: '7. GROOVE & 60-SECOND LIVE JAM', shot: SHOTS.jamFull, body: '• <strong>GROOVE:</strong> Pick <strong>STRAIGHT</strong> (on-beat), <strong>GROOVE</strong> (bouncy swing), or <strong>PUSH</strong> (heavy off-kilter feel), then hit <strong>JAM</strong>.<br/>• <strong>MUTE PADS:</strong> Tap <strong>BD..SYNTH</strong> to mute or unmute tracks live.<br/>• <strong>MUTE QUEUE (Circle):</strong> Hold this button, tap several tracks to arm them, then release to switch them all at once!<br/>• <strong>4 VINYLS:</strong> Press &amp; hold for live FX (<strong>REWIND</strong> spinback, <strong>HIGHPASS</strong> sweep + crowd, <strong>SPACE ECHO</strong> delay, <strong>CRUSH/GATE</strong> stutter).' }
@@ -1410,7 +1526,7 @@ var HELP_CONTENT = {
     btnYes: 'JA — VERSTECKTE FEATURES', btnNo: 'NEIN — ALLES ERKLÄREN',
     yesCards: [
       { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('PAD HALTEN ZUM UMSCHALTEN'), body: 'Halte ein beliebiges Drum-Pad gedrückt, um den <strong>Accent Mode</strong> umzuschalten (oben blinkt kurz <strong>ACCENT ENABLED</strong>). Ist er aktiv, schaltet Tippen durch: <strong>Normal → Accent (laut &amp; heller) → Ghost (leise &amp; dumpfer) → Off</strong>. Erneut halten schaltet zurück auf normales On/Off. Du kannst auch mit dem Finger <strong>über die Pads wischen</strong>, um schnell Steps zu setzen.' },
-      { title: '2. PER STEP: MEHRERE STEPS LOCKEN', shot: SHOTS.perStep('PER STEP HALTEN → STEPS TIPPEN → REGLER BEWEGEN'), body: 'Halte <strong>PER STEP</strong> (unten rechts) gedrückt, um Parameter-Lock zu aktivieren. Tippe währenddessen auf <strong>einen oder mehrere</strong> aktive Drum-Pads oder Piano-Roll-Noten (alle gewählten Steps blinken—verbundene lange Noten werden als Ganzes markiert). Jede Slider-Änderung gilt sofort für alle blinkenden Steps gleichzeitig! Gesicherte Steps zeigen einen <strong>kleinen Punkt</strong>.' },
+      { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('IM HEADER WÄHLEN → BUTTON HALTEN → STEPS TIPPEN'), body: 'Wähle oben im Header <strong>PER STEP</strong>, <strong>RETRIG</strong> oder <strong>CHANCE</strong> und halte dann den passenden Aktions-Button unten gedrückt:<br/>• <strong>PER STEP:</strong> Tippe einen oder mehrere aktive Steps an (alle blinken—verbundene Noten als Ganzes) und bewege einen Slider für eigene Step-Werte.<br/>• <strong>RETRIG:</strong> Tippe beim Halten aktive Steps an für Mehrfach-Trigger pro Step: <strong>2x → 3x → 4x → 6x → 8x → Aus</strong>.<br/>• <strong>CHANCE:</strong> Tippe beim Halten aktive Steps an für die Auslöse-Wahrscheinlichkeit: <strong>100% → 90% → 80% → 75% → 67% → 50% → 33% → 25% → 20% → 10%</strong>.<br/>Veränderte Steps zeigen einen <strong>kleinen Punkt</strong> (bei verbundenen Synth/Bass-Noten auf dem ersten Step).' },
       { title: '3. WECHSELBARE PAARE: SNARE/CLAP & SHAKER/WOODBLOCK', shot: SHOTS.pairSwitch, body: 'Bei <strong>SNARE / CLAP</strong> und <strong>SHAKER / WOODBLOCK</strong> stehen beide Namen oben im Header (der aktive hell, der andere gedimmt). Tippe einfach auf den gedimmten Namen, um den Track direkt auf das andere Instrument umzuschalten.' },
       { title: '4. DRUMS: POLYMETER MIT STEPS (3–16)', shot: SHOTS.polymeter, body: 'Ziehe den <strong>STEPS</strong>-Slider bei einem Drum-Track unter 16 (bis runter auf <strong>3 Steps</strong>). Dieser Track loopt dann in seiner eigenen Step-Länge, während der Rest vom Beat normal in 16/32/64 Steps weiterläuft – ideal für Polyrhythmen.' },
       { title: '5. SYNTH & BASS: MULTI-SLIDER (HALTEN)', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Bei <strong>Bassline</strong> und <strong>Synth</strong> verstecken drei Slider-Boxen mehrere Parameter. <strong>Drücke und halte irgendwo auf der Box</strong>, um zwischen dem hellweißen (aktiven) und den gedimmten Parametern durchzuschalten:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-fach Wechsel, Standard ist <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms Portamento)' },
@@ -1421,7 +1537,7 @@ var HELP_CONTENT = {
       { title: '1. SO FUNKTIONIERT BEATFRIENDS', shot: SHOTS.startModes, body: 'Du baust Schritt für Schritt einen kompletten Beat aus <strong>7 Tracks</strong>: Bass Drum, Snare/Clap, Toms, Hi-Hats, Shaker/Woodblock, Bassline und Synth. Danach wählst du ein Groove-Feeling und performst deinen Beat 60 Sekunden live!<br/>• <strong>LOCAL / SOLO:</strong> Programmiere alle 7 Parts selbst (oder gib das Handy reihum).<br/>• <strong>ONLINE / 2 PLAYER:</strong> Spiele gegen eine andere Person und baut abwechselnd je einen Track.' },
       { title: '2. DAS DRUM-GRID, PAARE & BPM', shot: SHOTS.drumGrid, body: 'Die 16 Pads sind <strong>ein Takt (1 Bar)</strong> mit 16 Steps (jedes 4. Pad hat links einen dickeren Strich für die Beats 1, 2, 3, 4).<br/>• <strong>Tippe</strong> auf Pads, um Hits zu setzen/löschen, oder <strong>wische</strong> darüber.<br/>• <strong>Pad halten</strong> aktiviert den Accent Mode (laute/normale/leise Hits).<br/>• <strong>Wechselbare Paare:</strong> Bei <strong>SNARE / CLAP</strong> und <strong>SHAKER / WOODBLOCK</strong> kannst du oben im Titel auf den gedimmten Namen tippen, um das Instrument zu wechseln.<br/>• <strong>BPM</strong> (oben bei Bass Drum) regelt das Tempo (75–155). Mit <strong>CLEAR</strong> löschst du den Track, mit <strong>NEXT</strong> geht es weiter.' },
       { title: '3. DRUM SOUND-REGLER', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> Stimmt die Drum tiefer oder höher.<br/>• <strong>DECAY:</strong> Bestimmt, wie kurz (knackig) oder lang (wuchtig) der Sound ausklingt.<br/>• <strong>LOWPASS:</strong> Nimmt scharfe Höhen weg für einen wärmeren Klang.<br/>• <strong>REVERB:</strong> Fügt Raumhall hinzu.<br/>• <strong>STEPS:</strong> Kürzt die Loop-Länge (3–16) für Polyrhythmen.<br/>• <strong>VOLUME:</strong> Regelt die Lautstärke im Mix.' },
-      { title: '4. PER STEP: EINZELNE ODER MEHRERE STEPS ANPASSEN', shot: SHOTS.perStep('PER STEP HALTEN → STEPS TIPPEN → SLIDER EINSTELLEN'), body: 'Sollen ein oder mehrere Schläge bzw. Noten höher, lauter oder verhallter klingen?<br/>• Halte <strong>PER STEP</strong> (unten rechts unter den Slidern) gedrückt.<br/>• Tippe währenddessen auf <strong>einen oder mehrere aktive Steps oder Noten</strong> – alle fangen an zu blinken.<br/>• Bewege nun die <strong>Slider</strong>, um eigene Werte für alle blinkenden Steps gleichzeitig zu speichern (markiert durch einen <strong>kleinen Punkt</strong>).' },
+      { title: '4. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('MODUS OBEN WÄHLEN → BUTTON HALTEN → STEPS TIPPEN'), body: 'Wähle im Header <strong>PER STEP</strong>, <strong>RETRIG</strong> oder <strong>CHANCE</strong> und halte den passenden Button darunter gedrückt:<br/>• <strong>PER STEP:</strong> Tippe aktive Steps an (sie blinken) und stelle eigene Slider-Werte ein.<br/>• <strong>RETRIG:</strong> Tippe aktive Steps beim Halten an für schnelle Mehrfach-Schläge (<strong>2x, 3x, 4x, 6x, 8x</strong>).<br/>• <strong>CHANCE:</strong> Tippe aktive Steps beim Halten an für Wahrscheinlichkeit (<strong>100% bis 10%</strong>).<br/>Geänderte Steps sind mit einem <strong>kleinen Punkt</strong> markiert (bei gehaltenen Noten am ersten Step).' },
       { title: '5. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: '• <strong>Waveforms:</strong> Wähle einen Grundsound: <strong>SINE</strong> (runder Sub), <strong>SAW</strong> (scharf &amp; satt), <strong>SQR</strong> (retro/hohl) oder <strong>TRI</strong> (weich).<br/>• <strong>Noten &amp; Ties:</strong> Tippe Felder an für einzelne Töne (oben = höher). <strong>Ziehe den Finger waagerecht</strong>, um eine lange Note zu halten.<br/>• <strong>1–4 Bars (oben rechts):</strong> Mit <strong>+</strong> erweiterst du auf bis zu 4 Bars (deine ersten 16 Steps werden automatisch in jeden neuen Bar kopiert), über <strong>1–4</strong> wählst du den Bar, <strong>-</strong> entfernt den letzten Bar.' },
       { title: '6. SYNTH & BASS MULTI-SLIDER', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: '• <strong>TRANSPOSE:</strong> Verschiebt deine ganze Melodie höher oder tiefer.<br/>• <strong>ATTACK / DECAY / RELEASE (halten zum Wechseln):</strong> <strong>Attack</strong> blendet Töne ein; <strong>Decay</strong> senkt die Spitze schnell ab (ideal für knackige Plucks); <strong>Release</strong> regelt das gleichmäßige Ausklingen bis zur Stille.<br/>• <strong>LOWPASS / RESONANCE (halten):</strong> <strong>Lowpass</strong> macht den Sound dunkler/heller; <strong>Resonance</strong> betont die Filterkante.<br/>• <strong>REVERB / GLIDE (halten):</strong> <strong>Reverb</strong> gibt Hall; <strong>Glide</strong> lässt die Tonhöhe geschmeidig zwischen Noten gleiten.' },
       { title: '7. GROOVE & 60-SEKUNDEN LIVE JAM', shot: SHOTS.jamFull, body: '• <strong>GROOVE:</strong> Wähle <strong>STRAIGHT</strong> (gerade), <strong>GROOVE</strong> (lockerer Swing) oder <strong>PUSH</strong> (treibend/verschoben) und tippe auf <strong>JAM</strong>.<br/>• <strong>MUTE PADS:</strong> Tippe auf <strong>BD..SYNTH</strong>, um Instrumente live stumm- oder einzuschalten.<br/>• <strong>MUTE QUEUE (Kreis):</strong> Halte den Kreis gedrückt, tippe mehrere Tracks an und lass los, um alle gleichzeitig umzuschalten!<br/>• <strong>4 VINYLS:</strong> Halte sie gedrückt für Live-Effekte (<strong>REWIND</strong> Spinback, <strong>HIGHPASS</strong> Filter + Crowd, <strong>SPACE ECHO</strong> Delay, <strong>CRUSH/GATE</strong> Stutter).' }
@@ -1445,6 +1561,7 @@ function renderHelpModal(resetScroll) {
 var btnSoloMode = $('btnSoloMode'), btnOnlineMode = $('btnOnlineMode'), btnCancelMatchmaking = $('btnCancelMatchmaking'), btnBackToMenu = $('btnBackToMenu');
 var battleHeader = $('battleHeader'), playerBadge = $('playerBadge'), roundBadge = $('roundBadge'), turnIndicator = $('turnIndicator');
 var lockedOverlay = $('lockedOverlay'), lockedTitle = $('lockedTitle'), lockedSub = $('lockedSub'), perStepBtn = $('perStepBtn'), clearBtn = $('clearBtn'), nextBtn = $('nextBtn');
+var drumModeRow = $('drumModeRow'), actionsRow = $('actionsRow'), modeSwitchBtns = document.querySelectorAll('#modeSwitcherRow .mode-switch-btn');
 var instName = $('instName'), bpmBox = $('bpmBox'), bpmSlider = $('bpmSlider'), bpmValue = $('bpmValue');
 var barSwitcher = $('barSwitcher'), barBtns = barSwitcher.querySelectorAll('.bar-btn'), barAddBtn = $('barAddBtn'), barRemoveBtn = $('barRemoveBtn');
 var accentBanner = $('accentBanner'), stepGrid = $('stepGrid'), stepPadEls = [], playheadBarEls = [], waveBar = $('waveBar'), pianoRollWrap = $('pianoRollWrap'), pianoCanvas = $('pianoCanvas'), pianoCtx = pianoCanvas.getContext('2d');
@@ -1517,9 +1634,44 @@ function getSelectedPianoGroupCount() {
   return count;
 }
 
+function getModeButtonDefaultLabel() {
+  if (stepEditMode === 'retrig') return 'RETRIG';
+  if (stepEditMode === 'chance') return 'CHANCE';
+  return 'PER STEP';
+}
+
+function updateModeSwitcherUI() {
+  for (var i = 0; i < modeSwitchBtns.length; i++) {
+    modeSwitchBtns[i].classList.toggle('active', modeSwitchBtns[i].getAttribute('data-edit-mode') === stepEditMode);
+  }
+}
+
+function updateModeButtonPlacement() {
+  var isPiano = isPianoRollInstrument(INSTRUMENTS[turnIndex].id);
+  if (isPiano) {
+    drumModeRow.classList.add('hidden');
+    actionsRow.classList.remove('drum-actions');
+    actionsRow.classList.add('piano-actions');
+    if (perStepBtn.parentNode !== actionsRow) {
+      actionsRow.insertBefore(perStepBtn, nextBtn);
+    }
+  } else {
+    drumModeRow.classList.remove('hidden');
+    actionsRow.classList.remove('piano-actions');
+    actionsRow.classList.add('drum-actions');
+    if (perStepBtn.parentNode !== drumModeRow) {
+      drumModeRow.appendChild(perStepBtn);
+    }
+  }
+}
+
 function updatePerStepBtnUI() {
   perStepBtn.classList.toggle('armed', perStepArmed);
-  if (!perStepArmed) { perStepBtn.textContent = 'PER STEP'; return; }
+  if (!perStepArmed) { perStepBtn.textContent = getModeButtonDefaultLabel(); return; }
+  if (stepEditMode !== 'perStep') {
+    perStepBtn.textContent = modeHoldStatusText || 'ARMED';
+    return;
+  }
   if (perStepTargets.length === 0) { perStepBtn.textContent = 'ARMED'; return; }
   if (turnIndex >= 5) {
     var gCount = getSelectedPianoGroupCount();
@@ -1561,12 +1713,46 @@ function syncSlidersToCurrentTarget() {
 }
 
 function releasePerStepMode() {
-  if (!perStepArmed && perStepTargets.length === 0 && perStepPointerId === null) return;
-  perStepArmed = false; perStepPointerId = null; perStepTargets = []; perStepFocus = null;
+  if (!perStepArmed && perStepTargets.length === 0 && perStepPointerId === null && !modeHoldStatusText) return;
+  perStepArmed = false; perStepPointerId = null; perStepTargets = []; perStepFocus = null; modeHoldStatusText = '';
   updatePerStepBtnUI();
   if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) drawPianoRoll();
   else renderStepPads();
   syncSlidersToCurrentTarget();
+}
+
+function cycleStepRetrig(instIdx, stepIdx) {
+  var cur = getStepRetrig(instIdx, stepIdx);
+  var idx = RETRIG_CYCLE.indexOf(cur);
+  var next = RETRIG_CYCLE[(idx + 1) % RETRIG_CYCLE.length];
+  setStepRetrig(instIdx, stepIdx, next);
+  return next;
+}
+
+function cycleStepChance(instIdx, stepIdx) {
+  var cur = getStepChance(instIdx, stepIdx);
+  var idx = CHANCE_CYCLE.indexOf(cur);
+  var next = CHANCE_CYCLE[(idx + 1) % CHANCE_CYCLE.length];
+  setStepChance(instIdx, stepIdx, next);
+  return next;
+}
+
+for (var ms = 0; ms < modeSwitchBtns.length; ms++) {
+  (function(btn) {
+    bindTap(btn, function() {
+      if (gameMode === 'online' && !isMyTurn()) return;
+      ensureAudioUnlocked();
+      var newMode = btn.getAttribute('data-edit-mode');
+      if (newMode && newMode !== stepEditMode) {
+        releasePerStepMode();
+        stepEditMode = newMode;
+        updateModeSwitcherUI();
+        updatePerStepBtnUI();
+        if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) drawPianoRoll();
+        else renderStepPads();
+      }
+    });
+  })(modeSwitchBtns[ms]);
 }
 
 perStepBtn.addEventListener('contextmenu', function(e) { e.preventDefault(); });
@@ -1577,6 +1763,7 @@ perStepBtn.addEventListener('pointerdown', function(e) {
   perStepArmed = true;
   perStepTargets = [];
   perStepFocus = null;
+  modeHoldStatusText = '';
   updatePerStepBtnUI();
 });
 
@@ -1733,6 +1920,12 @@ bindTap(barAddBtn, function() {
     var srcLock = track.stepLocks ? cloneStepLockObj(track.stepLocks[offset]) : null;
     if (srcLock) { if (!track.stepLocks) track.stepLocks = {}; track.stepLocks[dest] = srcLock; }
     else if (track.stepLocks && track.stepLocks[dest]) delete track.stepLocks[dest];
+    var srcRetrig = getStepRetrig(turnIndex, offset);
+    if (srcRetrig > 1) { if (!track.retrigLocks) track.retrigLocks = {}; track.retrigLocks[dest] = srcRetrig; }
+    else if (track.retrigLocks && track.retrigLocks[dest] !== undefined) delete track.retrigLocks[dest];
+    var srcChance = getStepChance(turnIndex, offset);
+    if (srcChance < 100) { if (!track.chanceLocks) track.chanceLocks = {}; track.chanceLocks[dest] = srcChance; }
+    else if (track.chanceLocks && track.chanceLocks[dest] !== undefined) delete track.chanceLocks[dest];
   }
   track.barCount = count + 1; renderBarSwitcher();
 });
@@ -1777,6 +1970,17 @@ function serializeStepLocks(locksObj) {
   }
   return count > 0 ? out : null;
 }
+function serializeNumericLockMap(mapObj) {
+  if (!mapObj) return null;
+  var out = {}, count = 0;
+  for (var s in mapObj) {
+    if (Object.prototype.hasOwnProperty.call(mapObj, s) && mapObj[s] !== undefined) {
+      out[String(s)] = Number(mapObj[s]);
+      count++;
+    }
+  }
+  return count > 0 ? out : null;
+}
 function parseStepLocks(rawLocks) {
   var out = {};
   if (!rawLocks) return out;
@@ -1794,6 +1998,23 @@ function parseStepLocks(rawLocks) {
   }
   return out;
 }
+function parseNumericLockMap(rawMap) {
+  var out = {};
+  if (!rawMap) return out;
+  if (Array.isArray(rawMap)) {
+    for (var i = 0; i < rawMap.length; i++) {
+      if (rawMap[i] !== null && rawMap[i] !== undefined) out[i] = Number(rawMap[i]);
+    }
+  } else {
+    for (var k in rawMap) {
+      if (Object.prototype.hasOwnProperty.call(rawMap, k) && rawMap[k] !== null && rawMap[k] !== undefined) {
+        var idx = parseInt(k, 10);
+        if (!isNaN(idx)) out[idx] = Number(rawMap[k]);
+      }
+    }
+  }
+  return out;
+}
 function serializeMove() {
   var compactTracks = [];
   for (var i = 0; i < tracks.length; i++) {
@@ -1802,8 +2023,9 @@ function serializeMove() {
     var pOut = { pitch: p.pitch, decay: p.decay, filter: p.filter, reverb: p.reverb !== undefined ? p.reverb : 0.0, volume: p.volume !== undefined ? p.volume : 1.0 };
     if (!isDrum) { pOut.attack = p.attack !== undefined ? p.attack : d.attack; pOut.release = p.release !== undefined ? p.release : d.release; pOut.resonance = p.resonance !== undefined ? p.resonance : d.resonance; pOut.glide = p.glide !== undefined ? p.glide : d.glide; }
     var payload = { variant: tracks[i].variant || INSTRUMENTS[i].id, steps: stepsOut, notes: tracks[i].notes.slice(), tied: tracks[i].tied.slice(), waveform: tracks[i].waveform, params: pOut };
-    var sl = serializeStepLocks(tracks[i].stepLocks);
-    if (sl) payload.stepLocks = sl;
+    var sl = serializeStepLocks(tracks[i].stepLocks); if (sl) payload.stepLocks = sl;
+    var rl = serializeNumericLockMap(tracks[i].retrigLocks); if (rl) payload.retrigLocks = rl;
+    var cl = serializeNumericLockMap(tracks[i].chanceLocks); if (cl) payload.chanceLocks = cl;
     if (isDrum) payload.trackLength = getTrackLength(i); else payload.barCount = getTrackBarCount(i);
     compactTracks.push(payload);
   }
@@ -1827,6 +2049,8 @@ function applyOpponentMove(moveData) {
     }
     tracks[i].waveform = mt.waveform || 'sine';
     tracks[i].stepLocks = parseStepLocks(mt.stepLocks);
+    tracks[i].retrigLocks = parseNumericLockMap(mt.retrigLocks);
+    tracks[i].chanceLocks = parseNumericLockMap(mt.chanceLocks);
     if (mt.params) {
       var def = INSTRUMENTS[i].defaults;
       tracks[i].params = { pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch, decay: mt.params.decay !== undefined ? mt.params.decay : tracks[i].params.decay, filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter, reverb: mt.params.reverb !== undefined ? mt.params.reverb : 0.0, volume: mt.params.volume !== undefined ? mt.params.volume : 1.0 };
@@ -1914,15 +2138,20 @@ bindTap(clearBtn, function() {
   if (gameMode === 'online' && !isMyTurn()) return;
   if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) {
     var bo = (viewedBar[turnIndex] || 0) * STEPS;
-    for (var s = bo; s < bo + STEPS; s++) { tracks[turnIndex].steps[s] = false; tracks[turnIndex].tied[s] = false; clearStepLock(turnIndex, s); }
+    for (var s = bo; s < bo + STEPS; s++) { tracks[turnIndex].steps[s] = false; tracks[turnIndex].tied[s] = false; clearStepAllMods(turnIndex, s); }
     perStepTargets = perStepTargets.filter(function(st) { return st < bo || st >= bo + STEPS; });
     if (perStepFocus !== null && perStepFocus >= bo && perStepFocus < bo + STEPS) perStepFocus = perStepTargets.length > 0 ? perStepTargets[perStepTargets.length - 1] : null;
+    modeHoldStatusText = '';
     updatePerStepBtnUI(); syncSlidersToCurrentTarget();
     silenceMonoVoice(turnIndex, 0.015); drawPianoRoll();
   } else {
     tracks[turnIndex].steps.fill(0);
     tracks[turnIndex].stepLocks = {};
-    if (perStepTargets.length > 0) { perStepTargets = []; perStepFocus = null; updatePerStepBtnUI(); syncSlidersToCurrentTarget(); }
+    tracks[turnIndex].retrigLocks = {};
+    tracks[turnIndex].chanceLocks = {};
+    modeHoldStatusText = '';
+    if (perStepTargets.length > 0) { perStepTargets = []; perStepFocus = null; }
+    updatePerStepBtnUI(); syncSlidersToCurrentTarget();
     renderStepPads();
   }
 });
@@ -1949,7 +2178,22 @@ pianoCanvas.addEventListener('pointerdown', function(e) {
   if (perStepArmed) {
     if (track.steps[abs]) {
       var grp = getTiedNoteGroup(turnIndex, abs);
-      var isAlreadySelected = perStepTargets.indexOf(grp[0]) !== -1;
+      var headStep = grp[0];
+      if (stepEditMode === 'retrig') {
+        var nextR = cycleStepRetrig(turnIndex, abs);
+        modeHoldStatusText = nextR > 1 ? (nextR + 'x') : '1x OFF';
+        updatePerStepBtnUI();
+        drawPianoRoll();
+        return;
+      }
+      if (stepEditMode === 'chance') {
+        var nextC = cycleStepChance(turnIndex, abs);
+        modeHoldStatusText = nextC + '%';
+        updatePerStepBtnUI();
+        drawPianoRoll();
+        return;
+      }
+      var isAlreadySelected = perStepTargets.indexOf(headStep) !== -1;
       if (isAlreadySelected) {
         perStepTargets = perStepTargets.filter(function(st) { return grp.indexOf(st) === -1; });
         if (perStepFocus !== null && grp.indexOf(perStepFocus) !== -1) {
@@ -1959,7 +2203,7 @@ pianoCanvas.addEventListener('pointerdown', function(e) {
         for (var gi = 0; gi < grp.length; gi++) {
           if (perStepTargets.indexOf(grp[gi]) === -1) perStepTargets.push(grp[gi]);
         }
-        perStepFocus = grp[0];
+        perStepFocus = headStep;
       }
       updatePerStepBtnUI();
       syncSlidersToCurrentTarget();
@@ -1969,7 +2213,7 @@ pianoCanvas.addEventListener('pointerdown', function(e) {
   }
   pianoPointerId = e.pointerId; pianoMovedHoriz = false; pianoAnchorY = e.clientY;
   if (track.steps[abs] && track.notes[abs] === cell.noteIdx) {
-    pianoDrawMode = 'erase'; track.steps[abs] = false; track.tied[abs] = false; clearStepLock(turnIndex, abs); untieIfNeeded(track, abs, bo);
+    pianoDrawMode = 'erase'; track.steps[abs] = false; track.tied[abs] = false; clearStepAllMods(turnIndex, abs); untieIfNeeded(track, abs, bo);
   } else {
     pianoDrawMode = 'draw'; track.steps[abs] = true; track.notes[abs] = cell.noteIdx; track.tied[abs] = false; untieIfNeeded(track, abs, bo);
   }
@@ -2003,7 +2247,11 @@ function drawPianoRoll() {
     var pL = tl ? 0 : 1.5, pR = tr ? 0 : 1.5;
     var rx = PIANO_KEY_W + st * colW + pL, ry = rowTop * rowH + 1.5, rw = Math.max(4, colW - pL - pR), rh = Math.max(4, rowH - 3);
     var isTarget = perStepTargets.indexOf(absSt) !== -1;
-    var isLocked = hasStepLocks(turnIndex, absSt);
+    var grp = getTiedNoteGroup(turnIndex, absSt);
+    var isHeadOfGroup = (grp[0] === absSt);
+    var groupModified = false;
+    for (var g = 0; g < grp.length; g++) { if (isStepModified(turnIndex, grp[g])) { groupModified = true; break; } }
+
     if (isTarget) {
       ctx.fillStyle = blinkOn ? '#fff' : '#333';
       ctx.fillRect(rx, ry, rw, rh);
@@ -2018,12 +2266,30 @@ function drawPianoRoll() {
       ctx.fillStyle = (showPlayhead && st === playStepInBar) ? '#fff' : '#ddd';
       ctx.fillRect(rx, ry, rw, rh);
     }
-    if (!tl && isLocked) {
-      var visSpan = 1;
-      while (st + visSpan < STEPS && track.steps[absSt + visSpan] && track.tied[absSt + visSpan] && track.notes[absSt + visSpan] === nIdx) visSpan++;
-      var blockW = Math.max(4, visSpan * colW - 3);
+
+    var retrigVal = getStepRetrig(turnIndex, absSt);
+    var chanceVal = getStepChance(turnIndex, absSt);
+    var stepLabel = null;
+    if (stepEditMode === 'retrig' && retrigVal > 1) stepLabel = retrigVal + 'x';
+    else if (stepEditMode === 'chance' && chanceVal < 100) stepLabel = chanceVal + '%';
+
+    if (stepLabel && !tl) {
       ctx.fillStyle = (isTarget && !blinkOn) ? '#fff' : '#000';
-      ctx.fillRect(Math.round(rx + blockW * 0.5 - 2), Math.round(rowTop * rowH + rowH * 0.5 - 2), 4, 4);
+      ctx.font = 'bold ' + (stepLabel.length >= 3 ? '6.5' : '7.5') + 'px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(stepLabel, rx + Math.min(rw, colW - 2) * 0.5, ry + rh * 0.5 + 0.5);
+    }
+
+    if (!tl && isHeadOfGroup && groupModified) {
+      ctx.fillStyle = (isTarget && !blinkOn) ? '#fff' : '#000';
+      if (stepLabel) {
+        ctx.fillRect(Math.round(rx + rw - 4.5), Math.round(ry + rh - 4.5), 3, 3);
+      } else {
+        ctx.fillRect(Math.round(rx + Math.max(3, colW - 3) * 0.5 - 2), Math.round(rowTop * rowH + rowH * 0.5 - 2), 4, 4);
+      }
+    } else if (!tl && !isHeadOfGroup && isStepModified(turnIndex, absSt)) {
+      ctx.fillStyle = (isTarget && !blinkOn) ? '#fff' : '#000';
+      ctx.fillRect(Math.round(rx + Math.max(3, colW - 3) * 0.5 - 2), Math.round(rowTop * rowH + rowH * 0.5 - 2), 4, 4);
     }
   }
   if (showPlayhead) { var lx = PIANO_KEY_W + playStepInBar * colW; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, h); ctx.stroke(); }
@@ -2033,18 +2299,28 @@ function drawPianoRoll() {
 function applyPadVisualClass(pad, vel, idx, len) {
   var v = normalizeDrumStep(vel), oor = idx >= len;
   pad.classList.remove('vel-normal', 'vel-accent', 'vel-ghost', 'out-of-range', 'has-plock', 'plock-target');
-  if (oor) { pad.classList.add('out-of-range'); pad.disabled = true; }
-  else {
+  if (oor) {
+    pad.classList.add('out-of-range'); pad.disabled = true; pad.textContent = idx + 1;
+  } else {
     pad.disabled = false;
     if (v === 1) pad.classList.add('vel-normal'); else if (v === 2) pad.classList.add('vel-accent'); else if (v === 3) pad.classList.add('vel-ghost');
-    if (v > 0 && hasStepLocks(turnIndex, idx)) pad.classList.add('has-plock');
+    if (v > 0 && isStepModified(turnIndex, idx)) pad.classList.add('has-plock');
     if (perStepTargets.indexOf(idx) !== -1) pad.classList.add('plock-target');
+    if (v > 0 && stepEditMode === 'retrig') {
+      var rv = getStepRetrig(turnIndex, idx);
+      pad.textContent = rv > 1 ? (rv + 'x') : (idx + 1);
+    } else if (v > 0 && stepEditMode === 'chance') {
+      var cv = getStepChance(turnIndex, idx);
+      pad.textContent = cv < 100 ? (cv + '%') : (idx + 1);
+    } else {
+      pad.textContent = idx + 1;
+    }
   }
 }
 function paintStepPad(idx, st) {
   var len = getTrackLength(turnIndex); if (idx < 0 || idx >= len) return;
   var v = normalizeDrumStep(st); tracks[turnIndex].steps[idx] = v;
-  if (v === 0) clearStepLock(turnIndex, idx);
+  if (v === 0) clearStepAllMods(turnIndex, idx);
   if (stepPadEls[idx]) applyPadVisualClass(stepPadEls[idx], v, idx, len);
 }
 function updatePlayheadVisual() {
@@ -2066,6 +2342,20 @@ function buildStepGrid() {
         e.preventDefault(); ensureAudioUnlocked();
         if (perStepArmed) {
           if (normalizeDrumStep(tracks[turnIndex].steps[stepIdx]) > 0) {
+            if (stepEditMode === 'retrig') {
+              var nextR = cycleStepRetrig(turnIndex, stepIdx);
+              modeHoldStatusText = nextR > 1 ? (nextR + 'x') : '1x OFF';
+              updatePerStepBtnUI();
+              renderStepPads();
+              return;
+            }
+            if (stepEditMode === 'chance') {
+              var nextC = cycleStepChance(turnIndex, stepIdx);
+              modeHoldStatusText = nextC + '%';
+              updatePerStepBtnUI();
+              renderStepPads();
+              return;
+            }
             var pos = perStepTargets.indexOf(stepIdx);
             if (pos !== -1) {
               perStepTargets.splice(pos, 1);
@@ -2098,7 +2388,7 @@ window.addEventListener('pointermove', function(e) {
     var cell = getPianoCellAt(e.clientX, e.clientY), track = tracks[turnIndex], bo = (viewedBar[turnIndex] || 0) * STEPS;
     if (pianoDrawMode === 'erase') {
       var loE = Math.min(pianoLastStep, cell.step), hiE = Math.max(pianoLastStep, cell.step), chg = false;
-      for (var ek = loE; ek <= hiE; ek++) { var aEk = bo + ek; if (track.steps[aEk] || track.tied[aEk]) { track.steps[aEk] = false; track.tied[aEk] = false; clearStepLock(turnIndex, aEk); chg = true; } }
+      for (var ek = loE; ek <= hiE; ek++) { var aEk = bo + ek; if (track.steps[aEk] || track.tied[aEk]) { track.steps[aEk] = false; track.tied[aEk] = false; clearStepAllMods(turnIndex, aEk); chg = true; } }
       untieIfNeeded(track, bo + hiE, bo); pianoLastStep = cell.step; if (chg) drawPianoRoll(); return;
     }
     if (cell.step === pianoLastStep) {
@@ -2113,9 +2403,13 @@ window.addEventListener('pointermove', function(e) {
       var rs = Math.min(pianoLastStep, cell.step); while (rs > 0 && track.steps[bo + rs - 1] && track.notes[bo + rs - 1] === pianoAnchorNote && track.tied[bo + rs]) rs--;
       var re = Math.max(pianoLastStep, cell.step);
       var headLock = track.stepLocks ? cloneStepLockObj(track.stepLocks[bo + rs]) : null;
+      var headRetrig = getStepRetrig(turnIndex, bo + rs);
+      var headChance = getStepChance(turnIndex, bo + rs);
       for (var r = rs + 1; r <= re; r++) {
         track.tied[bo + r] = true;
         if (headLock) { if (!track.stepLocks) track.stepLocks = {}; track.stepLocks[bo + r] = cloneStepLockObj(headLock); }
+        if (headRetrig > 1) { if (!track.retrigLocks) track.retrigLocks = {}; track.retrigLocks[bo + r] = headRetrig; }
+        if (headChance < 100) { if (!track.chanceLocks) track.chanceLocks = {}; track.chanceLocks[bo + r] = headChance; }
       }
       untieIfNeeded(track, bo + re, bo);
     } else {
@@ -2160,7 +2454,7 @@ window.addEventListener('touchend', function(e) {
     vinylPointers.rewind = null; vinylPointers.highpass = null; vinylPointers.echo = null; vinylPointers.crush = null;
     setRewind(false); setHighPass(false); setSpaceEcho(false); setCrushGate(false);
     if (isHoldActive) releaseHoldMode();
-    if (perStepArmed || perStepTargets.length > 0) releasePerStepMode();
+    if (perStepArmed || perStepTargets.length > 0 || modeHoldStatusText) releasePerStepMode();
   }
 });
 
@@ -2187,7 +2481,12 @@ function releaseHoldMode() {
 }
 holdBtn.addEventListener('pointerup', releaseHoldMode); holdBtn.addEventListener('pointercancel', releaseHoldMode);
 
-function renderStepPads() { var track = tracks[turnIndex], len = getTrackLength(turnIndex); for (var i = 0; i < stepPadEls.length; i++) { applyPadVisualClass(stepPadEls[i], track.steps[i], i, len); stepPadEls[i].textContent = i + 1; } }
+function renderStepPads() {
+  var track = tracks[turnIndex], len = getTrackLength(turnIndex);
+  for (var i = 0; i < stepPadEls.length; i++) {
+    applyPadVisualClass(stepPadEls[i], track.steps[i], i, len);
+  }
+}
 
 function updateParamText() {
   var inst = getActiveInstConfig(turnIndex);
@@ -2218,7 +2517,8 @@ function updateParamText() {
 }
 
 function renderTurn() {
-  cancelDrumLongPress(); cancelAllDualLongPresses(); perStepArmed = false; perStepPointerId = null; perStepTargets = []; perStepFocus = null; updatePerStepBtnUI();
+  cancelDrumLongPress(); cancelAllDualLongPresses(); perStepArmed = false; perStepPointerId = null; perStepTargets = []; perStepFocus = null; modeHoldStatusText = '';
+  updateModeSwitcherUI(); updateModeButtonPlacement(); updatePerStepBtnUI();
   dragPointerId = null; pressStartStep = null; didDragPaint = false; longPressTriggered = false;
   var inst = INSTRUMENTS[turnIndex], isPiano = isPianoRollInstrument(inst.id), isWave = isWaveformInstrument(inst.id), isBass = inst.id === 'bassline', isSynth = inst.id === 'synth';
   renderInstTitle();
