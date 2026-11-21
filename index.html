@@ -77,9 +77,11 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .shot-circle.hi-outline { border-color: #fff; color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.45); }
 .battle-header { display: flex; flex-direction: column; padding: 5px 8px; border: 1px solid #333; background: #0a0a0a; font-size: 10px; letter-spacing: 1.5px; flex-shrink: 0; }
 .battle-players-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1.4px; color: #777; }
-.battle-country-tag { font-weight: 800; color: #888; }
+.battle-country-tag { font-weight: 800; color: #888; flex: 1; }
+.battle-country-tag:first-child { text-align: left; }
+.battle-country-tag:last-child { text-align: right; }
 .battle-country-tag.is-me { color: #fff; }
-.battle-vs { display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.battle-vs { display: inline-flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
 .seq-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(6px, 1.1dvh, 10px) clamp(8px, 2vw, 12px); min-height: 0; gap: clamp(3px, 0.7dvh, 6px); position: relative; overflow: hidden; }
 .locked-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(2px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 12px; }
 .locked-card { border: 1px solid #fff; background: #000; padding: 18px 20px; max-width: 320px; width: 100%; }
@@ -1786,7 +1788,8 @@ function releasePerStepMode() {
   if (isPianoRollInstrument(INSTRUMENTS[turnIndex].id)) drawPianoRoll(); else renderStepPads();
   syncSlidersToCurrentTarget();
 }
-function cycleStepRetrig(instIdx, stepIdx) { var next = RETRIG_CYCLE[(RETRIG_CYCLE.indexOf(getStepRetrig(instIdx, stepIdx)) + 1) % RETRIG_CYCLE.length]; setStepRetrig(instIdx, stepIdx, next); return next; }
+function cycleStepRetrig(instIdx, stepIdx) { var next = RETRIG_CYCLE[(RETRIG_CYCLE.indexOf(getStepRetrig(instIdx, stepIdx)) + 1) % RETRIG_CYCLE.length];
+setStepRetrig(instIdx, stepIdx, next); return next; }
 function cycleStepChance(instIdx, stepIdx) { var next = CHANCE_CYCLE[(CHANCE_CYCLE.indexOf(getStepChance(instIdx, stepIdx)) + 1) % CHANCE_CYCLE.length]; setStepChance(instIdx, stepIdx, next); return next; }
 for (var ms = 0; ms < modeSwitchBtns.length; ms++) {
   (function(btn) {
@@ -1931,8 +1934,7 @@ bindTap(barRemoveBtn, function() {
     if (perStepFocus !== null && perStepFocus >= remStart) perStepFocus = perStepTargets.length > 0 ? perStepTargets[perStepTargets.length - 1] : null;
     updatePerStepBtnUI(); syncSlidersToCurrentTarget();
   }
-  track.barCount = count - 1; if ((viewedBar[turnIndex]
-|| 0) >= track.barCount) viewedBar[turnIndex] = track.barCount - 1; renderBarSwitcher(); drawPianoRoll();
+  track.barCount = count - 1; if ((viewedBar[turnIndex] || 0) >= track.barCount) viewedBar[turnIndex] = track.barCount - 1; renderBarSwitcher(); drawPianoRoll();
 });
 
 db.ref('.info/connected').on('value', function(snap) {
@@ -1955,8 +1957,8 @@ function detachOnlineRoom() {
 function isMyTurn() { return gameMode === 'online' && onlineMatchActive && myRole === roomTurn; }
 function updateOnlineCountryBadges() {
   var c1 = roomCountries.player1 || '---', c2 = roomCountries.player2 || '---';
-  p1CountryBadge.textContent = 'P1 · ' + c1 + (myRole === 'player1' ? ' (YOU)' : '');
-  p2CountryBadge.textContent = 'P2 · ' + c2 + (myRole === 'player2' ? ' (YOU)' : '');
+  p1CountryBadge.textContent = 'P1 · ' + c1;
+  p2CountryBadge.textContent = 'P2 · ' + c2;
   p1CountryBadge.classList.toggle('is-me', myRole === 'player1');
   p2CountryBadge.classList.toggle('is-me', myRole === 'player2');
   if (gameMode === 'online') {
@@ -2536,54 +2538,101 @@ function drawStartScene(nowMs) {
       }
     }
   }
-  var skyClouds = [{ x0: 4, y: 6, w: 22, h: 2, spd: 1.5, a: 0.11 }, { x0: 54, y: 10, w: 26, h: 3, spd: 1.1, a: 0.12 }, { x0: 82, y: 21, w: 24, h: 2, spd: 1.8, a: 0.14 }, { x0: 28, y: 14, w: 18, h: 2, spd: 0.9, a: 0.09 }];
+  // Drifting night clouds passing in front of the moon to subtly veil/obscure it
+  var skyClouds = [
+    { x0: 8,  y: 8,  w: 26, h: 3, spd: 1.4, bodyA: 0.56, rimA: 0.22 },
+    { x0: 54, y: 12, w: 30, h: 4, spd: 1.1, bodyA: 0.64, rimA: 0.26 },
+    { x0: 78, y: 20, w: 28, h: 3, spd: 1.7, bodyA: 0.60, rimA: 0.24 },
+    { x0: 30, y: 16, w: 22, h: 3, spd: 0.9, bodyA: 0.50, rimA: 0.20 }
+  ];
   for (var sc = 0; sc < skyClouds.length; sc++) {
-    var cl = skyClouds[sc], cxPos = Math.floor(((cl.x0 + t * cl.spd) % (W + cl.w + 8)) - cl.w);
-    ctx.fillStyle = 'rgba(235,235,235,' + cl.a + ')'; ctx.fillRect(cxPos + 2, cl.y, cl.w - 4, 1); ctx.fillRect(cxPos, cl.y + 1, cl.w, cl.h - 1);
+    var cl = skyClouds[sc], cxPos = Math.floor(((cl.x0 + t * cl.spd) % (W + cl.w + 10)) - cl.w);
+    ctx.fillStyle = 'rgba(72,72,72,' + cl.rimA + ')';
+    ctx.fillRect(cxPos + 3, cl.y, cl.w - 6, 1);
+    ctx.fillStyle = 'rgba(14,14,14,' + cl.bodyA + ')';
+    ctx.fillRect(cxPos + 1, cl.y + 1, cl.w - 2, cl.h - 2);
+    ctx.fillRect(cxPos, cl.y + cl.h - 1, cl.w, 1);
   }
-  ctx.fillStyle = '#313131'; ctx.fillRect(24, 7, 20, 5); ctx.fillStyle = '#5c5c5c'; ctx.fillRect(24, 7, 20, 1);
-  ctx.fillStyle = '#757575'; ctx.fillRect(43, 7, 1, 5); ctx.fillRect(30, 3, 1, 4);
-  ctx.fillStyle = '#111'; ctx.fillRect(27, 9, 5, 2); ctx.fillRect(35, 9, 6, 2);
-  ctx.fillStyle = '#282828'; ctx.fillRect(18, 12, 51, 46); ctx.fillStyle = '#333333'; ctx.fillRect(48, 12, 21, 18); ctx.fillStyle = '#202020'; ctx.fillRect(18, 12, 10, 46);
-  ctx.fillStyle = '#565656'; ctx.fillRect(18, 12, 30, 1); ctx.fillStyle = '#888888'; ctx.fillRect(48, 12, 21, 1); ctx.fillRect(68, 12, 1, 18);
-  ctx.fillStyle = '#525252'; ctx.fillRect(67, 13, 1, 17); ctx.fillStyle = '#383838'; ctx.fillRect(18, 12, 1, 46);
-  for (var sx = 23; sx <= 59; sx += 8) { ctx.fillStyle = '#0c0c0c'; ctx.fillRect(sx, 16, 4, 2); ctx.fillStyle = '#4c4c4c'; ctx.fillRect(sx, 18, 4, 1); }
-  ctx.fillStyle = '#363636'; ctx.fillRect(12, 21, 59, 5); ctx.fillStyle = '#626262'; ctx.fillRect(12, 21, 36, 1);
-  ctx.fillStyle = '#929292'; ctx.fillRect(48, 21, 23, 1); ctx.fillRect(70, 21, 1, 5); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(12, 21, 1, 5);
-  ctx.fillStyle = '#111'; ctx.fillRect(12, 26, 59, 2);
-  for (var hx = 16; hx <= 62; hx += 8) { ctx.fillStyle = '#141414'; ctx.fillRect(hx, 23, 4, 2); }
-  ctx.fillStyle = '#242424'; ctx.fillRect(69, 30, 29, 28); ctx.fillStyle = '#1c1c1c'; ctx.fillRect(89, 30, 9, 28);
-  ctx.fillStyle = '#7e7e7e'; ctx.fillRect(69, 30, 18, 1); ctx.fillStyle = '#555555'; ctx.fillRect(87, 30, 11, 1); ctx.fillStyle = '#3c3c3c'; ctx.fillRect(97, 30, 1, 28);
-  ctx.fillStyle = '#222222'; ctx.fillRect(14, 34, 4, 24); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(14, 34, 4, 1); ctx.fillStyle = '#363636'; ctx.fillRect(14, 34, 1, 24);
-  var seamRows = [33, 39, 45, 51];
-  for (var sr = 0; sr < seamRows.length; sr++) { ctx.fillStyle = '#171717'; ctx.fillRect(18, seamRows[sr], 51, 1); ctx.fillStyle = '#353535'; ctx.fillRect(28, seamRows[sr] + 1, 41, 1); }
-  var rightSeams = [40, 46, 52];
-  for (var rse = 0; rse < rightSeams.length; rse++) { ctx.fillStyle = '#141414'; ctx.fillRect(69, rightSeams[rse], 29, 1); ctx.fillStyle = '#313131'; ctx.fillRect(69, rightSeams[rse] + 1, 20, 1); }
-  ctx.fillStyle = '#171717'; ctx.fillRect(36, 28, 1, 30); ctx.fillRect(52, 28, 1, 30); ctx.fillRect(79, 31, 1, 27); ctx.fillRect(88, 31, 1, 27);
-  ctx.fillStyle = '#0c0c0c'; ctx.fillRect(72, 35, 5, 2); ctx.fillRect(82, 35, 5, 2); ctx.fillStyle = '#444'; ctx.fillRect(72, 37, 5, 1); ctx.fillRect(82, 37, 5, 1);
 
-  var flickWave = 0.44 + 0.08 * Math.sin(t * 2.1) + 0.05 * Math.sin(t * 7.3);
-  var stutterGate = Math.sin(t * 17.0) * Math.sin(t * 31.3) * Math.sin(t * 5.7);
-  var flickLevel = (stutterGate > 0.58) ? 0.20 : Math.max(0.24, Math.min(0.58, flickWave));
-  var signCx = 27, signCy = 32;
-  var signHalo = ctx.createRadialGradient(signCx, signCy, 3, signCx, signCy, 13);
-  signHalo.addColorStop(0, 'rgba(255,255,255,' + (0.20 * flickLevel).toFixed(3) + ')');
-  signHalo.addColorStop(0.55, 'rgba(255,255,255,' + (0.08 * flickLevel).toFixed(3) + ')');
-  signHalo.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = signHalo; ctx.fillRect(signCx - 13, signCy - 13, 26, 26);
-  ctx.fillStyle = '#121212'; ctx.fillRect(22, 28, 12, 10);
-  ctx.fillStyle = '#383838'; ctx.fillRect(23, 26, 2, 1); ctx.fillRect(29, 26, 2, 1);
-  ctx.fillStyle = '#525252'; ctx.fillRect(21, 27, 13, 11); ctx.fillStyle = '#686868'; ctx.fillRect(21, 27, 13, 1);
-  ctx.fillStyle = '#090909'; ctx.fillRect(22, 28, 11, 9);
-  var heartRows = ['.##...##.', '####.####', '#########', '.#######.', '..#####..', '...###...', '....#....'];
-  var hVal = Math.round(255 * flickLevel), hRim = Math.round(165 * flickLevel);
-  for (var hr = 0; hr < heartRows.length; hr++) {
-    for (var hc = 0; hc < heartRows[hr].length; hc++) {
-      if (heartRows[hr].charAt(hc) !== '#') continue;
-      var isInner = (hr === 1 && (hc === 1 || hc === 2 || hc === 6 || hc === 7)) || (hr === 2 && hc >= 2 && hc <= 6) || (hr === 3 && hc >= 3 && hc <= 5);
-      var cVal = isInner ? hVal : hRim; ctx.fillStyle = 'rgb(' + cVal + ',' + cVal + ',' + cVal + ')'; ctx.fillRect(23 + hc, 29 + hr, 1, 1);
-    }
+  // Brutalist concrete bunker (uniform matte concrete, no moon reflection)
+  // Rooftop mechanical/ventilation block & antenna mast
+  ctx.fillStyle = '#2c2c2c'; ctx.fillRect(24, 7, 20, 5);
+  ctx.fillStyle = '#3e3e3e'; ctx.fillRect(24, 7, 20, 1);
+  ctx.fillRect(30, 3, 1, 4);
+  ctx.fillStyle = '#111'; ctx.fillRect(27, 9, 5, 2); ctx.fillRect(35, 9, 6, 2);
+
+  // Upper bunker tier (x: 18..69 hides ~1/3 of the moon)
+  ctx.fillStyle = '#262626'; ctx.fillRect(18, 12, 51, 9);
+  ctx.fillStyle = '#1e1e1e'; ctx.fillRect(18, 12, 7, 9);
+  ctx.fillStyle = '#383838'; ctx.fillRect(18, 12, 51, 1);
+  ctx.fillStyle = '#2e2e2e'; ctx.fillRect(18, 12, 1, 9);
+  ctx.fillStyle = '#1a1a1a'; ctx.fillRect(68, 12, 1, 9);
+
+  // Upper tier windows (2 bright lit, 3 dark unlit)
+  var upWins = [23, 31, 39, 47, 55];
+  for (var uw = 0; uw < upWins.length; uw++) {
+    var ux = upWins[uw], isUpLit = (ux === 39 || ux === 55);
+    ctx.fillStyle = '#121212'; ctx.fillRect(ux - 1, 15, 6, 4);
+    ctx.fillStyle = isUpLit ? (ux === 39 ? '#fff' : '#ebebeb') : '#090909';
+    ctx.fillRect(ux, 16, 4, 2);
+    if (isUpLit) { ctx.fillStyle = '#4a4a4a'; ctx.fillRect(ux, 18, 4, 1); }
   }
+
+  // Cantilevered heavy concrete bunker cornice
+  ctx.fillStyle = '#2f2f2f'; ctx.fillRect(12, 21, 59, 5);
+  ctx.fillStyle = '#424242'; ctx.fillRect(12, 21, 59, 1);
+  ctx.fillStyle = '#363636'; ctx.fillRect(12, 21, 1, 5);
+  ctx.fillStyle = '#1f1f1f'; ctx.fillRect(70, 21, 1, 5);
+  ctx.fillStyle = '#111'; ctx.fillRect(12, 26, 59, 2);
+  for (var hx = 16; hx <= 62; hx += 8) { ctx.fillStyle = '#161616'; ctx.fillRect(hx, 23, 4, 2); }
+
+  // Unified lower concrete bunker body (seamless across full width, no weird seams)
+  ctx.fillStyle = '#232323';
+  ctx.fillRect(15, 27, 54, 31);
+  ctx.fillRect(69, 30, 29, 28);
+  // Subtle recessed end bays far from bunny
+  ctx.fillStyle = '#1c1c1c';
+  ctx.fillRect(15, 27, 5, 31);
+  ctx.fillRect(92, 30, 6, 28);
+  // Subtle matte edge lines
+  ctx.fillStyle = '#2e2e2e'; ctx.fillRect(15, 27, 1, 31);
+  ctx.fillStyle = '#383838'; ctx.fillRect(69, 30, 29, 1);
+  ctx.fillStyle = '#191919'; ctx.fillRect(97, 30, 1, 28);
+
+  // Continuous horizontal concrete slab courses across the whole lower bunker
+  var seamRows = [37, 44, 51];
+  for (var sr = 0; sr < seamRows.length; sr++) {
+    ctx.fillStyle = '#161616'; ctx.fillRect(15, seamRows[sr], 83, 1);
+    ctx.fillStyle = '#2c2c2c'; ctx.fillRect(20, seamRows[sr] + 1, 72, 1);
+  }
+  // Symmetrical outer panel joints away from the bunny
+  ctx.fillStyle = '#161616';
+  ctx.fillRect(20, 28, 1, 30);
+  ctx.fillRect(91, 31, 1, 27);
+
+  // Lower tier windows: 1 flickering on the left, 1 bright on the right wing
+  var flickWave = 0.78 + 0.14 * Math.sin(t * 2.7);
+  var sputter = Math.sin(t * 23.0) * Math.sin(t * 37.0) * Math.sin(t * 7.1);
+  var flickBright = (sputter > 0.50) ? 0.18 : ((sputter < -0.62) ? 0.42 : Math.min(1, flickWave));
+  var fv = Math.round(248 * flickBright), fs = Math.round(92 * flickBright);
+
+  // Left flickering window (x: 23..26, y: 32..33, cleanly above left pigeon)
+  ctx.fillStyle = '#121212'; ctx.fillRect(22, 31, 6, 4);
+  ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(23, 32, 4, 2);
+  ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(23, 34, 4, 1);
+
+  // Left unlit dark window
+  ctx.fillStyle = '#121212'; ctx.fillRect(30, 31, 6, 4);
+  ctx.fillStyle = '#090909'; ctx.fillRect(31, 32, 4, 2);
+
+  // Right wing bright window (x: 77..81, y: 32..33) + unlit dark window (x: 85..88)
+  ctx.fillStyle = '#121212'; ctx.fillRect(76, 31, 7, 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(77, 32, 5, 2);
+  ctx.fillStyle = '#4a4a4a'; ctx.fillRect(77, 34, 5, 1);
+  ctx.fillStyle = '#121212'; ctx.fillRect(84, 31, 6, 4);
+  ctx.fillStyle = '#090909'; ctx.fillRect(85, 32, 4, 2);
+
+  // Drifting low mist along the concrete plaza (behind bunny & pigeons)
   var lowMist = [{ x0: 6, y: 49, w: 34, h: 2, spd: 1.3, a: 0.08 }, { x0: 48, y: 53, w: 38, h: 2, spd: 0.9, a: 0.07 }, { x0: 76, y: 46, w: 28, h: 2, spd: 1.6, a: 0.06 }];
   for (var lm = 0; lm < lowMist.length; lm++) {
     var m = lowMist[lm], mxPos = Math.floor(((m.x0 + t * m.spd) % (W + m.w + 10)) - m.w);
