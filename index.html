@@ -78,13 +78,8 @@ button { touch-action: manipulation; outline: none; font-family: inherit; }
 .locked-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(2px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 12px; }
 .locked-card { border: 1px solid #fff; background: #000; padding: 18px 20px; max-width: 320px; width: 100%; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; gap: 6px; border-bottom: 1px solid #333; padding-bottom: clamp(3px, 0.8dvh, 6px); flex-shrink: 0; }
-.top-title-group { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; }
-.inst-name { font-size: clamp(13px, 3.8vw, 20px); font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bd-switch { display: inline-flex; align-items: center; border: 1px solid #333; background: #050505; height: clamp(26px, 3.8dvh, 32px); padding: 0 2px; flex-shrink: 0; }
-.bd-opt { background: transparent; border: none; color: #555; font-size: clamp(9px, 2.3vw, 10px); font-weight: 700; letter-spacing: 0.6px; padding: 0 6px; height: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.12s ease; white-space: nowrap; }
-.bd-opt.active { color: #fff; font-weight: 900; text-shadow: 0 0 8px rgba(255, 255, 255, 0.35); }
-.bd-sep { color: #3a3a3a; font-size: 10px; font-weight: 400; pointer-events: none; }
-.bpm-box { display: flex; align-items: center; gap: 5px; border: 1px solid #333; padding: 0 7px; height: clamp(34px, 4.8dvh, 42px); font-size: 10px; letter-spacing: 1px; flex-shrink: 0; }
+.inst-name { font-size: clamp(16px, 2.6dvh, 20px); font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bpm-box { display: flex; align-items: center; gap: 6px; border: 1px solid #333; padding: 0 8px; height: clamp(34px, 4.8dvh, 42px); font-size: 10px; letter-spacing: 1px; flex-shrink: 0; }
 
 .bar-switcher { display: flex; align-items: center; gap: 4px; height: clamp(34px, 4.8dvh, 42px); flex-shrink: 0; }
 .bar-btn { width: 30px; height: clamp(30px, 4.2dvh, 36px); background: #000; color: #fff; border: 1px solid #444; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; padding: 0; }
@@ -187,9 +182,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
   .btn-lets-go.primary:hover { background: #ddd; color: #000; }
   .btn-help-tab:hover, .btn-next:hover { background: #fff; color: #000; }
   .btn-next:hover { background: #000; color: #fff; }
-  .help-mini-btn:hover, .step-pad:hover, .bar-btn:hover, .wave-btn:hover, .btn-secondary:hover, .swing-toggle-btn:hover, .bd-switch:hover { border-color: #fff; }
-  .bd-opt:hover { color: #bbb; }
-  .bd-opt.active:hover { color: #fff; }
+  .help-mini-btn:hover, .step-pad:hover, .bar-btn:hover, .wave-btn:hover, .btn-secondary:hover, .swing-toggle-btn:hover { border-color: #fff; }
   .bar-mod-btn:hover { border-color: #fff; color: #fff; }
   .mute-pad:hover { opacity: 0.85; }
 }
@@ -252,15 +245,8 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: #
       </div>
       
       <div class="top-bar">
-        <div class="top-title-group">
-          <h2 class="inst-name" id="instName">BASS DRUM</h2>
-          <div class="bd-switch mono" id="bdSwitch">
-            <button type="button" class="bd-opt active" data-engine="bd1">BD 1</button>
-            <span class="bd-sep">|</span>
-            <button type="button" class="bd-opt" data-engine="bd2">BD 2</button>
-          </div>
-        </div>
-        <div class="bpm-box mono" id="bpmBox"><span>BPM</span><input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 72px;" /><span id="bpmValue">118</span></div>
+        <h2 class="inst-name" id="instName">BASS DRUM</h2>
+        <div class="bpm-box mono" id="bpmBox"><span>BPM</span><input type="range" id="bpmSlider" min="75" max="155" value="118" style="width: 76px;" /><span id="bpmValue">118</span></div>
         <div class="bar-switcher mono hidden" id="barSwitcher">
           <button type="button" class="bar-btn mono active-bar" data-bar="0">1</button>
           <button type="button" class="bar-btn mono hidden" data-bar="1">2</button>
@@ -427,9 +413,7 @@ function resetTracks() {
     for (var s = 0; s < len; s++) { arr.push(isDrum ? 0 : false); noteArr.push(0); tiedArr.push(false); }
     var pObj = { pitch: inst.defaults.pitch, decay: inst.defaults.decay, filter: inst.defaults.filter, reverb: 0.0, volume: 1.0 };
     if (!isDrum) { pObj.attack = inst.defaults.attack; pObj.release = inst.defaults.release; pObj.resonance = inst.defaults.resonance; pObj.glide = inst.defaults.glide; }
-    var trackObj = { steps: arr, notes: noteArr, tied: tiedArr, trackLength: STEPS, barCount: 1, waveform: 'sine', params: pObj };
-    if (i === 0) trackObj.bdEngine = 'bd1';
-    tracks.push(trackObj);
+    tracks.push({ steps: arr, notes: noteArr, tied: tiedArr, trackLength: STEPS, barCount: 1, waveform: 'sine', params: pObj });
   }
   envEditMode[5] = 'decay'; envEditMode[6] = 'decay'; filterEditMode[5] = 'filter'; filterEditMode[6] = 'filter';
   reverbEditMode[5] = 'reverb'; reverbEditMode[6] = 'reverb'; viewedBar[5] = 0; viewedBar[6] = 0;
@@ -628,8 +612,7 @@ function syncAllTrackAudioParams() {
     var p = tracks[i].params;
     if (trackVolGains[i]) trackVolGains[i].gain.setValueAtTime(p.volume !== undefined ? p.volume : 1.0, now);
     if (trackLPFs[i]) {
-      trackLPFs[i].frequency.cancelScheduledValues(0);
-      trackLPFs[i].frequency.setValueAtTime(i === 0 ? maxFreq : Math.min(maxFreq, normToFilterHz(p.filter)), now);
+      trackLPFs[i].frequency.cancelScheduledValues(0); trackLPFs[i].frequency.setValueAtTime(Math.min(maxFreq, normToFilterHz(p.filter)), now);
       trackLPFs[i].Q.cancelScheduledValues(0); trackLPFs[i].Q.setValueAtTime(i >= 5 ? resToQ(p.resonance) : 0.7, now); lastLpfModTime[i] = now;
     }
     if (trackRevGains[i]) trackRevGains[i].gain.setValueAtTime((p.reverb !== undefined ? p.reverb : 0.0) * 0.40, now);
@@ -662,7 +645,7 @@ function initAndUnlockAudio() {
     trackVolGains = []; trackLPFs = []; trackMuteGains = []; trackDryGains = []; trackRevGains = [];
     for (var i = 0; i < INSTRUMENTS.length; i++) {
       var volG = audioCtx.createGain(); volG.gain.value = (tracks[i] && tracks[i].params && tracks[i].params.volume !== undefined) ? tracks[i].params.volume : 1.0; trackVolGains[i] = volG;
-      var tLpf = audioCtx.createBiquadFilter(); tLpf.type = 'lowpass'; tLpf.frequency.value = (i === 0) ? maxFreq : Math.min(maxFreq, normToFilterHz((tracks[i] && tracks[i].params && tracks[i].params.filter !== undefined) ? tracks[i].params.filter : 0.85));
+      var tLpf = audioCtx.createBiquadFilter(); tLpf.type = 'lowpass'; tLpf.frequency.value = Math.min(maxFreq, normToFilterHz((tracks[i] && tracks[i].params && tracks[i].params.filter !== undefined) ? tracks[i].params.filter : 0.85));
       tLpf.Q.value = (i >= 5 && tracks[i] && tracks[i].params) ? resToQ(tracks[i].params.resonance) : 0.7; trackLPFs[i] = tLpf;
       var muteG = audioCtx.createGain(); muteG.gain.value = trackMutes[i] ? 0.0 : 1.0; trackMuteGains[i] = muteG;
       volG.connect(tLpf); tLpf.connect(muteG);
@@ -842,106 +825,6 @@ function stopCrowdSwell() {
 function lerp(a, b, t) { return a + (b - a) * t; }
 function normToFilterHz(t) { return 120 * Math.pow(18000 / 120, t); }
 
-// BD1 Synthesis Engine
-function triggerBD1(ctx, destination, time, tune, pitch, decay, attack, noiseLevel, filterCutoff, noiseDecay, sound) {
-const t = Math.max(time, ctx.currentTime);
-
-const osc = ctx.createOscillator();
-osc.type = 'sine';
-osc.frequency.setValueAtTime(tune + pitch * 260, t);
-osc.frequency.exponentialRampToValueAtTime(tune, t + 0.08);
-
-const bodyGain = ctx.createGain();
-bodyGain.gain.setValueAtTime(0.001, t);
-bodyGain.gain.linearRampToValueAtTime(1.0, t + 0.0015);
-bodyGain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-osc.connect(bodyGain);
-
-const click = ctx.createOscillator();
-click.type = 'triangle';
-click.frequency.setValueAtTime(1800, t);
-click.frequency.exponentialRampToValueAtTime(120, t + 0.008);
-const clickGain = ctx.createGain();
-clickGain.gain.setValueAtTime(attack, t);
-clickGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.01);
-click.connect(clickGain);
-
-const bufferSize = Math.ceil(ctx.sampleRate * noiseDecay);
-const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-const data = noiseBuffer.getChannelData(0);
-for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-const noise = ctx.createBufferSource();
-noise.buffer = noiseBuffer;
-const bp = ctx.createBiquadFilter();
-bp.type = 'bandpass';
-bp.frequency.value = filterCutoff;
-const noiseGain = ctx.createGain();
-noiseGain.gain.setValueAtTime(noiseLevel, t);
-noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + noiseDecay);
-noise.connect(bp);
-bp.connect(noiseGain);
-
-const sum = ctx.createGain();
-bodyGain.connect(sum);
-clickGain.connect(sum);
-noiseGain.connect(sum);
-
-const shaper = ctx.createWaveShaper();
-const curve = new Float32Array(44100);
-const k = sound * 1.8;
-for (let i = 0; i < 44100; i++) {
-const x = (i * 2) / 44100 - 1;
-curve[i] = k === 0 ? x : ((1 + k) * x) / (1 + k * Math.abs(x));
-}
-shaper.curve = curve;
-
-sum.connect(shaper);
-shaper.connect(destination);
-
-osc.start(t);
-osc.stop(t + decay + 0.05);
-click.start(t);
-click.stop(t + 0.02);
-noise.start(t);
-noise.stop(t + noiseDecay + 0.01);
-}
-
-// BD2 Synthesis Engine
-function triggerBD2(ctx, destination, time, tune, pitch, decay, harmonics) {
-const t = Math.max(time, ctx.currentTime);
-
-const osc = ctx.createOscillator();
-osc.type = 'sine';
-osc.frequency.setValueAtTime(tune + pitch * 95, t);
-osc.frequency.exponentialRampToValueAtTime(tune, t + 0.05);
-
-const vca = ctx.createGain();
-vca.gain.setValueAtTime(0.0001, t);
-vca.gain.linearRampToValueAtTime(1.0, t + 0.0025);
-vca.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-
-const shaper = ctx.createWaveShaper();
-const curve = new Float32Array(44100);
-const drive = 1 + harmonics * 2.5;
-for (let i = 0; i < 44100; i++) {
-const x = (i * 2) / 44100 - 1;
-curve[i] = Math.tanh(x * drive + 0.08 * harmonics * (x * x));
-}
-shaper.curve = curve;
-
-const lpf = ctx.createBiquadFilter();
-lpf.type = 'lowpass';
-lpf.frequency.value = 160 + harmonics * 260;
-
-osc.connect(vca);
-vca.connect(shaper);
-shaper.connect(lpf);
-lpf.connect(destination);
-
-osc.start(t);
-osc.stop(t + decay + 0.05);
-}
-
 function triggerMonoNote(instIdx, stepIdx, time) {
   var v = monoVoices[instIdx]; if (!v || !audioCtx) return;
   var inst = INSTRUMENTS[instIdx], track = tracks[instIdx], p = track.params;
@@ -1032,7 +915,7 @@ function triggerSound(instIdx, stepIdx, time, velState) {
     if (crushGateActive) decayVal = Math.min(0.14, decayVal * 0.65);
     var isDrum = instIdx < 5, isAccent = isDrum && velState === 2, isGhost = isDrum && velState === 3, velGain = isDrum ? (isAccent ? 1.35 : (isGhost ? 0.45 : 1.0)) : 1.0;
 
-    if (isDrum && instIdx !== 0 && trackLPFs[instIdx]) {
+    if (isDrum && trackLPFs[instIdx]) {
       var maxFreq = Math.min(20000, audioCtx.sampleRate * 0.45), baseCutoff = Math.min(maxFreq, normToFilterHz(p.filter));
       var lpfParam = trackLPFs[instIdx].frequency, modTime = Math.max(audioCtx.currentTime, time, lastLpfModTime[instIdx] + 0.001);
       lastLpfModTime[instIdx] = modTime; lpfParam.cancelScheduledValues(modTime);
@@ -1043,20 +926,14 @@ function triggerSound(instIdx, stepIdx, time, velState) {
     var dest = trackVolGains[instIdx] || mixBus;
 
     if (inst.id === 'kick') {
-      var hitGain = audioCtx.createGain();
-      hitGain.gain.setValueAtTime(0.68 * velGain, time);
-      hitGain.connect(dest);
-      if (track.bdEngine === 'bd2') {
-        triggerBD2(audioCtx, hitGain, time, 48, p.pitch, decayVal, p.filter);
-      } else {
-        var bdCutoff = Math.min(audioCtx.sampleRate * 0.45, normToFilterHz(p.filter));
-        var bdAttack = isAccent ? 0.45 : (isGhost ? 0.20 : 0.35);
-        var bdNoiseLvl = isAccent ? 0.38 : (isGhost ? 0.15 : 0.28);
-        var bdSound = isAccent ? 0.85 : (isGhost ? 0.40 : 0.70);
-        triggerBD1(audioCtx, hitGain, time, 50, p.pitch, decayVal, bdAttack, bdNoiseLvl, bdCutoff, 0.045, bdSound);
-      }
-      var cleanupMs = Math.ceil((Math.max(0, time - audioCtx.currentTime) + decayVal + 0.15) * 1000);
-      setTimeout(function() { try { hitGain.disconnect(); } catch (e) {} }, cleanupMs);
+      var osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(pitchVal * (isAccent ? 3.25 : 2.8), time); osc.frequency.exponentialRampToValueAtTime(pitchVal, time + Math.min(0.055, decayVal * 0.6));
+      g.gain.setValueAtTime(0.0001, time); g.gain.linearRampToValueAtTime(0.66 * velGain, time + 0.003); g.gain.exponentialRampToValueAtTime(0.001, time + decayVal); g.gain.linearRampToValueAtTime(0.0, time + decayVal + 0.01);
+      osc.connect(g); g.connect(dest); detachOnEnded(osc, [osc, g]); osc.start(time); osc.stop(time + decayVal + 0.015);
+      var clickOsc = audioCtx.createOscillator(), clickGain = audioCtx.createGain();
+      clickOsc.type = 'triangle'; clickOsc.frequency.setValueAtTime(isAccent ? 1850 : 1400, time); clickOsc.frequency.exponentialRampToValueAtTime(180, time + 0.006);
+      clickGain.gain.setValueAtTime(0.18 * (isAccent ? 1.55 : velGain), time); clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.008); clickGain.gain.linearRampToValueAtTime(0.0, time + 0.01);
+      clickOsc.connect(clickGain); clickGain.connect(dest); detachOnEnded(clickOsc, [clickOsc, clickGain]); clickOsc.start(time); clickOsc.stop(time + 0.012);
     } else if (inst.id === 'hihat') {
       var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.setValueAtTime(Math.min(audioCtx.sampleRate * 0.45, 4500 * pitchVal), time);
       var hatTame = audioCtx.createBiquadFilter(); hatTame.type = 'highshelf'; hatTame.frequency.value = Math.min(audioCtx.sampleRate * 0.45, 11000); hatTame.gain.value = isAccent ? -1.5 : -3.5;
@@ -1200,12 +1077,11 @@ function pShot(k1, k2, k3, r1, r3) {
 var SHOTS = {
   drumAccent: function(b) { return '<div class="shot-frame"><div class="shot-badge">' + b + '</div><div class="shot-grid-4">' + se('on','1 NORM') + se('','2 OFF') + se('hi','3 ACCENT') + se('hi-outline','4 GHOST·') + '</div></div>'; },
   polymeter: '<div class="shot-frame"><div class="shot-grid-4">' + se('on','9') + se('on','10') + se('on','11') + se('dim','12') + se('dim','13') + se('dim','14') + se('dim','15') + se('dim','16') + '</div>' + se('hi','STEPS: 11 (POLYMETER)') + '</div>',
-  bdSwitch: '<div class="shot-frame"><div class="shot-row">' + se('on','BASS DRUM') + '<div class="shot-row" style="gap:3px;">' + se('hi-outline','BD 1') + se('dim','BD 2') + '</div>' + se('hi','BPM 118') + '</div><div class="shot-badge">BD 1: PUNCHY NOISE · BD 2: SOFT 808 SUB</div></div>',
   dualBox: function(b) { return '<div class="shot-frame"><div class="shot-badge">' + b + '</div><div class="shot-grid-2">' + se('','TRANSPOSE') + se('hi-outline','ATK / <span style="background:#fff;color:#000;padding:0 2px;">DEC</span> / REL') + se('hi-outline','<span style="background:#fff;color:#000;padding:0 2px;">LOWPASS</span> / RES') + se('hi-outline','<span style="background:#fff;color:#000;padding:0 2px;">REVERB</span> / GLIDE') + '</div></div>'; },
   pianoTies: '<div class="shot-frame"><div class="shot-row">' + se('','SYNTH') + '<div class="shot-row" style="gap:3px;">' + se('hi','1') + se('on','2') + se('hi-outline','+') + se('hi-outline','-') + '</div></div>' + pShot('E4','D#','D4', [0,0,0,0,1,1,0,0], [0,1,1,1,0,0,0,0]) + '</div>',
   jamFx: '<div class="shot-frame"><div class="shot-grid-5">' + se('on','BD') + se('dashed-hi','SD') + se('on','TOM') + se('dashed-hi','HH') + se('','SHK') + '</div><div class="shot-grid-4" style="margin-top:4px;"><div><div class="shot-circle hi-outline">REW</div></div><div><div class="shot-circle hi-outline">HPF</div></div><div><div class="shot-circle hi-outline">ECHO</div></div><div><div class="shot-circle hi-outline">CRSH</div></div></div><div style="margin-top:2px;"><div class="shot-circle hi">QUEUE</div></div></div>',
   startModes: '<div class="shot-frame"><div class="shot-grid-2">' + se('hi','LOCAL / SOLO') + se('hi-outline','ONLINE / 2 PLAYER') + '</div><div class="shot-badge">7 TRACKS → GROOVE → 60S LIVE JAM</div></div>',
-  drumGrid: '<div class="shot-frame"><div class="shot-row">' + se('on','BASS DRUM') + '<div class="shot-row" style="gap:3px;">' + se('hi-outline','BD 1') + se('dim','BD 2') + '</div>' + se('hi','BPM 118') + '</div><div class="shot-grid-4">' + se('hi','1') + se('','2') + se('','3') + se('','4') + se('hi','5') + se('','6') + se('','7') + se('','8') + '</div></div>',
+  drumGrid: '<div class="shot-frame"><div class="shot-row">' + se('on','BASS DRUM') + se('hi','BPM 118') + '</div><div class="shot-grid-4">' + se('hi','1') + se('','2') + se('','3') + se('','4') + se('hi','5') + se('','6') + se('','7') + se('','8') + '</div></div>',
   drumParams: '<div class="shot-frame"><div class="shot-grid-2">' + se('hi-outline','PITCH') + se('hi-outline','DECAY') + se('hi-outline','LOWPASS') + se('hi-outline','REVERB') + se('hi','STEPS: 3–16') + se('hi-outline','VOLUME') + '</div></div>',
   pianoWave: '<div class="shot-frame"><div class="shot-row">' + se('','BASSLINE') + '<div class="shot-row" style="gap:3px;">' + se('hi','1') + se('on','2') + se('hi-outline','+') + se('hi-outline','-') + '</div></div><div class="shot-grid-4">' + se('hi','SINE') + se('','SAW') + se('','SQR') + se('','TRI') + '</div>' + pShot('E2','D#','C2', [0,0,0,0,1,1,0,0], [1,1,0,0,0,0,0,0]) + '</div>',
   jamFull: '<div class="shot-frame"><div class="shot-grid-3">' + se('','PUSH') + se('hi','STRAIGHT') + se('on','GROOVE') + '</div><div class="shot-grid-5" style="margin-top:4px;">' + se('hi','BD') + se('','SD') + se('hi','TOM') + se('hi','HH') + se('','SHK') + '</div><div class="shot-grid-4" style="margin-top:4px;"><div><div class="shot-circle hi-outline">REW</div></div><div><div class="shot-circle hi-outline">HPF</div></div><div><div class="shot-circle hi-outline">ECHO</div></div><div><div class="shot-circle hi-outline">CRSH</div></div></div></div>'
@@ -1217,17 +1093,16 @@ var HELP_CONTENT = {
     gateQ: 'DO YOU KNOW HOW TO USE A DRUM MACHINE & SYNTH?', gateSub: 'CHOOSE A GUIDE TAILORED TO YOUR LEVEL',
     btnYes: 'YES — HIDDEN FEATURES', btnNo: 'NO — EXPLAIN EVERYTHING',
     yesCards: [
-      { title: '1. BASS DRUM: BD 1 | BD 2 ENGINES', shot: SHOTS.bdSwitch, body: 'Tap <strong>BD 1 | BD 2</strong> next to Bass Drum to switch kick engines (the bright one is active):<br/>• <strong>BD 1:</strong> Punchy noise &amp; distortion engine. <strong>Pitch</strong> adjusts the sine pitch-envelope depth, <strong>Decay</strong> sets the tail, and <strong>Lowpass</strong> sweeps the noise generator\'s bandpass filter.<br/>• <strong>BD 2:</strong> Soft 808 sub engine. <strong>Pitch</strong> sets initial sub-knock depth, <strong>Decay</strong> sets tail length, and <strong>Lowpass</strong> controls the post-saturation lowpass filter smoothing out sub harmonics (160–420 Hz).' },
-      { title: '2. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('HOLD ANY PAD TO TOGGLE'), body: 'Press &amp; hold any drum pad to toggle <strong>Accent Mode</strong> (<strong>ACCENT ENABLED</strong> flashes at the top). When active, tapping pads cycles: <strong>Normal → Accent (loud &amp; bright) → Ghost (soft &amp; muted) → Off</strong>. Hold again to return to simple On/Off. You can also <strong>swipe across pads</strong> to paint patterns fast.' },
-      { title: '3. DRUMS: POLYMETER LOOP LENGTHS', shot: SHOTS.polymeter, body: 'Drag the <strong>STEPS</strong> slider below 16 (down to <strong>3 steps</strong>) on any drum track. That track loops on its own step count while the rest of your beat keeps running in 16/32/64 steps, creating evolving polyrhythms.' },
-      { title: '4. SYNTH & BASS: HOLD MULTI-SLIDERS', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'On <strong>Bassline</strong> and <strong>Synth</strong>, three slider boxes hide multiple independent parameters. <strong>Press &amp; hold anywhere on a box</strong> to switch/cycle between the bright white active parameter and the dimmed ones:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-way cycle, defaults to <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms portamento)' },
-      { title: '5. SYNTH & BASS: TIES, GLIDE & 1–4 BARS', shot: SHOTS.pianoTies, body: '• <strong>Finger-Stringing:</strong> Drag horizontally along a row on either <strong>Bassline</strong> or <strong>Synth</strong> to tie steps into one sustained note. Overlapping notes glide smoothly in pitch via <strong>GLIDE</strong>.<br/>• <strong>1–4 Bars:</strong> Tap <strong>+</strong> to add up to 4 bars (64 steps) without leaving your current view—tap <strong>2</strong>, <strong>3</strong>, or <strong>4</strong> to edit that bar. Tap <strong>-</strong> to remove the highest bar.' },
-      { title: '6. JAM SCREEN: VINYL FX & MUTE QUEUE', shot: SHOTS.jamFx, body: '• <strong>4 Vinyl FX (Hold):</strong> Press &amp; hold any vinyl for momentary DJ FX (<strong>REWIND</strong> stutters &amp; spins back; <strong>HIGHPASS</strong> sweeps out bass + builds a crowd swell).<br/>• <strong>MUTE QUEUE:</strong> Hold the round <strong>MUTE QUEUE</strong> button, tap multiple instrument pads to arm them (dashed blink), then <strong>release MUTE QUEUE</strong> to drop or bring them all back simultaneously!' }
+      { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('HOLD ANY PAD TO TOGGLE'), body: 'Press &amp; hold any drum pad to toggle <strong>Accent Mode</strong> (<strong>ACCENT ENABLED</strong> flashes at the top). When active, tapping pads cycles: <strong>Normal → Accent (loud &amp; bright) → Ghost (soft &amp; muted) → Off</strong>. Hold again to return to simple On/Off. You can also <strong>swipe across pads</strong> to paint patterns fast.' },
+      { title: '2. DRUMS: POLYMETER LOOP LENGTHS', shot: SHOTS.polymeter, body: 'Drag the <strong>STEPS</strong> slider below 16 (down to <strong>3 steps</strong>) on any drum track. That track loops on its own step count while the rest of your beat keeps running in 16/32/64 steps, creating evolving polyrhythms.' },
+      { title: '3. SYNTH & BASS: HOLD MULTI-SLIDERS', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'On <strong>Bassline</strong> and <strong>Synth</strong>, three slider boxes hide multiple independent parameters. <strong>Press &amp; hold anywhere on a box</strong> to switch/cycle between the bright white active parameter and the dimmed ones:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-way cycle, defaults to <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms portamento)' },
+      { title: '4. SYNTH & BASS: TIES, GLIDE & 1–4 BARS', shot: SHOTS.pianoTies, body: '• <strong>Finger-Stringing:</strong> Drag horizontally along a row on either <strong>Bassline</strong> or <strong>Synth</strong> to tie steps into one sustained note. Overlapping notes glide smoothly in pitch via <strong>GLIDE</strong>.<br/>• <strong>1–4 Bars:</strong> Tap <strong>+</strong> to add up to 4 bars (64 steps) without leaving your current view—tap <strong>2</strong>, <strong>3</strong>, or <strong>4</strong> to edit that bar. Tap <strong>-</strong> to remove the highest bar.' },
+      { title: '5. JAM SCREEN: VINYL FX & MUTE QUEUE', shot: SHOTS.jamFx, body: '• <strong>4 Vinyl FX (Hold):</strong> Press &amp; hold any vinyl for momentary DJ FX (<strong>REWIND</strong> stutters &amp; spins back; <strong>HIGHPASS</strong> sweeps out bass + builds a crowd swell).<br/>• <strong>MUTE QUEUE:</strong> Hold the round <strong>MUTE QUEUE</strong> button, tap multiple instrument pads to arm them (dashed blink), then <strong>release MUTE QUEUE</strong> to drop or bring them all back simultaneously!' }
     ],
     noCards: [
       { title: '1. HOW BEATFRIENDS WORKS', shot: SHOTS.startModes, body: 'Build a full track layer by layer across <strong>7 instruments</strong>: Bass Drum, Snare Drum, Toms, Hi-Hats, Shakers, Bassline, and Synth. Next choose a Groove feel, then perform live for 60 seconds!<br/>• <strong>LOCAL / SOLO:</strong> Program all 7 parts yourself (or pass the phone).<br/>• <strong>ONLINE / 2 PLAYER:</strong> Match with another player and take turns building one track at a time.' },
-      { title: '2. THE DRUM GRID, BD 1 | BD 2 & BPM', shot: SHOTS.drumGrid, body: 'The 16 pads represent <strong>one 4-beat bar</strong> (every 4th pad has a thicker left line marking beats 1, 2, 3, 4).<br/>• <strong>BD 1 | BD 2 (Bass Drum only):</strong> Tap to switch between <strong>BD 1</strong> (punchy noise/distortion kick) and <strong>BD 2</strong> (soft 808 sub kick).<br/>• <strong>Tap</strong> pads to place/remove hits, or <strong>swipe</strong> across pads to draw fast. <strong>Hold any pad</strong> for Accent Mode (loud/normal/soft hits).<br/>• <strong>BPM</strong> (top right) sets song speed (75–155). Tap <strong>CLEAR</strong> to wipe, or <strong>NEXT</strong> to continue.' },
-      { title: '3. DRUM SOUND CONTROLS', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> On Bass Drum, adjusts the kick\'s punch sweep depth; on other drums, tunes them deeper or higher.<br/>• <strong>DECAY:</strong> Controls how short (punchy) or long (boomy) the hit rings.<br/>• <strong>LOWPASS:</strong> On <strong>BD 1</strong>, filters the punchy noise burst; on <strong>BD 2</strong>, smooths high-frequency harmonics of the 808 sub; on other drums, dims sharp highs.<br/>• <strong>REVERB:</strong> Adds room echo.<br/>• <strong>STEPS:</strong> Changes loop length (3–16) for rhythmic twists.<br/>• <strong>VOLUME:</strong> Sets instrument loudness in the mix.' },
+      { title: '2. THE DRUM GRID & BPM', shot: SHOTS.drumGrid, body: 'The 16 pads represent <strong>one 4-beat bar</strong> (every 4th pad has a thicker left line marking beats 1, 2, 3, 4).<br/>• <strong>Tap</strong> pads to place/remove hits, or <strong>swipe</strong> across pads to draw fast.<br/>• <strong>Hold any pad</strong> to unlock Accent Mode (loud/normal/soft hits).<br/>• <strong>BPM</strong> (top right) sets song speed (75–155). Tap <strong>CLEAR</strong> to wipe the track, or <strong>NEXT</strong> to continue.' },
+      { title: '3. DRUM SOUND CONTROLS', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> Tunes the drum deeper or higher.<br/>• <strong>DECAY:</strong> Controls how short (punchy) or long (boomy) the hit rings.<br/>• <strong>LOWPASS:</strong> Dims sharp high frequencies for a warmer tone.<br/>• <strong>REVERB:</strong> Adds room echo.<br/>• <strong>STEPS:</strong> Changes loop length (3–16) for rhythmic twists.<br/>• <strong>VOLUME:</strong> Sets instrument loudness in the mix.' },
       { title: '4. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: '• <strong>Waveforms:</strong> Pick a tone: <strong>SINE</strong> (smooth sub), <strong>SAW</strong> (bright &amp; buzzy), <strong>SQR</strong> (hollow retro), or <strong>TRI</strong> (warm/soft).<br/>• <strong>Notes &amp; Ties:</strong> Tap cells to place notes (higher = higher pitch). <strong>Drag sideways</strong> to sustain one long note.<br/>• <strong>1–4 Bars (top right):</strong> Tap <strong>+</strong> to add up to 4 bars, tap <strong>1–4</strong> to edit each bar, or <strong>-</strong> to remove the last bar.' },
       { title: '5. SYNTH & BASS MULTI-SLIDERS', shot: SHOTS.dualBox('HOLD HIGHLIGHTED BOX TO CYCLE'), body: '• <strong>TRANSPOSE:</strong> Shifts your whole melody higher or lower.<br/>• <strong>ATTACK / DECAY / RELEASE (hold to cycle):</strong> <strong>Attack</strong> fades notes in; <strong>Decay</strong> drops the peak down for punchy plucks; <strong>Release</strong> sets how long the note smoothly fades out to silence.<br/>• <strong>LOWPASS / RESONANCE (hold to switch):</strong> <strong>Lowpass</strong> cuts brightness; <strong>Resonance</strong> sharpens the filter edge.<br/>• <strong>REVERB / GLIDE (hold to switch):</strong> <strong>Reverb</strong> adds echo; <strong>Glide</strong> bends pitch smoothly between notes.' },
       { title: '6. GROOVE & 60-SECOND LIVE JAM', shot: SHOTS.jamFull, body: '• <strong>GROOVE:</strong> Pick <strong>STRAIGHT</strong> (on-beat), <strong>GROOVE</strong> (bouncy swing), or <strong>PUSH</strong> (heavy off-kilter feel), then hit <strong>JAM</strong>.<br/>• <strong>MUTE PADS:</strong> Tap <strong>BD..SYNTH</strong> to mute or unmute tracks live.<br/>• <strong>MUTE QUEUE (Circle):</strong> Hold this button, tap several tracks to arm them, then release to switch them all at once!<br/>• <strong>4 VINYLS:</strong> Press &amp; hold for live FX (<strong>REWIND</strong> spinback, <strong>HIGHPASS</strong> sweep + crowd, <strong>SPACE ECHO</strong> delay, <strong>CRUSH/GATE</strong> stutter).' }
@@ -1238,17 +1113,16 @@ var HELP_CONTENT = {
     gateQ: 'WEISST DU, WIE MAN EINE DRUM MACHINE & EINEN SYNTH BEDIENT?', gateSub: 'WÄHLE DIE PASSENDE ANLEITUNG',
     btnYes: 'JA — VERSTECKTE FEATURES', btnNo: 'NEIN — ALLES ERKLÄREN',
     yesCards: [
-      { title: '1. BASS DRUM: BD 1 | BD 2 ENGINES', shot: SHOTS.bdSwitch, body: 'Tippe neben Bass Drum auf <strong>BD 1 | BD 2</strong>, um die Kick-Engine zu wechseln (hell = aktiv):<br/>• <strong>BD 1:</strong> Druckvolle Noise-/Distortion-Engine. <strong>Pitch</strong> regelt die Sweep-Tiefe des Oszillators, <strong>Decay</strong> die Ausklingzeit und <strong>Lowpass</strong> den Bandpass-Filter des Noise-Generators.<br/>• <strong>BD 2:</strong> Weiche 808-Sub-Engine. <strong>Pitch</strong> regelt den Start-Kick-Sweep, <strong>Decay</strong> die Tail-Länge und <strong>Lowpass</strong> den Post-Saturation-Lowpass zum Glätten der Sub-Obertöne (160–420 Hz).' },
-      { title: '2. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('PAD HALTEN ZUM UMSCHALTEN'), body: 'Halte ein beliebiges Drum-Pad gedrückt, um den <strong>Accent Mode</strong> umzuschalten (oben blinkt kurz <strong>ACCENT ENABLED</strong>). Ist er aktiv, schaltet Tippen durch: <strong>Normal → Accent (laut &amp; heller) → Ghost (leise &amp; dumpfer) → Off</strong>. Erneut halten schaltet zurück auf normales On/Off. Du kannst auch mit dem Finger <strong>über die Pads wischen</strong>, um schnell Steps zu setzen.' },
-      { title: '3. DRUMS: POLYMETER MIT STEPS (3–16)', shot: SHOTS.polymeter, body: 'Ziehe den <strong>STEPS</strong>-Slider bei einem Drum-Track unter 16 (bis runter auf <strong>3 Steps</strong>). Dieser Track loopt dann in seiner eigenen Step-Länge, während der Rest vom Beat normal in 16/32/64 Steps weiterläuft – ideal für Polyrhythmen.' },
-      { title: '4. SYNTH & BASS: MULTI-SLIDER (HALTEN)', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Bei <strong>Bassline</strong> und <strong>Synth</strong> verstecken drei Slider-Boxen mehrere Parameter. <strong>Drücke und halte irgendwo auf der Box</strong>, um zwischen dem hellweißen (aktiven) und den gedimmten Parametern durchzuschalten:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-fach Wechsel, Standard ist <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms Portamento)' },
-      { title: '5. SYNTH & BASS: TIES, GLIDE & 1–4 BARS', shot: SHOTS.pianoTies, body: '• <strong>Noten verbinden:</strong> Ziehe auf <strong>Bassline</strong> oder <strong>Synth</strong> waagerecht über eine Reihe, um Steps zu einer gehaltenen Note zu verbinden. Überlappende Noten gleiten dank <strong>GLIDE</strong> stufenlos zur nächsten Tonhöhe.<br/>• <strong>1–4 Bars:</strong> Tippe oben rechts auf <strong>+</strong>, um bis zu 4 Bars (64 Steps) hinzuzufügen, ohne deine aktuelle Ansicht zu verlassen – tippe auf <strong>2</strong>, <strong>3</strong> oder <strong>4</strong>, um den jeweiligen Bar zu bearbeiten. <strong>-</strong> löscht den höchsten Bar.' },
-      { title: '6. JAM SCREEN: VINYL FX & MUTE QUEUE', shot: SHOTS.jamFx, body: '• <strong>4 Vinyl FX (Halten):</strong> Halte eines der 4 Vinyls gedrückt für Live-DJ-Effekte (<strong>REWIND</strong> stottert &amp; spult zurück; <strong>HIGHPASS</strong> filtert den Bass weg + baut einen Crowd-Jubel auf).<br/>• <strong>MUTE QUEUE:</strong> Halte den runden <strong>MUTE QUEUE</strong>-Button gedrückt, tippe mehrere Tracks an (sie blinken gestrichelt) und <strong>lass MUTE QUEUE los</strong>, um alle gleichzeitig stumm- oder wieder scharfzuschalten!' }
+      { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('PAD HALTEN ZUM UMSCHALTEN'), body: 'Halte ein beliebiges Drum-Pad gedrückt, um den <strong>Accent Mode</strong> umzuschalten (oben blinkt kurz <strong>ACCENT ENABLED</strong>). Ist er aktiv, schaltet Tippen durch: <strong>Normal → Accent (laut &amp; heller) → Ghost (leise &amp; dumpfer) → Off</strong>. Erneut halten schaltet zurück auf normales On/Off. Du kannst auch mit dem Finger <strong>über die Pads wischen</strong>, um schnell Steps zu setzen.' },
+      { title: '2. DRUMS: POLYMETER MIT STEPS (3–16)', shot: SHOTS.polymeter, body: 'Ziehe den <strong>STEPS</strong>-Slider bei einem Drum-Track unter 16 (bis runter auf <strong>3 Steps</strong>). Dieser Track loopt dann in seiner eigenen Step-Länge, während der Rest vom Beat normal in 16/32/64 Steps weiterläuft – ideal für Polyrhythmen.' },
+      { title: '3. SYNTH & BASS: MULTI-SLIDER (HALTEN)', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Bei <strong>Bassline</strong> und <strong>Synth</strong> verstecken drei Slider-Boxen mehrere Parameter. <strong>Drücke und halte irgendwo auf der Box</strong>, um zwischen dem hellweißen (aktiven) und den gedimmten Parametern durchzuschalten:<br/>• <strong>ATTACK / DECAY / RELEASE</strong> (3-fach Wechsel, Standard ist <strong>DECAY</strong>: 5–300 ms / 10–1000 ms / 20–2500 ms)<br/>• <strong>LOWPASS / RESONANCE</strong> (120 Hz–18 kHz / 0–50%)<br/>• <strong>REVERB / GLIDE</strong> (0–100% / 0–500 ms Portamento)' },
+      { title: '4. SYNTH & BASS: TIES, GLIDE & 1–4 BARS', shot: SHOTS.pianoTies, body: '• <strong>Noten verbinden:</strong> Ziehe auf <strong>Bassline</strong> oder <strong>Synth</strong> waagerecht über eine Reihe, um Steps zu einer gehaltenen Note zu verbinden. Überlappende Noten gleiten dank <strong>GLIDE</strong> stufenlos zur nächsten Tonhöhe.<br/>• <strong>1–4 Bars:</strong> Tippe oben rechts auf <strong>+</strong>, um bis zu 4 Bars (64 Steps) hinzuzufügen, ohne deine aktuelle Ansicht zu verlassen – tippe auf <strong>2</strong>, <strong>3</strong> oder <strong>4</strong>, um den jeweiligen Bar zu bearbeiten. <strong>-</strong> löscht den höchsten Bar.' },
+      { title: '5. JAM SCREEN: VINYL FX & MUTE QUEUE', shot: SHOTS.jamFx, body: '• <strong>4 Vinyl FX (Halten):</strong> Halte eines der 4 Vinyls gedrückt für Live-DJ-Effekte (<strong>REWIND</strong> stottert &amp; spult zurück; <strong>HIGHPASS</strong> filtert den Bass weg + baut einen Crowd-Jubel auf).<br/>• <strong>MUTE QUEUE:</strong> Halte den runden <strong>MUTE QUEUE</strong>-Button gedrückt, tippe mehrere Tracks an (sie blinken gestrichelt) und <strong>lass MUTE QUEUE los</strong>, um alle gleichzeitig stumm- oder wieder scharfzuschalten!' }
     ],
     noCards: [
       { title: '1. SO FUNKTIONIERT BEATFRIENDS', shot: SHOTS.startModes, body: 'Du baust Schritt für Schritt einen kompletten Beat aus <strong>7 Instrumenten</strong>: Bass Drum, Snare Drum, Toms, Hi-Hats, Shakers, Bassline und Synth. Danach wählst du ein Groove-Feeling und performst deinen Beat 60 Sekunden live!<br/>• <strong>LOCAL / SOLO:</strong> Programmiere alle 7 Parts selbst (oder gib das Handy reihum).<br/>• <strong>ONLINE / 2 PLAYER:</strong> Spiele gegen eine andere Person und baut abwechselnd je einen Track.' },
-      { title: '2. DAS DRUM-GRID, BD 1 | BD 2 & BPM', shot: SHOTS.drumGrid, body: 'Die 16 Pads sind <strong>ein Takt (1 Bar)</strong> mit 16 Steps (jedes 4. Pad hat links einen dickeren Strich für die Beats 1, 2, 3, 4).<br/>• <strong>BD 1 | BD 2 (nur Bass Drum):</strong> Tippe zum Wechseln zwischen <strong>BD 1</strong> (druckvolle Noise-/Distortion-Kick) und <strong>BD 2</strong> (weiche 808-Sub-Kick).<br/>• <strong>Tippe</strong> auf Pads zum Setzen/Löschen oder <strong>wische</strong> darüber. <strong>Pad halten</strong> aktiviert den Accent Mode (laute/normale/leise Hits).<br/>• <strong>BPM</strong> (oben rechts) regelt das Tempo (75–155). Mit <strong>CLEAR</strong> löschst du den Track, mit <strong>NEXT</strong> geht es weiter.' },
-      { title: '3. DRUM SOUND-REGLER', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> Regelt bei der Bass Drum die Sweep-Tiefe des Kick-Anschlags; stimmt andere Drums tiefer oder höher.<br/>• <strong>DECAY:</strong> Bestimmt, wie kurz (knackig) oder lang (wuchtig) der Sound ausklingt.<br/>• <strong>LOWPASS:</strong> Filtert bei <strong>BD 1</strong> das Noise-Signal, glättet bei <strong>BD 2</strong> die Obertöne des Subs und macht andere Drums wärmer.<br/>• <strong>REVERB:</strong> Fügt Raumhall hinzu.<br/>• <strong>STEPS:</strong> Kürzt die Loop-Länge (3–16) für Polyrhythmen.<br/>• <strong>VOLUME:</strong> Regelt die Lautstärke im Mix.' },
+      { title: '2. DAS DRUM-GRID & BPM', shot: SHOTS.drumGrid, body: 'Die 16 Pads sind <strong>ein Takt (1 Bar)</strong> mit 16 Steps (jedes 4. Pad hat links einen dickeren Strich für die Beats 1, 2, 3, 4).<br/>• <strong>Tippe</strong> auf Pads, um Hits zu setzen/löschen, oder <strong>wische</strong> darüber.<br/>• <strong>Pad halten</strong> aktiviert den Accent Mode (laute/normale/leise Hits).<br/>• <strong>BPM</strong> (oben rechts) regelt das Tempo von 75 (langsam) bis 155 (schnell). Mit <strong>CLEAR</strong> löschst du den Track, mit <strong>NEXT</strong> geht es weiter.' },
+      { title: '3. DRUM SOUND-REGLER', shot: SHOTS.drumParams, body: '• <strong>PITCH:</strong> Stimmt die Drum tiefer oder höher.<br/>• <strong>DECAY:</strong> Bestimmt, wie kurz (knackig) oder lang (wuchtig) der Sound ausklingt.<br/>• <strong>LOWPASS:</strong> Nimmt scharfe Höhen weg für einen wärmeren Klang.<br/>• <strong>REVERB:</strong> Fügt Raumhall hinzu.<br/>• <strong>STEPS:</strong> Kürzt die Loop-Länge (3–16) für Polyrhythmen.<br/>• <strong>VOLUME:</strong> Regelt die Lautstärke im Mix.' },
       { title: '4. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: '• <strong>Waveforms:</strong> Wähle einen Grundsound: <strong>SINE</strong> (runder Sub), <strong>SAW</strong> (scharf &amp; satt), <strong>SQR</strong> (retro/hohl) oder <strong>TRI</strong> (weich).<br/>• <strong>Noten &amp; Ties:</strong> Tippe Felder an für einzelne Töne (oben = höher). <strong>Ziehe den Finger waagerecht</strong>, um eine lange Note zu halten.<br/>• <strong>1–4 Bars (oben rechts):</strong> Mit <strong>+</strong> erweiterst du auf bis zu 4 Bars, über <strong>1–4</strong> wählst du den Bar, <strong>-</strong> entfernt den letzten Bar.' },
       { title: '5. SYNTH & BASS MULTI-SLIDER', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: '• <strong>TRANSPOSE:</strong> Verschiebt deine ganze Melodie höher oder tiefer.<br/>• <strong>ATTACK / DECAY / RELEASE (halten zum Wechseln):</strong> <strong>Attack</strong> blendet Töne ein; <strong>Decay</strong> senkt die Spitze schnell ab (ideal für knackige Plucks); <strong>Release</strong> regelt das gleichmäßige Ausklingen bis zur Stille.<br/>• <strong>LOWPASS / RESONANCE (halten):</strong> <strong>Lowpass</strong> macht den Sound dunkler/heller; <strong>Resonance</strong> betont die Filterkante.<br/>• <strong>REVERB / GLIDE (halten):</strong> <strong>Reverb</strong> gibt Hall; <strong>Glide</strong> lässt die Tonhöhe geschmeidig zwischen Noten gleiten.' },
       { title: '6. GROOVE & 60-SEKUNDEN LIVE JAM', shot: SHOTS.jamFull, body: '• <strong>GROOVE:</strong> Wähle <strong>STRAIGHT</strong> (gerade), <strong>GROOVE</strong> (lockerer Swing) oder <strong>PUSH</strong> (treibend/verschoben) und tippe auf <strong>JAM</strong>.<br/>• <strong>MUTE PADS:</strong> Tippe auf <strong>BD..SYNTH</strong>, um Instrumente live stumm- oder einzuschalten.<br/>• <strong>MUTE QUEUE (Kreis):</strong> Halte den Kreis gedrückt, tippe mehrere Tracks an und lass los, um alle gleichzeitig umzuschalten!<br/>• <strong>4 VINYLS:</strong> Halte sie gedrückt für Live-Effekte (<strong>REWIND</strong> Spinback, <strong>HIGHPASS</strong> Filter + Crowd, <strong>SPACE ECHO</strong> Delay, <strong>CRUSH/GATE</strong> Stutter).' }
@@ -1272,7 +1146,7 @@ function renderHelpModal(resetScroll) {
 var btnSoloMode = $('btnSoloMode'), btnOnlineMode = $('btnOnlineMode'), btnCancelMatchmaking = $('btnCancelMatchmaking'), btnBackToMenu = $('btnBackToMenu');
 var battleHeader = $('battleHeader'), playerBadge = $('playerBadge'), roundBadge = $('roundBadge'), turnIndicator = $('turnIndicator');
 var lockedOverlay = $('lockedOverlay'), lockedTitle = $('lockedTitle'), lockedSub = $('lockedSub'), clearBtn = $('clearBtn'), nextBtn = $('nextBtn');
-var instName = $('instName'), bdSwitch = $('bdSwitch'), bdOptBtns = bdSwitch.querySelectorAll('.bd-opt'), bpmBox = $('bpmBox'), bpmSlider = $('bpmSlider'), bpmValue = $('bpmValue');
+var instName = $('instName'), bpmBox = $('bpmBox'), bpmSlider = $('bpmSlider'), bpmValue = $('bpmValue');
 var barSwitcher = $('barSwitcher'), barBtns = barSwitcher.querySelectorAll('.bar-btn'), barAddBtn = $('barAddBtn'), barRemoveBtn = $('barRemoveBtn');
 var accentBanner = $('accentBanner'), stepGrid = $('stepGrid'), stepPadEls = [], playheadBarEls = [], waveBar = $('waveBar'), pianoRollWrap = $('pianoRollWrap'), pianoCanvas = $('pianoCanvas'), pianoCtx = pianoCanvas.getContext('2d');
 var boxDecay = $('boxDecay'), boxFilter = $('boxFilter'), boxReverb = $('boxReverb'), boxSteps = $('boxSteps'), boxVolume = $('boxVolume');
@@ -1296,23 +1170,6 @@ function cancelDrumLongPress() { if (longPressTimer !== null) { clearTimeout(lon
 function showAccentBanner(on) { accentBanner.textContent = on ? 'ACCENT ENABLED' : 'ACCENT DISABLED'; accentBanner.classList.add('visible'); clearTimeout(accentBannerTimer); accentBannerTimer = setTimeout(function() { accentBanner.classList.remove('visible'); }, 1500); }
 function hideAccentBannerImmediate() { clearTimeout(accentBannerTimer); accentBannerTimer = null; accentBanner.classList.remove('visible'); }
 function getNextDrumStepState(cur) { var c = normalizeDrumStep(cur); if (!accentMode) return c > 0 ? 0 : 1; return c === 0 ? 1 : (c === 1 ? 2 : (c === 2 ? 3 : 0)); }
-
-function renderBdSwitch() {
-  var eng = (tracks[0] && tracks[0].bdEngine === 'bd2') ? 'bd2' : 'bd1';
-  for (var i = 0; i < bdOptBtns.length; i++) bdOptBtns[i].classList.toggle('active', bdOptBtns[i].getAttribute('data-engine') === eng);
-}
-for (var bdo = 0; bdo < bdOptBtns.length; bdo++) {
-  (function(btn) {
-    bindTap(btn, function() {
-      if (gameMode === 'online' && !isMyTurn()) return;
-      if (INSTRUMENTS[turnIndex].id !== 'kick') return;
-      ensureAudioUnlocked();
-      tracks[0].bdEngine = btn.getAttribute('data-engine') === 'bd2' ? 'bd2' : 'bd1';
-      renderBdSwitch();
-      updateParamText();
-    });
-  })(bdOptBtns[bdo]);
-}
 
 bindTap(btnOpenHelp, function() { helpView = 'gate'; renderHelpModal(true); helpOverlay.classList.remove('hidden'); });
 bindTap(btnHelpClose, function() { helpOverlay.classList.add('hidden'); });
@@ -1369,7 +1226,6 @@ function createMultiSliderController(cfg) {
 
 function applyFilterOrResLive(idx, mode, val) {
   if (!audioCtx || !trackLPFs[idx]) return;
-  if (idx === 0) return;
   var now = audioCtx.currentTime;
   if (mode === 'filter') { var mf = Math.min(20000, audioCtx.sampleRate * 0.45); lastLpfModTime[idx] = now; trackLPFs[idx].frequency.cancelScheduledValues(now); trackLPFs[idx].frequency.setTargetAtTime(Math.min(mf, normToFilterHz(val)), now, 0.015); }
   else if (mode === 'resonance') { trackLPFs[idx].Q.cancelScheduledValues(now); trackLPFs[idx].Q.setTargetAtTime(resToQ(val), now, 0.015); }
@@ -1444,7 +1300,6 @@ function serializeMove() {
     if (!isDrum) { pOut.attack = p.attack !== undefined ? p.attack : d.attack; pOut.release = p.release !== undefined ? p.release : d.release; pOut.resonance = p.resonance !== undefined ? p.resonance : d.resonance; pOut.glide = p.glide !== undefined ? p.glide : d.glide; }
     var payload = { steps: stepsOut, notes: tracks[i].notes.slice(), tied: tracks[i].tied.slice(), waveform: tracks[i].waveform, params: pOut };
     if (isDrum) payload.trackLength = getTrackLength(i); else payload.barCount = getTrackBarCount(i);
-    if (i === 0) payload.bdEngine = tracks[0].bdEngine === 'bd2' ? 'bd2' : 'bd1';
     compactTracks.push(payload);
   }
   return { bpm: bpm, tracks: compactTracks, sender: myRole, timestamp: Date.now() };
@@ -1457,7 +1312,6 @@ function applyOpponentMove(moveData) {
     if (i < 5) {
       if (mt.steps) { var ds = toArrayN(mt.steps, STEPS, 0); for (var s = 0; s < STEPS; s++) ds[s] = normalizeDrumStep(ds[s]); tracks[i].steps = ds; }
       tracks[i].trackLength = sanitizeTrackLength(mt.trackLength || STEPS); tracks[i].notes = mt.notes ? toArrayN(mt.notes, STEPS, 0) : tracks[i].notes; tracks[i].tied = mt.tied ? toArrayN(mt.tied, STEPS, false) : tracks[i].tied;
-      if (i === 0) tracks[0].bdEngine = mt.bdEngine === 'bd2' ? 'bd2' : 'bd1';
     } else {
       tracks[i].barCount = sanitizeBarCount(mt.barCount || 1); tracks[i].steps = mt.steps ? toArrayN(mt.steps, MAX_MELODIC_STEPS, false) : tracks[i].steps;
       tracks[i].notes = mt.notes ? toArrayN(mt.notes, MAX_MELODIC_STEPS, 0) : tracks[i].notes; tracks[i].tied = mt.tied ? toArrayN(mt.tied, MAX_MELODIC_STEPS, false) : tracks[i].tied;
@@ -1745,11 +1599,7 @@ function updateParamText() {
     else reverbVal.textContent = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100) + '%';
   } else {
     decayVal.textContent = Math.round(lerp(inst.decayRange[0], inst.decayRange[1], p.decay) * 1000) + ' ms';
-    if (inst.id === 'kick' && tracks[0].bdEngine === 'bd2') {
-      filterVal.textContent = Math.round(160 + p.filter * 260) + ' Hz';
-    } else {
-      var hzD = Math.round(normToFilterHz(p.filter)); filterVal.textContent = hzD >= 1000 ? (hzD / 1000).toFixed(1) + ' kHz' : hzD + ' Hz';
-    }
+    var hzD = Math.round(normToFilterHz(p.filter)); filterVal.textContent = hzD >= 1000 ? (hzD / 1000).toFixed(1) + ' kHz' : hzD + ' Hz';
     reverbVal.textContent = Math.round((p.reverb !== undefined ? p.reverb : 0.0) * 100) + '%';
   }
   stepsVal.textContent = getTrackLength(turnIndex); volumeVal.textContent = Math.round((p.volume !== undefined ? p.volume : 1.0) * 100) + '%';
@@ -1757,11 +1607,8 @@ function updateParamText() {
 
 function renderTurn() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); dragPointerId = null; pressStartStep = null; didDragPaint = false; longPressTriggered = false;
-  var inst = INSTRUMENTS[turnIndex], track = tracks[turnIndex], isPiano = isPianoRollInstrument(inst.id), isWave = isWaveformInstrument(inst.id), isBass = inst.id === 'bassline', isSynth = inst.id === 'synth', isKick = inst.id === 'kick';
-  instName.textContent = inst.name;
-  bdSwitch.classList.toggle('hidden', !isKick);
-  if (isKick) renderBdSwitch();
-  bpmBox.classList.toggle('hidden', isPiano); barSwitcher.classList.toggle('hidden', !isPiano);
+  var inst = INSTRUMENTS[turnIndex], track = tracks[turnIndex], isPiano = isPianoRollInstrument(inst.id), isWave = isWaveformInstrument(inst.id), isBass = inst.id === 'bassline', isSynth = inst.id === 'synth';
+  instName.textContent = inst.name; bpmBox.classList.toggle('hidden', isPiano); barSwitcher.classList.toggle('hidden', !isPiano);
   stepGrid.classList.toggle('hidden', isPiano); accentBanner.classList.toggle('hidden', isPiano); if (isPiano) hideAccentBannerImmediate();
   waveBar.classList.toggle('hidden', !isWave); pianoRollWrap.classList.toggle('hidden', !isPiano);
   boxFilter.classList.remove('hidden'); boxReverb.classList.remove('hidden'); boxSteps.classList.toggle('hidden', isPiano); boxVolume.classList.toggle('full-width', isPiano);
