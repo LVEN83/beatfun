@@ -167,30 +167,30 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
 .btn-next:active { background: #000; color: #fff; }
 .btn-next:disabled, .btn-secondary:disabled { opacity: 0.35; cursor: default; }
 
-.sampler-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(10px, 1.8dvh, 16px) clamp(10px, 2.5vw, 14px); min-height: 0; gap: clamp(10px, 1.8dvh, 16px); }
-.sampler-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; gap: 8px; }
+.sampler-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(8px, 1.4dvh, 14px) clamp(10px, 2.5vw, 14px); min-height: 0; gap: clamp(8px, 1.4dvh, 14px); }
+.sampler-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; gap: 8px; }
 .sampler-title { font-size: clamp(15px, 2.5dvh, 20px); font-weight: 900; letter-spacing: 1.2px; text-transform: uppercase; margin: 0; }
 .sampler-sub-hint { font-size: 10px; letter-spacing: 0.6px; color: #888; text-align: center; line-height: 1.4; }
-.sampler-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 2.2dvh, 18px); min-height: 0; }
+.sampler-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(8px, 1.5dvh, 14px); min-height: 0; }
 .sampler-stage-badge { text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase; color: #25d366; min-height: 16px; }
 .sampler-stage-badge.armed { color: #fff; }
 .sampler-stage-badge.recording { color: #ff3b30; }
 .sampler-stage-badge.playback { color: #fff; }
-.sampler-bar-wrap { position: relative; width: 100%; height: clamp(92px, 18dvh, 134px); border: 2px solid #1db954; background: #06140b; overflow: hidden; transition: border-color 0.15s ease, background-color 0.15s ease; }
+.sampler-bar-wrap { position: relative; width: 100%; height: clamp(78px, 15dvh, 120px); border: 2px solid #1db954; background: #06140b; overflow: hidden; transition: border-color 0.15s ease, background-color 0.15s ease; }
 .sampler-bar-wrap.state-armed { border-color: #fff; background: #121212; }
 .sampler-bar-wrap.state-recording { border-color: #ff3b30; background: #1c0505; }
 .sampler-bar-wrap.state-playback { border-color: #fff; background: #0a0a0a; }
 .sampler-bar-canvas { display: block; width: 100%; height: 100%; }
 .sampler-countdown-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); pointer-events: none; }
-.sampler-count-num { font-size: clamp(36px, 8dvh, 56px); font-weight: 900; letter-spacing: 2px; color: #fff; line-height: 1; text-shadow: 0 0 18px rgba(255,255,255,0.75); }
+.sampler-count-num { font-size: clamp(32px, 7dvh, 52px); font-weight: 900; letter-spacing: 2px; color: #fff; line-height: 1; text-shadow: 0 0 18px rgba(255,255,255,0.75); }
 .sampler-count-sub { font-size: 9px; font-weight: 800; letter-spacing: 2px; color: #ccc; margin-top: 4px; text-transform: uppercase; }
-.sampler-macro-box { border: 1px solid #333; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; background: #050505; }
+.sampler-macro-box { border: 1px solid #333; padding: 7px 12px; display: flex; flex-direction: column; gap: 3px; background: #050505; }
 .sampler-macro-box.locked { border-color: #222; opacity: 0.6; }
 .sampler-macro-top { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
 .sampler-macro-stops { display: flex; justify-content: space-between; font-size: 8px; letter-spacing: 1px; color: #666; font-weight: 700; text-transform: uppercase; }
 .sampler-controls-row { display: grid; grid-template-columns: 0.72fr 1.28fr 1fr; gap: 8px; flex-shrink: 0; }
 .sampler-controls-row.playback-mode { grid-template-columns: 1fr 1fr; }
-.btn-record { background: #141414; color: #fff; border: 1.5px solid #ff3b30; min-height: 46px; padding: 8px 10px; font-size: 12px; font-weight: 900; letter-spacing: 1.8px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; }
+.btn-record { background: #141414; color: #fff; border: 1.5px solid #ff3b30; min-height: 44px; padding: 8px 10px; font-size: 12px; font-weight: 900; letter-spacing: 1.8px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; }
 .btn-record .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; flex-shrink: 0; }
 .btn-record.armed { background: #fff; color: #000; border-color: #fff; }
 .btn-record.armed .rec-dot { background: #000; animation: blink 0.6s infinite; }
@@ -467,10 +467,17 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
           </div>
           <input type="range" id="samplerMacroSlider" min="0" max="1" step="0.01" value="0.0" />
           <div class="sampler-macro-stops mono">
-            <span>0.0 CLEAN COMP</span>
+            <span>0.0 CLEAN</span>
             <span>0.5 WARM SLAP</span>
             <span>1.0 DUB VERB</span>
           </div>
+        </div>
+        <div class="sampler-macro-box" id="samplerVolumeBox">
+          <div class="sampler-macro-top mono">
+            <span>VOCAL VOLUME</span>
+            <span id="samplerVolumeVal">100%</span>
+          </div>
+          <input type="range" id="samplerVolumeSlider" min="0" max="1.5" step="0.01" value="1.0" />
         </div>
       </div>
       <div class="sampler-controls-row" id="samplerPreControls">
@@ -579,7 +586,7 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
 
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  <script>
+<script>
 function $(id) { return document.getElementById(id); }
 
 var firebaseConfig = {
@@ -859,38 +866,36 @@ var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null
 var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
 var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerSilentSink = null;
 var samplerAnalyser = null, samplerTimeData = null;
-var samplerMacroValue = 0.0, samplerMonitorOn = false;
+var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false;
 var samplerDryGain = null, samplerMidGain = null, samplerMidSlapGain = null, samplerSlapDelay = null;
 var samplerDubDelay = null, samplerDubFeedback = null, samplerDubWetGain = null, samplerVerbWetGain = null, samplerMonitorGain = null;
 var samplerState = 'idle', samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
 var vocalBuffer = null, vocalWaveformBins = null, vocalActiveSource = null, vocalActiveGain = null, vocalLocked = false;
 var bar4CycleTimes = [];
 
-function setPlayAndRecordAudioSession(ctx) {
+function setPlaybackAudioSession() {
   if (typeof navigator !== 'undefined' && navigator.audioSession) {
     try {
-      if (navigator.audioSession.type !== 'play-and-record') {
-        navigator.audioSession.type = 'play-and-record';
-      }
+      if (navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
     } catch (e) {}
   }
-  var targetCtx = ctx || audioCtx;
-  if (targetCtx && typeof targetCtx.setAudioSessionCategory === 'function') {
+}
+
+function setPlayAndRecordAudioSession() {
+  if (typeof navigator !== 'undefined' && navigator.audioSession) {
     try {
-      targetCtx.setAudioSessionCategory('play-and-record');
+      if (navigator.audioSession.type !== 'play-and-record') navigator.audioSession.type = 'play-and-record';
     } catch (e) {}
   }
 }
 
 async function ensureAudioReadyForCapture() {
-  setPlayAndRecordAudioSession(audioCtx);
-  initAndUnlockAudio();
-  setPlayAndRecordAudioSession(audioCtx);
+  setPlayAndRecordAudioSession();
+  initAndUnlockAudio(true);
+  setPlayAndRecordAudioSession();
   if (audioCtx && audioCtx.state !== 'running') {
-    try {
-      await audioCtx.resume();
-    } catch (e) {}
-    setPlayAndRecordAudioSession(audioCtx);
+    try { await audioCtx.resume(); } catch (e) {}
+    setPlayAndRecordAudioSession();
   }
 }
 
@@ -1006,6 +1011,11 @@ function createReverbImpulse(ctx, dur, pow) {
   for (var ch = 0; ch < 2; ch++) { var d = imp.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, pow); }
   return imp;
 }
+function createMonoReverbImpulse(ctx, dur, pow) {
+  var len = Math.floor(ctx.sampleRate * dur), imp = ctx.createBuffer(1, len, ctx.sampleRate), d = imp.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, pow);
+  return imp;
+}
 function createMetallicHatBuffer(ctx) {
   var len = Math.floor(ctx.sampleRate * 0.7), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0), ratios = [2, 3.1, 4.2, 5.4, 6.8], sr = ctx.sampleRate;
   for (var i = 0; i < len; i++) { var t = i / sr, sum = 0; for (var r = 0; r < 5; r++) sum += (((t * 260 * ratios[r]) % 1) < 0.5 ? 1 : -1); d[i] = sum * 0.2; }
@@ -1110,21 +1120,19 @@ function syncAllTrackAudioParams() {
     }
     if (trackRevGains[i]) { trackRevGains[i].gain.cancelScheduledValues(0); trackRevGains[i].gain.setValueAtTime((p.reverb !== undefined ? p.reverb : 0.0) * 0.40, now); lastRevModTime[i] = now; }
   }
-  if (trackVolGains[VOCAL_TRACK_IDX]) trackVolGains[VOCAL_TRACK_IDX].gain.setValueAtTime(1.0, now);
+  if (trackVolGains[VOCAL_TRACK_IDX]) trackVolGains[VOCAL_TRACK_IDX].gain.setValueAtTime(vocalVolume, now);
   if (trackLPFs[VOCAL_TRACK_IDX]) { trackLPFs[VOCAL_TRACK_IDX].frequency.setValueAtTime(maxFreq, now); trackLPFs[VOCAL_TRACK_IDX].Q.setValueAtTime(0.7, now); }
   updateMonoVoiceWaveform(5); updateMonoVoiceWaveform(6);
 }
-function initAndUnlockAudio() {
-  setPlayAndRecordAudioSession(audioCtx);
+function initAndUnlockAudio(keepCaptureSession) {
+  if (!keepCaptureSession && !hasLiveMicStream()) setPlaybackAudioSession();
   if (!audioCtx) {
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     audioCtx = new AC();
-    setPlayAndRecordAudioSession(audioCtx);
     audioCtx.onstatechange = function() {
-      setPlayAndRecordAudioSession(audioCtx);
+      if (!hasLiveMicStream()) setPlaybackAudioSession();
       if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
         audioCtx.resume().then(function() {
-          setPlayAndRecordAudioSession(audioCtx);
           if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
         }).catch(function() {});
       }
@@ -1145,7 +1153,7 @@ function initAndUnlockAudio() {
     for (var i = 0; i < TOTAL_JAM_TRACKS; i++) {
       var isVox = (i === VOCAL_TRACK_IDX);
       var volG = audioCtx.createGain();
-      volG.gain.value = (!isVox && tracks[i] && tracks[i].params && tracks[i].params.volume !== undefined) ? tracks[i].params.volume : 1.0;
+      volG.gain.value = isVox ? vocalVolume : ((tracks[i] && tracks[i].params && tracks[i].params.volume !== undefined) ? tracks[i].params.volume : 1.0);
       trackVolGains[i] = volG;
       var tLpf = audioCtx.createBiquadFilter(); tLpf.type = 'lowpass';
       tLpf.frequency.value = isVox ? maxFreq : Math.min(maxFreq, normToFilterHz((tracks[i] && tracks[i].params && tracks[i].params.filter !== undefined) ? tracks[i].params.filter : 0.85));
@@ -1188,9 +1196,7 @@ function initAndUnlockAudio() {
     metallicHatBuffer = createMetallicHatBuffer(audioCtx); buildSnareNoiseBuffers(audioCtx); initRewindEngine();
   }
   if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
-    setPlayAndRecordAudioSession(audioCtx);
     audioCtx.resume().then(function() {
-      setPlayAndRecordAudioSession(audioCtx);
       if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
     }).catch(function() {});
   }
@@ -1202,17 +1208,16 @@ function initAndUnlockAudio() {
   }
 }
 function ensureAudioUnlocked() {
-  setPlayAndRecordAudioSession(audioCtx);
-  if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio();
+  if (!hasLiveMicStream()) setPlaybackAudioSession();
+  if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio(hasLiveMicStream());
 }
 document.addEventListener('touchend', ensureAudioUnlocked, true);
 document.addEventListener('click', ensureAudioUnlocked, true);
 document.addEventListener('pointerdown', ensureAudioUnlocked, true);
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden && audioCtx && audioCtx.state !== 'running') {
-    setPlayAndRecordAudioSession(audioCtx);
+    if (!hasLiveMicStream()) setPlaybackAudioSession();
     audioCtx.resume().then(function() {
-      setPlayAndRecordAudioSession(audioCtx);
       if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
     }).catch(function() {});
   }
@@ -1574,7 +1579,6 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     }
   } catch (err) { console.error('triggerSound error:', err); }
 }
-
 function stopVocalPlayback(fadeSec) {
   if (vocalActiveSource && audioCtx) {
     var src = vocalActiveSource, g = vocalActiveGain;
@@ -1625,7 +1629,10 @@ function scheduleStep(gStep, time) {
       samplerRecStartStep = gStep;
       samplerRecStartAudioTime = time;
       samplerRecDurationSec = SAMPLER_TOTAL_STEPS * stepDur;
-      armVocalCaptureNode(time, Math.round(samplerRecDurationSec * audioCtx.sampleRate));
+      var outLat = (typeof audioCtx.outputLatency === 'number' && audioCtx.outputLatency > 0) ? audioCtx.outputLatency : 0.025;
+      var baseLat = (typeof audioCtx.baseLatency === 'number' && audioCtx.baseLatency > 0) ? audioCtx.baseLatency : 0.015;
+      var latencyComp = Math.max(0.020, Math.min(0.140, outLat + baseLat));
+      armVocalCaptureNode(time + latencyComp, Math.round(samplerRecDurationSec * audioCtx.sampleRate));
       updateSamplerUI();
     }
     if ((samplerScreenActive || swingScreenActive || jamActive || jamArmedPending) && vocalBuffer && samplerState !== 'recording' && samplerState !== 'armed') {
@@ -1681,8 +1688,7 @@ function scheduleStep(gStep, time) {
 function scheduler() {
   if (!isPlaying || !audioCtx) return;
   if (audioCtx.state !== 'running') {
-    setPlayAndRecordAudioSession(audioCtx);
-    audioCtx.resume().then(function() { setPlayAndRecordAudioSession(audioCtx); }).catch(function() {});
+    audioCtx.resume().catch(function() {});
     nextNoteTime = audioCtx.currentTime + 0.05;
     return;
   }
@@ -1696,7 +1702,7 @@ function scheduler() {
   }
 }
 function startSequencer() {
-  try { initAndUnlockAudio(); } catch (e) {}
+  try { initAndUnlockAudio(hasLiveMicStream()); } catch (e) {}
   if (schedulerId) { clearInterval(schedulerId); schedulerId = null; }
   lastDuckTime = 0; lastCrushGateTime = 0; tiedChancePass = [true, true, true, true, true, true, true];
   lastLpfModTime = [0, 0, 0, 0, 0, 0, 0, 0]; lastResModTime = [0, 0, 0, 0, 0, 0, 0, 0]; lastVolModTime = [0, 0, 0, 0, 0, 0, 0, 0]; lastRevModTime = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -1730,6 +1736,7 @@ var samplerBpmValue = $('samplerBpmValue'), samplerStageBadge = $('samplerStageB
 var samplerBarCanvas = $('samplerBarCanvas'), samplerBarCtx = samplerBarCanvas.getContext('2d');
 var samplerCountdownOverlay = $('samplerCountdownOverlay'), samplerCountNum = $('samplerCountNum'), samplerCountSub = $('samplerCountSub');
 var samplerMacroBox = $('samplerMacroBox'), samplerMacroVal = $('samplerMacroVal'), samplerMacroSlider = $('samplerMacroSlider');
+var samplerVolumeBox = $('samplerVolumeBox'), samplerVolumeVal = $('samplerVolumeVal'), samplerVolumeSlider = $('samplerVolumeSlider');
 var samplerPreControls = $('samplerPreControls'), samplerPostControls = $('samplerPostControls');
 var btnSamplerMonitor = $('btnSamplerMonitor'), btnSamplerRecord = $('btnSamplerRecord'), btnSamplerRecordLabel = $('btnSamplerRecordLabel');
 var btnSamplerNext = $('btnSamplerNext'), btnSamplerGoAgain = $('btnSamplerGoAgain'), btnSamplerNextDone = $('btnSamplerNextDone');
@@ -1752,21 +1759,27 @@ async function acquireMicStream() {
     throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
   }
   var stream = null;
+  var lowLagConstraints = {
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      channelCount: 1
+    }
+  };
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream = await navigator.mediaDevices.getUserMedia(lowLagConstraints);
   } catch (err1) {
-    var msg1 = (err1 && err1.message) ? err1.message : String(err1 || '');
-    if (/audioSession|session|category|interrupted/i.test(msg1)) {
+    try {
       await ensureAudioReadyForCapture();
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } else {
-      throw err1;
+    } catch (err2) {
+      throw err2;
     }
   }
-  setPlayAndRecordAudioSession(audioCtx);
+  setPlayAndRecordAudioSession();
   if (audioCtx && audioCtx.state !== 'running') {
     try { await audioCtx.resume(); } catch (e) {}
-    setPlayAndRecordAudioSession(audioCtx);
   }
   if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
   return stream;
@@ -1787,6 +1800,20 @@ function applySamplerMacro(val) {
   if (samplerDubDelay) samplerDubDelay.delayTime.setTargetAtTime(Math.min(0.95, (60 / bpm) * 0.75), now, 0.02);
   samplerDubWetGain.gain.setTargetAtTime(Math.max(0, (m - 0.25) / 0.75) * 0.72, now, 0.02);
   samplerVerbWetGain.gain.setTargetAtTime(Math.max(0, (m - 0.35) / 0.65) * 0.58, now, 0.02);
+}
+
+function applyVocalVolume(val) {
+  vocalVolume = Math.max(0, Math.min(1.5, Number(val)));
+  if (isNaN(vocalVolume)) vocalVolume = 1.0;
+  if (samplerVolumeSlider && Number(samplerVolumeSlider.value) !== vocalVolume) samplerVolumeSlider.value = vocalVolume;
+  if (samplerVolumeVal) samplerVolumeVal.textContent = Math.round(vocalVolume * 100) + '%';
+  if (audioCtx && trackVolGains[VOCAL_TRACK_IDX]) {
+    trackVolGains[VOCAL_TRACK_IDX].gain.cancelScheduledValues(audioCtx.currentTime);
+    trackVolGains[VOCAL_TRACK_IDX].gain.setTargetAtTime(vocalVolume, audioCtx.currentTime, 0.015);
+  }
+  if (audioCtx && samplerMonitorGain && samplerMonitorOn) {
+    samplerMonitorGain.gain.setTargetAtTime(0.85 * Math.min(1.2, vocalVolume), audioCtx.currentTime, 0.015);
+  }
 }
 
 function buildSamplerCaptureFallback() {
@@ -1872,13 +1899,11 @@ function setupSamplerMicGraph(stream) {
   if (!samplerMicGraphBuilt) {
     samplerMicInputGain = audioCtx.createGain(); samplerMicInputGain.gain.value = 1.0;
 
-    var micHPF = audioCtx.createBiquadFilter(); micHPF.type = 'highpass'; micHPF.frequency.value = 95; micHPF.Q.value = 0.7;
-    var micComp = audioCtx.createDynamicsCompressor();
-    micComp.threshold.value = -18; micComp.knee.value = 12; micComp.ratio.value = 3.0; micComp.attack.value = 0.004; micComp.release.value = 0.12;
+    var micHPF = audioCtx.createBiquadFilter(); micHPF.type = 'highpass'; micHPF.frequency.value = 90; micHPF.Q.value = 0.7;
 
     samplerDryGain = audioCtx.createGain();
     var satShaper = audioCtx.createWaveShaper(); satShaper.curve = createVocalSatCurve(); satShaper.oversample = 'none';
-    var presEQ = audioCtx.createBiquadFilter(); presEQ.type = 'peaking'; presEQ.frequency.value = 3200; presEQ.Q.value = 1.0; presEQ.gain.value = 3.5;
+    var presEQ = audioCtx.createBiquadFilter(); presEQ.type = 'peaking'; presEQ.frequency.value = 3200; presEQ.Q.value = 1.0; presEQ.gain.value = 3.2;
     samplerMidGain = audioCtx.createGain();
     samplerSlapDelay = audioCtx.createDelay(0.5); samplerSlapDelay.delayTime.value = Math.min(0.14, (60 / bpm) * 0.25);
     var slapLPF = audioCtx.createBiquadFilter(); slapLPF.type = 'lowpass'; slapLPF.frequency.value = 3400;
@@ -1889,11 +1914,11 @@ function setupSamplerMicGraph(stream) {
     var dubLPF = audioCtx.createBiquadFilter(); dubLPF.type = 'lowpass'; dubLPF.frequency.value = 2600;
     samplerDubFeedback = audioCtx.createGain(); samplerDubFeedback.gain.value = 0.46;
     var modLFO = audioCtx.createOscillator(); modLFO.type = 'sine'; modLFO.frequency.value = 0.65;
-    var modDepth = audioCtx.createGain(); modDepth.gain.value = 0.0022;
+    var modDepth = audioCtx.createGain(); modDepth.gain.value = 0.0020;
     modLFO.connect(modDepth); modDepth.connect(samplerDubDelay.delayTime); modLFO.start(0);
     samplerDubWetGain = audioCtx.createGain();
 
-    var vVerb = audioCtx.createConvolver(); vVerb.buffer = createReverbImpulse(audioCtx, 1.25, 2.8);
+    var vVerb = audioCtx.createConvolver(); vVerb.buffer = createMonoReverbImpulse(audioCtx, 0.55, 2.8);
     var vVerbLPF = audioCtx.createBiquadFilter(); vVerbLPF.type = 'lowpass'; vVerbLPF.frequency.value = 3800;
     samplerVerbWetGain = audioCtx.createGain();
 
@@ -1903,10 +1928,10 @@ function setupSamplerMicGraph(stream) {
 
     samplerAnalyser = audioCtx.createAnalyser(); samplerAnalyser.fftSize = 256;
     samplerTimeData = new Uint8Array(samplerAnalyser.fftSize);
-    samplerMonitorGain = audioCtx.createGain(); samplerMonitorGain.gain.value = samplerMonitorOn ? 0.85 : 0.0;
+    samplerMonitorGain = audioCtx.createGain(); samplerMonitorGain.gain.value = samplerMonitorOn ? (0.85 * Math.min(1.2, vocalVolume)) : 0.0;
 
-    micComp.connect(samplerDryGain); samplerDryGain.connect(samplerMicProcessedBus);
-    micComp.connect(satShaper); satShaper.connect(presEQ);
+    micHPF.connect(samplerDryGain); samplerDryGain.connect(samplerMicProcessedBus);
+    micHPF.connect(satShaper); satShaper.connect(presEQ);
     presEQ.connect(samplerMidGain); samplerMidGain.connect(samplerMicProcessedBus);
     presEQ.connect(samplerSlapDelay); samplerSlapDelay.connect(slapLPF); slapLPF.connect(samplerMidSlapGain); samplerMidSlapGain.connect(samplerMicProcessedBus);
     presEQ.connect(samplerDubDelay); samplerDubDelay.connect(dubHPF); dubHPF.connect(dubLPF);
@@ -1914,7 +1939,7 @@ function setupSamplerMicGraph(stream) {
     dubLPF.connect(samplerDubWetGain); samplerDubWetGain.connect(samplerMicProcessedBus);
     presEQ.connect(vVerb); vVerb.connect(vVerbLPF); vVerbLPF.connect(samplerVerbWetGain); samplerVerbWetGain.connect(samplerMicProcessedBus);
 
-    samplerMicInputGain.connect(micHPF); micHPF.connect(micComp);
+    samplerMicInputGain.connect(micHPF);
     samplerMicProcessedBus.connect(samplerAnalyser);
     samplerMicProcessedBus.connect(samplerMonitorGain); samplerMonitorGain.connect(audioCtx.destination);
 
@@ -1944,6 +1969,12 @@ function stopSamplerMicStream() {
     } catch (e) {}
     samplerMicStream = null;
   }
+  setPlaybackAudioSession();
+  if (audioCtx && audioCtx.state !== 'running') {
+    audioCtx.resume().then(function() {
+      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+    }).catch(function() {});
+  }
 }
 
 function onVocalBufferCaptured(samples) {
@@ -1959,11 +1990,13 @@ function onVocalBufferCaptured(samples) {
     for (var k = start; k < end; k++) { var a = Math.abs(ch[k]); if (a > peak) peak = a; }
     bins.push(Math.min(1, peak * 1.4));
   }
-  vocalWaveformBins = bins; samplerState = 'playback'; updateSamplerUI();
+  vocalWaveformBins = bins; samplerState = 'playback';
+  if (!samplerMonitorOn) stopSamplerMicStream();
+  updateSamplerUI();
   if (isPlaying && audioCtx) {
     var loopEndAudio = samplerRecStartAudioTime + samplerRecDurationSec;
-    var when = audioCtx.currentTime + 0.005, offset = Math.max(0, when - loopEndAudio);
-    if (offset >= buf.duration) offset = offset % buf.duration;
+    var when = Math.max(loopEndAudio, audioCtx.currentTime + 0.005);
+    var offset = (when - loopEndAudio) % buf.duration;
     triggerVocalLoopAt(when, offset);
   }
 }
@@ -1973,6 +2006,7 @@ function wipeVocalRecording() {
   vocalBuffer = null; vocalWaveformBins = null; vocalLocked = false;
   samplerState = 'idle'; samplerArmedStartStep = -1; samplerRecStartStep = -1;
   samplerMacroSlider.disabled = false; samplerMacroBox.classList.remove('locked');
+  if (!samplerMonitorOn) stopSamplerMicStream();
   updateSamplerUI();
 }
 
@@ -2016,13 +2050,13 @@ function drawSamplerBar() {
   if (!samplerBarCanvas || !samplerBarCtx) return;
   var rect = samplerBarCanvas.getBoundingClientRect();
   if (rect.width && rect.height) {
-    var dpr = window.devicePixelRatio || 1, tw = Math.round(rect.width * dpr), th = Math.round(rect.height * dpr);
+    var dpr = Math.min(2, window.devicePixelRatio || 1), tw = Math.round(rect.width * dpr), th = Math.round(rect.height * dpr);
     if (samplerBarCanvas.width !== tw || samplerBarCanvas.height !== th) { samplerBarCanvas.width = tw; samplerBarCanvas.height = th; }
   }
   var w = samplerBarCanvas.width, h = samplerBarCanvas.height, ctx = samplerBarCtx;
   ctx.clearRect(0, 0, w, h);
   var posInfo = getCurrent4BarProgress(), prog = posInfo.progress, micLevel = 0;
-  if (samplerAnalyser && samplerTimeData) {
+  if (hasLiveMicStream() && samplerAnalyser && samplerTimeData) {
     samplerAnalyser.getByteTimeDomainData(samplerTimeData);
     var sumSq = 0;
     for (var m = 0; m < samplerTimeData.length; m++) { var v = (samplerTimeData[m] - 128) / 128; sumSq += v * v; }
@@ -2087,6 +2121,7 @@ function openSamplerScreen() {
   } else samplerBattleHeader.classList.add('hidden');
   vocalLocked = false;
   if (!vocalBuffer) { samplerState = 'idle'; samplerMacroSlider.disabled = false; } else samplerState = 'playback';
+  applyVocalVolume(vocalVolume);
   updateSamplerUI();
 }
 
@@ -2095,42 +2130,60 @@ samplerMacroSlider.addEventListener('input', function(e) {
   applySamplerMacro(e.target.value);
 });
 
+samplerVolumeSlider.addEventListener('input', function(e) {
+  applyVocalVolume(e.target.value);
+});
+
 btnSamplerMonitor.addEventListener('click', async function() {
-  await ensureAudioReadyForCapture();
-  if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
-    try {
-      var stream = await acquireMicStream();
-      setupSamplerMicGraph(stream);
-      await initVocalCaptureNode();
-    } catch (err) {
-      alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
-      return;
+  if (!samplerMonitorOn) {
+    await ensureAudioReadyForCapture();
+    if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
+      try {
+        var stream = await acquireMicStream();
+        setupSamplerMicGraph(stream);
+        await initVocalCaptureNode();
+      } catch (err) {
+        stopSamplerMicStream();
+        alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
+        return;
+      }
     }
+    samplerMonitorOn = true;
+    if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.85 * Math.min(1.2, vocalVolume), audioCtx.currentTime, 0.015);
+  } else {
+    samplerMonitorOn = false;
+    if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+    if (samplerState === 'idle' || samplerState === 'playback') stopSamplerMicStream();
   }
-  samplerMonitorOn = !samplerMonitorOn;
-  if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(samplerMonitorOn ? 0.85 : 0.0, audioCtx.currentTime, 0.015);
   updateSamplerUI();
 });
 
 btnSamplerRecord.addEventListener('click', async function() {
-  await ensureAudioReadyForCapture();
   if (samplerState === 'armed') {
-    samplerState = 'idle'; samplerArmedStartStep = -1; updateSamplerUI(); return;
+    samplerState = 'idle'; samplerArmedStartStep = -1;
+    if (!samplerMonitorOn) stopSamplerMicStream();
+    updateSamplerUI(); return;
   }
   if (samplerState !== 'idle') return;
+  btnSamplerRecord.disabled = true;
+  btnSamplerRecordLabel.textContent = 'ARMING...';
   try {
+    await ensureAudioReadyForCapture();
     if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
       var stream = await acquireMicStream();
       setupSamplerMicGraph(stream);
     }
     await initVocalCaptureNode();
   } catch (err) {
+    stopSamplerMicStream();
+    btnSamplerRecord.disabled = false;
+    btnSamplerRecordLabel.textContent = 'RECORD';
     alert('Microphone access denied or unsupported: ' + (err && err.message ? err.message : err));
     samplerStageBadge.textContent = 'MICROPHONE REQUIRED TO RECORD';
     return;
   }
   var nextCycleStep = Math.ceil((globalStep + 2) / SAMPLER_TOTAL_STEPS) * SAMPLER_TOTAL_STEPS;
-  if (nextCycleStep - globalStep < 16) nextCycleStep += SAMPLER_TOTAL_STEPS;
+  if (nextCycleStep - globalStep < 8) nextCycleStep += SAMPLER_TOTAL_STEPS;
   samplerArmedStartStep = nextCycleStep;
   samplerState = 'armed';
   updateSamplerUI();
@@ -2138,10 +2191,11 @@ btnSamplerRecord.addEventListener('click', async function() {
 
 bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(); });
 function proceedFromSamplerToSwing() {
-  ensureAudioUnlocked();
   if (samplerState === 'armed') { samplerState = 'idle'; samplerArmedStartStep = -1; }
   vocalLocked = true; samplerMonitorOn = false;
   if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+  stopSamplerMicStream();
+  ensureAudioUnlocked();
   samplerScreenActive = false; samplerScreen.classList.add('hidden');
   openSwingScreen();
 }
@@ -2593,6 +2647,7 @@ btnJamSend.addEventListener('click', function() {
       tracks: serializeMove().tracks,
       trackMutes: trackMutes.slice(),
       vocalMacro: samplerMacroValue,
+      vocalVolume: vocalVolume,
       hasVocalStem: !!vocalBuffer,
       durationSec: JAM_SECONDS
     };
@@ -2660,14 +2715,14 @@ var HELP_CONTENT = {
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('SWITCH IN HEADER → HOLD BUTTON → TAP STEPS'), body: 'Choose <strong>PER STEP</strong>, <strong>RETRIG</strong>, or <strong>CHANCE</strong>, hold <strong>HOLD</strong>, and tap active steps to customize parameters, repeats, or probability.' },
       { title: '3. SWITCHABLE PAIRS & POLYMETERS', shot: SHOTS.pairSwitch, body: 'Tap the dimmed name on <strong>SNARE / CLAP</strong> or <strong>SHAKER / WOODBLOCK</strong> to switch instruments. Lower <strong>STEPS (3–16)</strong> for polymeters.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDERS & TIES', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'Hold slider boxes to cycle <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong>, and <strong>REVERB / GLIDE</strong>. Drag sideways to tie notes.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Dial in the <strong>DRY ↔ WET Macro</strong> (0.0 Clean → 0.5 Warm Slap → 1.0 Dub Verb), tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in, and capture 4 bars.' },
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Dial in the <strong>DRY ↔ WET Macro</strong> (0.0 Clean → 0.5 Warm Slap → 1.0 Dub Verb), tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in, and balance your loop with <strong>VOCAL VOLUME</strong>.' },
       { title: '6. PRE-JAM ARMING, FX & MAIL', shot: SHOTS.jamFx, body: 'Arm starting tracks (including <strong>VOX</strong>), perform 60s with zero fade-in, then <strong>SAVE</strong>, <strong>SHARE</strong>, or <strong>SEND YOUR JAM</strong>. Envelope icon lights up on new mail!' }
     ],
     noCards: [
       { title: '1. HOW BEATFRIENDS WORKS', shot: SHOTS.startModes, body: 'Build 7 shared tracks, record a personal <strong>4-bar Vocal/Sample</strong>, pick a <strong>Groove</strong>, and perform a live 60s Jam. In 2-Player mode, send your jam to your Beatfriend!' },
       { title: '2. DRUM GRID & SOUND CONTROLS', shot: SHOTS.drumGrid, body: 'Tap or swipe pads to place beats. Hold a pad for Accent Mode. Tweak Pitch, Decay, Lowpass, Reverb, Steps & Volume below.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Pick a waveform, tap notes, or drag sideways to hold long notes. Tap <strong>+ / -</strong> to expand up to 4 bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Use headphones for cleanest capture. Set the Effect Macro slider, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, and record your 4-bar loop.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Use headphones for cleanest capture. Set the Effect Macro slider, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, record your 4-bar loop, and adjust Vocal Volume.' },
       { title: '5. LIVE JAM & MAILBOX', shot: SHOTS.jamFull, body: 'Toggle starting tracks, tap <strong>START</strong>, mute <strong>BD..VOX</strong>, and hold the 4 vinyls for DJ FX. After 60s, Save, Share, or Send—and check the Start Screen envelope for replies!' }
     ]
   },
@@ -2680,14 +2735,14 @@ var HELP_CONTENT = {
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('IM HEADER WÄHLEN → BUTTON HALTEN → STEPS TIPPEN'), body: 'Wähle <strong>PER STEP</strong>, <strong>RETRIG</strong> oder <strong>CHANCE</strong>, halte <strong>HOLD</strong> und tippe aktive Steps an.' },
       { title: '3. WECHSELBARE PAARE & POLYMETER', shot: SHOTS.pairSwitch, body: 'Tippe bei <strong>SNARE / CLAP</strong> oder <strong>SHAKER / WOODBLOCK</strong> auf den gedimmten Namen. Kürze <strong>STEPS (3–16)</strong> für Polyrhythmen.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDER & TIES', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Halte Slider-Boxen für <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong> und <strong>REVERB / GLIDE</strong>.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Stelle das <strong>DRY ↔ WET Macro</strong> ein, tippe <strong>RECORD</strong> für den <strong>4-3-2-1</strong> Count-In und nimm 4 Takte auf.' },
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Stelle das <strong>DRY ↔ WET Macro</strong> ein, tippe <strong>RECORD</strong> für den <strong>4-3-2-1</strong> Count-In, nimm 4 Takte auf und regle die <strong>VOCAL VOLUME</strong>.' },
       { title: '6. PRE-JAM ARMING, FX & MAILBOX', shot: SHOTS.jamFx, body: 'Aktiviere Start-Tracks (inkl. <strong>VOX</strong>), jamme 60s ohne Fade-In und klicke dann auf <strong>SAVE</strong>, <strong>SHARE</strong> oder <strong>SEND YOUR JAM</strong>.' }
     ],
     noCards: [
       { title: '1. SO FUNKTIONIERT BEATFRIENDS', shot: SHOTS.startModes, body: 'Baut 7 Basis-Tracks, nehmt dann unabhängig eure eigene <strong>4-Bar Vocal/Sample-Spur</strong> auf, wählt den Groove und jammt 60s live!' },
       { title: '2. DRUM-GRID & REGLER', shot: SHOTS.drumGrid, body: 'Tippe oder wische über Pads. Halte ein Pad für Accent Mode. Regle Pitch, Decay, Lowpass, Reverb, Steps & Volume.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Wähle eine Waveform, tippe Noten oder ziehe waagerecht für lange Töne. Mit <strong>+ / -</strong> bis zu 4 Bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer nutzen! Macro einstellen, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer nutzen! Macro einstellen, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen und Vocal Volume anpassen.' },
       { title: '5. LIVE JAM & POSTFACH', shot: SHOTS.jamFull, body: 'Tracks aktivieren, <strong>START</strong> tippen, live muten & Vinyl-FX nutzen. Danach speichern, teilen oder senden—und Postfach oben rechts checken!' }
     ]
   }
@@ -3064,8 +3119,9 @@ function applyOpponentMove(moveData) {
 function applyIncomingMoveIfNew(m) { if (!m || !m.timestamp || m.sender === myRole || m.timestamp === lastHandledMoveTimestamp) return false; lastHandledMoveTimestamp = m.timestamp; applyOpponentMove(m); return true; }
 
 function startOnlineMatchmaking() {
-  initAndUnlockAudio(); gameMode = 'online'; onlineMatchActive = true; myRole = null; currentRoomId = null; turnIndex = 0; accentMode = false;
+  initAndUnlockAudio(false); gameMode = 'online'; onlineMatchActive = true; myRole = null; currentRoomId = null; turnIndex = 0; accentMode = false;
   battleLaunched = false; lastHandledMoveTimestamp = 0; isSendingMove = false; samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false; clearTimeout(oppDisconnectTimer);
+  applyVocalVolume(1.0); samplerMonitorOn = false;
   wipeVocalRecording();
   roomCountries = { player1: '---', player2: '---' }; partnerInfo = { uid: '', country: '---', role: '' }; detectCountryAsync();
   helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden');
@@ -3149,6 +3205,7 @@ function cancelMatchmaking() {
 }
 function exitToMainMenu() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate(); abortJamRecording();
+  samplerMonitorOn = false;
   wipeVocalRecording(); stopSamplerMicStream();
   samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false;
   battleLaunched = false; isSendingMove = false;
@@ -3158,7 +3215,7 @@ function exitToMainMenu() {
   stopSequencer(); gameMode = 'solo'; myRole = null; roomCountries = { player1: '---', player2: '---' }; partnerInfo = { uid: '', country: '---', role: '' }; jamMatchup.classList.add('hidden'); refreshLibraryBadge();
 }
 
-bindTap(btnSoloMode, function() { initAndUnlockAudio(); gameMode = 'solo'; onlineMatchActive = false; helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden'); battleHeader.classList.add('hidden'); startGame(); });
+bindTap(btnSoloMode, function() { initAndUnlockAudio(false); gameMode = 'solo'; onlineMatchActive = false; helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden'); battleHeader.classList.add('hidden'); startGame(); });
 bindTap(btnOnlineMode, startOnlineMatchmaking); bindTap(btnCancelMatchmaking, cancelMatchmaking); bindTap(btnBackToMenu, exitToMainMenu);
 bindTap(clearBtn, function() {
   if (gameMode === 'online' && !isMyTurn()) return;
@@ -3436,7 +3493,7 @@ mutePads.forEach(function(pad) {
 armPads.forEach(function(pad) {
   pad.addEventListener('pointerdown', function(e) {
     e.preventDefault(); ensureAudioUnlocked();
-    var idx = parseInt(this.getAttribute('data-arm-inst'));
+    var idx = parseInt(pad.getAttribute('data-arm-inst'));
     trackMutes[idx] = !trackMutes[idx];
     setTrackMuteAudio(idx, trackMutes[idx]);
     updateMutePadsUI();
@@ -3522,7 +3579,7 @@ volumeSlider.addEventListener('input', function(e) {
 });
 
 function startGame() {
-  resetTracks(); wipeVocalRecording(); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
+  resetTracks(); applyVocalVolume(1.0); samplerMonitorOn = false; wipeVocalRecording(); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
   currentSwingMode = 'straight'; updateSwingUI();
   trackMutes = [false, false, false, false, false, false, false, false]; updateMutePadsUI(); dragPointerId = null; pianoPointerId = null;
@@ -3698,6 +3755,7 @@ function startJam() {
 
 function resetToNewRound() {
   stopSequencer();
+  samplerMonitorOn = false;
   wipeVocalRecording();
   stopSamplerMicStream();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
