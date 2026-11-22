@@ -878,8 +878,10 @@ var samplerState = 'idle', samplerCaptureScheduled = false, samplerInputLatencyS
 var samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
 var vocalBuffer = null, vocalWaveformBins = null, vocalActiveSource = null, vocalActiveGain = null, vocalLocked = false;
 var bar4CycleTimes = [];
+var micAcquiring = false;
 
 function setPlaybackAudioSession() {
+  if (micAcquiring || hasLiveMicStream()) return;
   if (typeof navigator !== 'undefined' && navigator.audioSession) {
     try {
       if (navigator.audioSession.type === 'play-and-record') {
@@ -905,9 +907,7 @@ async function ensureAudioReadyForCapture() {
   if (audioCtx && audioCtx.state !== 'running') {
     try { await audioCtx.resume(); } catch (e) {}
   }
-}
-
-function isSafariBrowser() {
+}function isSafariBrowser() {
   var ua = navigator.userAgent || '';
   return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
 }
@@ -1297,13 +1297,12 @@ function syncAllTrackAudioParams() {
   updateMonoVoiceWaveform(5); updateMonoVoiceWaveform(6);
 }
 function initAndUnlockAudio(keepCaptureSession) {
-  if (!keepCaptureSession && !hasLiveMicStream()) setPlaybackAudioSession();
+  if (!keepCaptureSession && !micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
   if (!audioCtx) {
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     try { audioCtx = new AC({ latencyHint: 'interactive' }); } catch (eAc) { audioCtx = new AC(); }
     audioCtx.onstatechange = function() {
-      if (!hasLiveMicStream()) setPlaybackAudioSession();
-      if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
+      if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();      if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
         audioCtx.resume().then(function() {
           if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
         }).catch(function() {});
@@ -1396,15 +1395,14 @@ function initAndUnlockAudio(keepCaptureSession) {
   }
 }
 function ensureAudioUnlocked() {
-  if (!hasLiveMicStream()) setPlaybackAudioSession();
+  if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
   if (!audioCtx) {
-    initAndUnlockAudio(hasLiveMicStream());
+    initAndUnlockAudio(micAcquiring || hasLiveMicStream());
     return;
   }
-  if (audioCtx.state !== 'running') initAndUnlockAudio(hasLiveMicStream());
+  if (audioCtx.state !== 'running') initAndUnlockAudio(micAcquiring || hasLiveMicStream());
   else updateClubAmbienceState();
-}
-function tryBootStartAudio() {
+}function tryBootStartAudio() {
   try {
     if (!audioCtx) initAndUnlockAudio(false);
     else updateClubAmbienceState();
@@ -1420,8 +1418,7 @@ document.addEventListener('visibilitychange', function() {
     stopClubAmbience();
   } else {
     if (audioCtx && audioCtx.state !== 'running') {
-      if (!hasLiveMicStream()) setPlaybackAudioSession();
-      audioCtx.resume().then(function() {
+      if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();      audioCtx.resume().then(function() {
         if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
         updateClubAmbienceState();
       }).catch(function() {});
@@ -1991,46 +1988,46 @@ function hasLiveMicStream() {
 }
 
 async function acquireMicStream() {
-  await ensureAudioReadyForCapture();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
   }
-  var stream = null;
-  var ultraLowLagConstraints = {
-    audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-      channelCount: 1,
-      latency: 0
-    }
-  };
+  micAcquiring = true;
+  setPlayAndRecordAudioSession();
+  initAndUnlockAudio(true);
   var lowLagConstraints = {
     audio: {
       echoCancellation: false,
       noiseSuppression: false,
-      autoGainControl: false,
-      channelCount: 1
+      autoGainControl: false
     }
   };
   try {
-    stream = await navigator.mediaDevices.getUserMedia(ultraLowLagConstraints);
-  } catch (err0) {
+    var stream = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia(lowLagConstraints);
-    } catch (err1) {
-      await ensureAudioReadyForCapture();
+    } catch (err0) {
+      if (err0 && (err0.name === 'NotAllowedError' || err0.name === 'PermissionDeniedError' || err0.name === 'NotFoundError' || err0.name === 'DevicesNotFoundError')) {
+        throw err0;
+      }
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
+    if (!samplerScreenActive) {
+      try {
+        var tr = stream.getTracks();
+        for (var i = 0; i < tr.length; i++) tr[i].stop();
+      } catch (e) {}
+      micAcquiring = false;
+      setPlaybackAudioSession();
+      throw new Error('Cancelled');
+    }
+    await ensureAudioReadyForCapture();
+    setPlayAndRecordAudioSession();
+    if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+    return stream;
+  } finally {
+    micAcquiring = false;
   }
-  setPlayAndRecordAudioSession();
-  if (audioCtx && audioCtx.state !== 'running') {
-    try { await audioCtx.resume(); } catch (e) {}
-  }
-  if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-  return stream;
 }
-
 function createVocalSatCurve() { var n = 2048, c = new Float32Array(n); for (var i = 0; i < n; i++) c[i] = Math.tanh(((i * 2) / (n - 1) - 1) * 1.85) * 0.88; return c; }
 function applySamplerMacro(val) {
   samplerMacroValue = Math.max(0, Math.min(1, Number(val) || 0));
@@ -2213,6 +2210,7 @@ function setupSamplerMicGraph(stream) {
 }
 
 function stopSamplerMicStream() {
+  micAcquiring = false;
   cancelVocalCaptureNode();
   if (samplerMicSource) {
     try { samplerMicSource.disconnect(); } catch (e) {}
@@ -2402,20 +2400,23 @@ samplerMacroSlider.addEventListener('input', function(e) {
 samplerVolumeSlider.addEventListener('input', function(e) {
   applyVocalVolume(e.target.value);
 });
-
 btnSamplerMonitor.addEventListener('click', async function() {
   if (!samplerMonitorOn) {
-    await ensureAudioReadyForCapture();
-    if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
-      try {
+    try {
+      if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
         var stream = await acquireMicStream();
+        if (!samplerScreenActive) return;
         setupSamplerMicGraph(stream);
-        await initVocalCaptureNode();
-      } catch (err) {
-        stopSamplerMicStream();
-        alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
-        return;
+      } else {
+        setPlayAndRecordAudioSession();
+        await ensureAudioReadyForCapture();
       }
+      await initVocalCaptureNode();
+    } catch (err) {
+      stopSamplerMicStream();
+      if (err && err.message === 'Cancelled') return;
+      alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
+      return;
     }
     samplerMonitorOn = true;
     if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.85 * Math.min(1.2, vocalVolume), audioCtx.currentTime, 0.015);
@@ -2439,21 +2440,24 @@ btnSamplerRecord.addEventListener('click', async function() {
   btnSamplerRecord.disabled = true;
   btnSamplerRecordLabel.textContent = 'ARMING...';
   try {
-    await ensureAudioReadyForCapture();
     if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
       var stream = await acquireMicStream();
+      if (!samplerScreenActive) return;
       setupSamplerMicGraph(stream);
+    } else {
+      setPlayAndRecordAudioSession();
+      await ensureAudioReadyForCapture();
     }
     await initVocalCaptureNode();
   } catch (err) {
     stopSamplerMicStream();
     btnSamplerRecord.disabled = false;
     btnSamplerRecordLabel.textContent = 'RECORD';
+    if (err && err.message === 'Cancelled') return;
     alert('Microphone access denied or unsupported: ' + (err && err.message ? err.message : err));
     samplerStageBadge.textContent = 'MICROPHONE REQUIRED TO RECORD';
     return;
-  }
-  var nextCycleStep = Math.ceil((globalStep + 2) / SAMPLER_TOTAL_STEPS) * SAMPLER_TOTAL_STEPS;
+  }  var nextCycleStep = Math.ceil((globalStep + 2) / SAMPLER_TOTAL_STEPS) * SAMPLER_TOTAL_STEPS;
   if (nextCycleStep - globalStep < 16) nextCycleStep += SAMPLER_TOTAL_STEPS;
   samplerCaptureScheduled = false;
   samplerArmedStartStep = nextCycleStep;
