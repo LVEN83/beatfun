@@ -865,7 +865,7 @@ var globalStep = 0, activeGlobalStep = 0, activePlayStep = 0, nextNoteTime = 0, 
 var mediaRecorder = null, recordedChunks = [], recordedBlob = null, recMimeInfo = { mime: 'audio/webm', ext: 'webm' }, savedRecordId = null, activeJamRecordName = '';
 
 var clubAmbienceActive = false, clubAmbienceGain = null, clubBassLPF1 = null, clubBassLPF2 = null, clubCrowdLPF = null;
-var clubSchedulerTimer = null, clubCrowdTimer = null, clubNextBeatTime = 0, clubBeatIndex = 0;
+var clubSchedulerTimer = null, clubCrowdTimer = null, clubNextBeatTime = 0, clubBeatIndex = 0, clubBeatTimesMs = [];
 
 var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null, samplerMicGraphBuilt = false;
 var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
@@ -874,14 +874,20 @@ var samplerAnalyser = null, samplerTimeData = null;
 var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false, samplerMetronomeOn = false;
 var samplerDryGain = null, samplerMidGain = null, samplerMidSlapGain = null, samplerSlapDelay = null;
 var samplerDubDelay = null, samplerDubFeedback = null, samplerDubWetGain = null, samplerVerbWetGain = null, samplerMonitorGain = null;
-var samplerState = 'idle', samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
+var samplerState = 'idle', samplerCaptureScheduled = false, samplerInputLatencySec = 0.020;
+var samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
 var vocalBuffer = null, vocalWaveformBins = null, vocalActiveSource = null, vocalActiveGain = null, vocalLocked = false;
 var bar4CycleTimes = [];
 
 function setPlaybackAudioSession() {
   if (typeof navigator !== 'undefined' && navigator.audioSession) {
     try {
-      if (navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+      if (navigator.audioSession.type === 'play-and-record') {
+        navigator.audioSession.type = 'auto';
+        navigator.audioSession.type = 'playback';
+      } else if (navigator.audioSession.type !== 'playback') {
+        navigator.audioSession.type = 'playback';
+      }
     } catch (e) {}
   }
 }
@@ -895,12 +901,9 @@ function setPlayAndRecordAudioSession() {
 }
 
 async function ensureAudioReadyForCapture() {
-  setPlayAndRecordAudioSession();
   initAndUnlockAudio(true);
-  setPlayAndRecordAudioSession();
   if (audioCtx && audioCtx.state !== 'running') {
     try { await audioCtx.resume(); } catch (e) {}
-    setPlayAndRecordAudioSession();
   }
 }
 
@@ -1118,6 +1121,10 @@ var CLUB_BASS_NOTES = [43.65, 43.65, 38.89, 34.65]; // F1, F1, Eb1, Db1
 function triggerClubThump(time, beatIdx) {
   if (!audioCtx || audioCtx.state !== 'running' || !clubBassLPF1 || !clubAmbienceActive) return;
   try {
+    var hitPerfMs = performance.now() + (time - audioCtx.currentTime) * 1000;
+    clubBeatTimesMs.push(hitPerfMs);
+    if (clubBeatTimesMs.length > 16) clubBeatTimesMs.shift();
+
     var kick = audioCtx.createOscillator(), kg = audioCtx.createGain();
     kick.type = 'sine';
     kick.frequency.setValueAtTime(102, time);
@@ -1143,36 +1150,60 @@ function triggerClubThump(time, beatIdx) {
     sub.start(subTime); sub.stop(subTime + 0.23);
   } catch (e) {}
 }
+
 function triggerClubCrowdBurst() {
   if (!audioCtx || audioCtx.state !== 'running' || !noiseBuffer || !clubCrowdLPF || !clubAmbienceActive) return;
   try {
-    var now = audioCtx.currentTime, dur = 1.9 + Math.random() * 1.4;
-    var s1 = audioCtx.createBufferSource(), s2 = audioCtx.createBufferSource();
-    s1.buffer = noiseBuffer; s2.buffer = noiseBuffer; s1.loop = true; s2.loop = true;
-    var bp1 = audioCtx.createBiquadFilter(); bp1.type = 'bandpass'; bp1.frequency.value = 290 + Math.random() * 40; bp1.Q.value = 2.2;
-    var bp2 = audioCtx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 480 + Math.random() * 70; bp2.Q.value = 2.4;
-    var lfo = audioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 3.2 + Math.random() * 1.4;
-    var lfoDepth = audioCtx.createGain(); lfoDepth.gain.value = 55;
-    lfo.connect(lfoDepth); lfoDepth.connect(bp2.frequency);
-    var g = audioCtx.createGain();
-    var peak = 0.028 + Math.random() * 0.016;
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.linearRampToValueAtTime(peak, now + 0.48);
-    g.gain.setValueAtTime(peak * 0.85, now + dur * 0.55);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    s1.connect(bp1); s2.connect(bp2); bp1.connect(g); bp2.connect(g); g.connect(clubCrowdLPF);
-    s1.start(now, Math.random() * 1.1); s2.start(now, Math.random() * 1.1); lfo.start(now);
-    s1.stop(now + dur + 0.05); s2.stop(now + dur + 0.05); lfo.stop(now + dur + 0.05);
-    s1.onended = function() {
-      s1.onended = null;
-      [s1, s2, bp1, bp2, lfo, lfoDepth, g].forEach(function(n) { try { n.disconnect(); } catch (err) {} });
-    };
+    var now = audioCtx.currentTime;
+    var burstCount = 3 + Math.floor(Math.random() * 3);
+    for (var b = 0; b < burstCount; b++) {
+      (function(delayOffset, isCheer) {
+        var t0 = now + delayOffset;
+        var dur = 0.20 + Math.random() * 0.24;
+        var src = audioCtx.createBufferSource();
+        src.buffer = noiseBuffer;
+        src.loop = true;
+
+        var f1 = audioCtx.createBiquadFilter();
+        f1.type = 'bandpass';
+        var f1Start = 270 + Math.random() * 85;
+        f1.frequency.setValueAtTime(f1Start, t0);
+        if (isCheer) f1.frequency.exponentialRampToValueAtTime(f1Start * (1.12 + Math.random() * 0.10), t0 + dur * 0.7);
+        f1.Q.value = 5.2;
+
+        var f2 = audioCtx.createBiquadFilter();
+        f2.type = 'bandpass';
+        var f2Start = 550 + Math.random() * 170;
+        f2.frequency.setValueAtTime(f2Start, t0);
+        if (isCheer) f2.frequency.exponentialRampToValueAtTime(f2Start * (1.10 + Math.random() * 0.12), t0 + dur * 0.7);
+        f2.Q.value = 5.6;
+
+        var g = audioCtx.createGain();
+        var peak = 0.007 + Math.random() * 0.006;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(peak, t0 + 0.035 + Math.random() * 0.03);
+        g.gain.setValueAtTime(peak * 0.75, t0 + dur * 0.45);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+        src.connect(f1); src.connect(f2);
+        f1.connect(g); f2.connect(g);
+        g.connect(clubCrowdLPF);
+
+        src.start(t0, Math.random() * 1.4);
+        src.stop(t0 + dur + 0.03);
+        src.onended = function() {
+          src.onended = null;
+          [src, f1, f2, g].forEach(function(n) { try { n.disconnect(); } catch (err) {} });
+        };
+      })(b * (0.09 + Math.random() * 0.14), b === 1 || Math.random() < 0.4);
+    }
   } catch (e) {}
 }
+
 function scheduleNextClubCrowd() {
   if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
   if (!clubAmbienceActive) return;
-  var waitMs = 5500 + Math.random() * 6500;
+  var waitMs = 5000 + Math.random() * 6500;
   clubCrowdTimer = setTimeout(function() {
     clubCrowdTimer = null;
     if (!clubAmbienceActive) return;
@@ -1180,6 +1211,19 @@ function scheduleNextClubCrowd() {
     scheduleNextClubCrowd();
   }, waitMs);
 }
+
+function scheduleClubBeatsTick() {
+  if (!clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
+  var beatDur = 60 / 122;
+  if (clubNextBeatTime < audioCtx.currentTime - 0.1 || clubNextBeatTime > audioCtx.currentTime + 1.0) {
+    clubNextBeatTime = audioCtx.currentTime + 0.02;
+  }
+  while (clubNextBeatTime < audioCtx.currentTime + 0.22) {
+    triggerClubThump(clubNextBeatTime, clubBeatIndex++);
+    clubNextBeatTime += beatDur;
+  }
+}
+
 function startClubAmbience() {
   if (clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
   if (!clubAmbienceGain) {
@@ -1188,35 +1232,31 @@ function startClubAmbience() {
     clubBassLPF1 = audioCtx.createBiquadFilter(); clubBassLPF1.type = 'lowpass'; clubBassLPF1.frequency.value = 135; clubBassLPF1.Q.value = 0.7;
     clubBassLPF2 = audioCtx.createBiquadFilter(); clubBassLPF2.type = 'lowpass'; clubBassLPF2.frequency.value = 165; clubBassLPF2.Q.value = 1.4;
     clubBassLPF1.connect(clubBassLPF2); clubBassLPF2.connect(clubAmbienceGain);
-    clubCrowdLPF = audioCtx.createBiquadFilter(); clubCrowdLPF.type = 'lowpass'; clubCrowdLPF.frequency.value = 520; clubCrowdLPF.Q.value = 0.8;
+    clubCrowdLPF = audioCtx.createBiquadFilter(); clubCrowdLPF.type = 'lowpass'; clubCrowdLPF.frequency.value = 430; clubCrowdLPF.Q.value = 0.8;
     clubCrowdLPF.connect(clubAmbienceGain);
   }
   clubAmbienceActive = true;
+  clubBeatTimesMs = [];
   var now = audioCtx.currentTime;
   clubAmbienceGain.gain.cancelScheduledValues(now);
   clubAmbienceGain.gain.setValueAtTime(Math.max(0.0001, clubAmbienceGain.gain.value || 0.0001), now);
-  clubAmbienceGain.gain.linearRampToValueAtTime(0.60, now + 0.65);
-  clubNextBeatTime = now + 0.06;
+  clubAmbienceGain.gain.linearRampToValueAtTime(0.60, now + 0.14);
+  clubNextBeatTime = now + 0.02;
   clubBeatIndex = 0;
+  scheduleClubBeatsTick();
   if (clubSchedulerTimer) clearInterval(clubSchedulerTimer);
-  clubSchedulerTimer = setInterval(function() {
-    if (!clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
-    var beatDur = 60 / 122;
-    if (clubNextBeatTime < audioCtx.currentTime - 0.1 || clubNextBeatTime > audioCtx.currentTime + 1.0) clubNextBeatTime = audioCtx.currentTime + 0.04;
-    while (clubNextBeatTime < audioCtx.currentTime + 0.25) {
-      triggerClubThump(clubNextBeatTime, clubBeatIndex++);
-      clubNextBeatTime += beatDur;
-    }
-  }, 110);
+  clubSchedulerTimer = setInterval(scheduleClubBeatsTick, 60);
   if (clubCrowdTimer) clearTimeout(clubCrowdTimer);
   clubCrowdTimer = setTimeout(function() {
     if (!clubAmbienceActive) return;
     triggerClubCrowdBurst();
     scheduleNextClubCrowd();
-  }, 2400 + Math.random() * 2400);
+  }, 2200 + Math.random() * 2200);
 }
+
 function stopClubAmbience() {
   clubAmbienceActive = false;
+  clubBeatTimesMs = [];
   if (clubSchedulerTimer) { clearInterval(clubSchedulerTimer); clubSchedulerTimer = null; }
   if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
   if (audioCtx && clubAmbienceGain) {
@@ -1228,6 +1268,7 @@ function stopClubAmbience() {
     } catch (e) {}
   }
 }
+
 function updateClubAmbienceState() {
   var onStart = startScreen && !startScreen.classList.contains('hidden');
   var libOpen = libraryOverlay && !libraryOverlay.classList.contains('hidden');
@@ -1259,7 +1300,7 @@ function initAndUnlockAudio(keepCaptureSession) {
   if (!keepCaptureSession && !hasLiveMicStream()) setPlaybackAudioSession();
   if (!audioCtx) {
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    audioCtx = new AC();
+    try { audioCtx = new AC({ latencyHint: 'interactive' }); } catch (eAc) { audioCtx = new AC(); }
     audioCtx.onstatechange = function() {
       if (!hasLiveMicStream()) setPlaybackAudioSession();
       if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
@@ -1354,21 +1395,26 @@ function initAndUnlockAudio(keepCaptureSession) {
     } catch (e) {}
   }
 }
-function ensureAudioUnlocked(e) {
+function ensureAudioUnlocked() {
   if (!hasLiveMicStream()) setPlaybackAudioSession();
-  var onStartVisible = startScreen && !startScreen.classList.contains('hidden');
-  var libOpen = libraryOverlay && !libraryOverlay.classList.contains('hidden');
-  var mailOpen = mailOverlay && !mailOverlay.classList.contains('hidden');
-  if (!audioCtx && onStartVisible && !libOpen && !mailOpen) {
-    initAndUnlockAudio(false);
+  if (!audioCtx) {
+    initAndUnlockAudio(hasLiveMicStream());
     return;
   }
-  if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio(hasLiveMicStream());
-  else if (audioCtx && audioCtx.state === 'running') updateClubAmbienceState();
+  if (audioCtx.state !== 'running') initAndUnlockAudio(hasLiveMicStream());
+  else updateClubAmbienceState();
 }
+function tryBootStartAudio() {
+  try {
+    if (!audioCtx) initAndUnlockAudio(false);
+    else updateClubAmbienceState();
+  } catch (e) {}
+}
+document.addEventListener('touchstart', ensureAudioUnlocked, true);
 document.addEventListener('touchend', ensureAudioUnlocked, true);
-document.addEventListener('click', ensureAudioUnlocked, true);
 document.addEventListener('pointerdown', ensureAudioUnlocked, true);
+document.addEventListener('click', ensureAudioUnlocked, true);
+document.addEventListener('keydown', ensureAudioUnlocked, true);
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
     stopClubAmbience();
@@ -1696,8 +1742,7 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     } else if (inst.id === 'woodblock') {
       var wbFund = audioCtx.createOscillator(), wbFundG = audioCtx.createGain();
       wbFund.type = 'sine'; wbFund.frequency.setValueAtTime(pitchVal * (isAccent ? 1.16 : 1.10), trigTime); wbFund.frequency.exponentialRampToValueAtTime(pitchVal, trigTime + 0.008);
-      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42
- * velGain, trigTime + 0.0015); wbFundG.gain.exponentialRampToValueAtTime(0.001, trigTime + decayVal); wbFundG.gain.linearRampToValueAtTime(0.0, trigTime + decayVal + 0.008);
+      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42 * velGain, trigTime + 0.0015); wbFundG.gain.exponentialRampToValueAtTime(0.001, trigTime + decayVal); wbFundG.gain.linearRampToValueAtTime(0.0, trigTime + decayVal + 0.008);
       wbFund.connect(wbFundG); wbFundG.connect(dest); detachOnEnded(wbFund, [wbFund, wbFundG]); wbFund.start(trigTime); wbFund.stop(trigTime + decayVal + 0.012);
       var wbOver = audioCtx.createOscillator(), wbOverG = audioCtx.createGain(), overDec = Math.max(0.018, decayVal * 0.42);
       wbOver.type = 'sine'; wbOver.frequency.setValueAtTime(Math.min(audioCtx.sampleRate * 0.44, pitchVal * 2.52), trigTime);
@@ -1751,18 +1796,18 @@ function triggerMetronomeClick(time, isDownbeat) {
   try {
     var t = Math.max(audioCtx.currentTime, time);
     var osc = audioCtx.createOscillator(), g = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(isDownbeat ? 1320 : 880, t);
-    osc.frequency.exponentialRampToValueAtTime(isDownbeat ? 660 : 440, t + 0.018);
-    var peak = isDownbeat ? 0.22 : 0.14;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(isDownbeat ? 1280 : 860, t);
+    osc.frequency.exponentialRampToValueAtTime(isDownbeat ? 620 : 420, t + 0.012);
+    var peak = isDownbeat ? 0.14 : 0.085;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(peak, t + 0.0015);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+    g.gain.linearRampToValueAtTime(peak, t + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
     osc.connect(g);
     g.connect(audioCtx.destination);
     detachOnEnded(osc, [osc, g]);
     osc.start(t);
-    osc.stop(t + 0.032);
+    osc.stop(t + 0.022);
   } catch (e) {}
 }
 
@@ -1808,23 +1853,23 @@ function scheduleStep(gStep, time) {
   var fullActive = (jamActive || jamArmedPending || swingScreenActive || samplerScreenActive || gameMode === 'online');
   var maxIdx = fullActive ? INSTRUMENTS.length - 1 : turnIndex;
 
-  if (samplerScreenActive && samplerMetronomeOn && (gStep % 4 === 0)) {
+  if (samplerScreenActive && samplerMetronomeOn && samplerState !== 'playback' && (gStep % 4 === 0)) {
     triggerMetronomeClick(time, (gStep % 16) === 0);
   }
 
   if (gStep % SAMPLER_TOTAL_STEPS === 0) {
     if (bar4CycleTimes.length > 8) bar4CycleTimes.shift();
     bar4CycleTimes.push({ step: gStep, time: time });
-    if (samplerScreenActive && samplerState === 'armed' && gStep === samplerArmedStartStep) {
-      samplerState = 'recording';
+    if (samplerScreenActive && samplerState === 'armed' && !samplerCaptureScheduled && gStep === samplerArmedStartStep) {
+      samplerCaptureScheduled = true;
       samplerRecStartStep = gStep;
       samplerRecStartAudioTime = time;
       samplerRecDurationSec = SAMPLER_TOTAL_STEPS * stepDur;
-      var outLat = (typeof audioCtx.outputLatency === 'number' && audioCtx.outputLatency > 0) ? audioCtx.outputLatency : 0.025;
+      var outLat = (typeof audioCtx.outputLatency === 'number' && audioCtx.outputLatency > 0) ? audioCtx.outputLatency : 0.030;
       var baseLat = (typeof audioCtx.baseLatency === 'number' && audioCtx.baseLatency > 0) ? audioCtx.baseLatency : 0.015;
-      var latencyComp = Math.max(0.020, Math.min(0.140, outLat + baseLat));
+      var inLat = samplerInputLatencySec > 0 ? samplerInputLatencySec : 0.020;
+      var latencyComp = Math.max(0.025, Math.min(0.160, outLat + baseLat + inLat));
       armVocalCaptureNode(time + latencyComp, Math.round(samplerRecDurationSec * audioCtx.sampleRate));
-      updateSamplerUI();
     }
     if ((samplerScreenActive || swingScreenActive || jamActive || jamArmedPending) && vocalBuffer && samplerState !== 'recording' && samplerState !== 'armed') {
       triggerVocalLoopAt(time, 0);
@@ -1951,6 +1996,15 @@ async function acquireMicStream() {
     throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
   }
   var stream = null;
+  var ultraLowLagConstraints = {
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      channelCount: 1,
+      latency: 0
+    }
+  };
   var lowLagConstraints = {
     audio: {
       echoCancellation: false,
@@ -1960,13 +2014,13 @@ async function acquireMicStream() {
     }
   };
   try {
-    stream = await navigator.mediaDevices.getUserMedia(lowLagConstraints);
-  } catch (err1) {
+    stream = await navigator.mediaDevices.getUserMedia(ultraLowLagConstraints);
+  } catch (err0) {
     try {
+      stream = await navigator.mediaDevices.getUserMedia(lowLagConstraints);
+    } catch (err1) {
       await ensureAudioReadyForCapture();
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err2) {
-      throw err2;
     }
   }
   setPlayAndRecordAudioSession();
@@ -2016,7 +2070,7 @@ function buildSamplerCaptureFallback() {
       if (!scriptCapState.armed && !scriptCapState.recording) return;
       if (!scriptCapState.buf || scriptCapState.durationSamples <= 0) return;
       var inp = e.inputBuffer.getChannelData(0), len = inp.length, sr = audioCtx.sampleRate;
-      var t0 = e.playbackTime ? (e.playbackTime - len / sr) : (audioCtx.currentTime - len / sr);
+      var t0 = audioCtx.currentTime - len / sr;
       for (var i = 0; i < len; i++) {
         var st = t0 + i / sr;
         if (scriptCapState.armed && !scriptCapState.recording && st >= scriptCapState.startTime) { scriptCapState.recording = true; scriptCapState.armed = false; }
@@ -2086,6 +2140,16 @@ function cancelVocalCaptureNode() {
 
 function setupSamplerMicGraph(stream) {
   samplerMicStream = stream;
+  samplerInputLatencySec = 0.020;
+  try {
+    var aTracks = stream.getAudioTracks();
+    if (aTracks && aTracks[0] && typeof aTracks[0].getSettings === 'function') {
+      var trSettings = aTracks[0].getSettings();
+      if (trSettings && typeof trSettings.latency === 'number' && trSettings.latency > 0 && trSettings.latency < 0.25) {
+        samplerInputLatencySec = trSettings.latency;
+      }
+    }
+  } catch (e) {}
   if (!audioCtx) return;
 
   if (!samplerMicGraphBuilt) {
@@ -2170,6 +2234,7 @@ function stopSamplerMicStream() {
 }
 
 function onVocalBufferCaptured(samples) {
+  samplerCaptureScheduled = false;
   if (!audioCtx || !samples || !samples.length) return;
   var sr = audioCtx.sampleRate, buf = audioCtx.createBuffer(1, samples.length, sr), ch = buf.getChannelData(0);
   ch.set(samples);
@@ -2188,17 +2253,18 @@ function onVocalBufferCaptured(samples) {
   if (isPlaying && audioCtx) {
     var loopEndAudio = samplerRecStartAudioTime + samplerRecDurationSec;
     var when = Math.max(loopEndAudio, audioCtx.currentTime + 0.005);
-    var offset = (when - loopEndAudio) % buf.duration;
+    var offset = Math.max(0, (when - loopEndAudio) % buf.duration);
     triggerVocalLoopAt(when, offset);
   }
 }
 
-function wipeVocalRecording() {
+function wipeVocalRecording(keepMicOpen) {
   cancelVocalCaptureNode(); stopVocalPlayback(0.015);
   vocalBuffer = null; vocalWaveformBins = null; vocalLocked = false;
+  samplerCaptureScheduled = false;
   samplerState = 'idle'; samplerArmedStartStep = -1; samplerRecStartStep = -1;
   samplerMacroSlider.disabled = false; samplerMacroBox.classList.remove('locked');
-  if (!samplerMonitorOn) stopSamplerMicStream();
+  if (!keepMicOpen && !samplerMonitorOn) stopSamplerMicStream();
   updateSamplerUI();
 }
 
@@ -2363,6 +2429,8 @@ btnSamplerMonitor.addEventListener('click', async function() {
 
 btnSamplerRecord.addEventListener('click', async function() {
   if (samplerState === 'armed') {
+    cancelVocalCaptureNode();
+    samplerCaptureScheduled = false;
     samplerState = 'idle'; samplerArmedStartStep = -1;
     if (!samplerMonitorOn) stopSamplerMicStream();
     updateSamplerUI(); return;
@@ -2386,15 +2454,21 @@ btnSamplerRecord.addEventListener('click', async function() {
     return;
   }
   var nextCycleStep = Math.ceil((globalStep + 2) / SAMPLER_TOTAL_STEPS) * SAMPLER_TOTAL_STEPS;
-  if (nextCycleStep - globalStep < 8) nextCycleStep += SAMPLER_TOTAL_STEPS;
+  if (nextCycleStep - globalStep < 16) nextCycleStep += SAMPLER_TOTAL_STEPS;
+  samplerCaptureScheduled = false;
   samplerArmedStartStep = nextCycleStep;
   samplerState = 'armed';
   updateSamplerUI();
 });
 
-bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(); });
+bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(true); });
 function proceedFromSamplerToSwing() {
-  if (samplerState === 'armed') { samplerState = 'idle'; samplerArmedStartStep = -1; }
+  if (samplerState === 'armed' || samplerState === 'recording') {
+    cancelVocalCaptureNode();
+    samplerCaptureScheduled = false;
+    samplerState = vocalBuffer ? 'playback' : 'idle';
+    samplerArmedStartStep = -1;
+  }
   vocalLocked = true; samplerMonitorOn = false; samplerMetronomeOn = false;
   if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
   stopSamplerMicStream();
@@ -3967,9 +4041,29 @@ function drawStartScene(nowMs) {
     ctx.fillStyle = 'rgba(72,72,72,' + cl.rimA + ')'; ctx.fillRect(cxPos + 3, cl.y, cl.w - 6, 1);
     ctx.fillStyle = 'rgba(14,14,14,' + cl.bodyA + ')'; ctx.fillRect(cxPos + 1, cl.y + 1, cl.w - 2, cl.h - 2); ctx.fillRect(cxPos, cl.y + cl.h - 1, cl.w, 1);
   }
-  // Shared flicker signal
-  var flickWave = 0.78 + 0.14 * Math.sin(t * 2.7), sputter = Math.sin(t * 23.0) * Math.sin(t * 37.0) * Math.sin(t * 7.1);
-  var flickBright = (sputter > 0.50) ? 0.18 : ((sputter < -0.62) ? 0.42 : Math.min(1, flickWave));
+  // Shared flicker signal synced to bassdrum thump
+  var beatDur = 60 / 122;
+  var beatAge = ((t % beatDur) + beatDur) % beatDur;
+  if (clubAmbienceActive && clubBeatTimesMs.length > 0) {
+    var latestBeatMs = -1;
+    for (var cb = clubBeatTimesMs.length - 1; cb >= 0; cb--) {
+      if (clubBeatTimesMs[cb] <= nowMs + 18) { latestBeatMs = clubBeatTimesMs[cb]; break; }
+    }
+    if (latestBeatMs >= 0 && (nowMs - latestBeatMs) < 1200) {
+      beatAge = Math.max(0, (nowMs - latestBeatMs) / 1000);
+    }
+  }
+  var kickEnv = Math.exp(-beatAge * 10.5);
+  var buzz = Math.sin(beatAge * 68.0) * Math.sin(beatAge * 113.0);
+  var flickBright;
+  if (beatAge < 0.048) {
+    flickBright = 1.0;
+  } else if (beatAge < 0.19) {
+    flickBright = (buzz > 0.28) ? 0.22 : (0.55 + 0.45 * kickEnv);
+  } else {
+    flickBright = 0.28 + 0.18 * Math.max(0, Math.sin(t * 9.0)) + (buzz > 0.65 ? -0.12 : 0);
+  }
+  flickBright = Math.max(0.14, Math.min(1.0, flickBright));
   var fv = Math.round(248 * flickBright), fs = Math.round(92 * flickBright);
 
   // Top floor: one light on
@@ -4087,11 +4181,15 @@ function drawJamDancer(nowMs) { var ctx = pixelCtx; ctx.imageSmoothingEnabled = 
 var lastVisualGlobalStep = -1, lastBlinkOffState = false, prevFrameMs = performance.now();
 function loop(nowMs) {
   var frameDt = Math.min(0.05, (nowMs - prevFrameMs) / 1000); prevFrameMs = nowMs;
-  if (!startScreen.classList.contains('hidden') && nowMs - lastStartSceneMs >= 42) { lastStartSceneMs = nowMs; drawStartScene(nowMs); }
+  if (!startScreen.classList.contains('hidden') && nowMs - lastStartSceneMs >= 28) { lastStartSceneMs = nowMs; drawStartScene(nowMs); }
   if (isPlaying && audioCtx) {
     while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
       var ev = visualQueue.shift(); activeGlobalStep = ev.globalStep; activePlayStep = activeGlobalStep % STEPS;
       if ((jamActive || jamArmedPending) && ev.kickHit && !rewindActive) lastKickMs = nowMs;
+      if (samplerScreenActive && samplerState === 'armed' && samplerCaptureScheduled && activeGlobalStep >= samplerArmedStartStep) {
+        samplerState = 'recording';
+        updateSamplerUI();
+      }
     }
     if (activeGlobalStep !== lastVisualGlobalStep) { lastVisualGlobalStep = activeGlobalStep; updatePlayheadVisual(); }
   }
@@ -4133,6 +4231,7 @@ function loop(nowMs) {
   requestAnimationFrame(loop);
 }
 
+tryBootStartAudio();
 refreshLibraryBadge();
 requestAnimationFrame(loop);
   </script>
