@@ -1696,7 +1696,7 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     } else if (inst.id === 'woodblock') {
       var wbFund = audioCtx.createOscillator(), wbFundG = audioCtx.createGain();
       wbFund.type = 'sine'; wbFund.frequency.setValueAtTime(pitchVal * (isAccent ? 1.16 : 1.10), trigTime); wbFund.frequency.exponentialRampToValueAtTime(pitchVal, trigTime + 0.008);
-      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42`)
+      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42
  * velGain, trigTime + 0.0015); wbFundG.gain.exponentialRampToValueAtTime(0.001, trigTime + decayVal); wbFundG.gain.linearRampToValueAtTime(0.0, trigTime + decayVal + 0.008);
       wbFund.connect(wbFundG); wbFundG.connect(dest); detachOnEnded(wbFund, [wbFund, wbFundG]); wbFund.start(trigTime); wbFund.stop(trigTime + decayVal + 0.012);
       var wbOver = audioCtx.createOscillator(), wbOverG = audioCtx.createGain(), overDec = Math.max(0.018, decayVal * 0.42);
