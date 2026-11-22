@@ -169,7 +169,7 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
 
 .sampler-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(8px, 1.4dvh, 14px) clamp(10px, 2.5vw, 14px); min-height: 0; gap: clamp(8px, 1.4dvh, 14px); }
 .sampler-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; gap: 8px; }
-.sampler-title { font-size: clamp(15px, 2.5dvh, 20px); font-weight: 900; letter-spacing: 1.2px; text-transform: uppercase; margin: 0; }
+.sampler-title { font-size: clamp(13px, 2.2dvh, 19px); font-weight: 900; letter-spacing: 1.0px; text-transform: uppercase; margin: 0; white-space: nowrap; }
 .sampler-sub-hint { font-size: 10px; letter-spacing: 0.6px; color: #888; text-align: center; line-height: 1.4; }
 .sampler-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(8px, 1.5dvh, 14px); min-height: 0; }
 .sampler-stage-badge { text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase; color: #25d366; min-height: 16px; }
@@ -263,7 +263,6 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
 .mail-transport { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #222; padding-top: 8px; }
 .mail-seek-row { display: flex; align-items: center; gap: 8px; }
 .mail-time { font-size: 9px; font-weight: 800; color: #aaa; font-variant-numeric: tabular-nums; min-width: 34px; text-align: center; }
-.mail-actions-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
 .arm-modal-grid { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 4px 0; }
 @media (hover: hover) {
   .btn-lets-go:hover { background: #fff; color: #000; }
@@ -444,11 +443,14 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
         </div>
       </div>
       <div class="sampler-header">
-        <div>
+        <div style="min-width:0;">
           <h2 class="sampler-title mono">VOCAL / SAMPLER</h2>
           <div class="sub-logo mono" style="margin-top: 3px;">4-BAR QUANTIZED LOOP</div>
         </div>
-        <div class="bpm-box mono"><span>BPM</span><span id="samplerBpmValue">118</span></div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <button type="button" class="btn-secondary mono" id="btnSamplerMetro" style="min-height:0;height:clamp(32px,4.4dvh,40px);padding:0 9px;font-size:9px;letter-spacing:1px;">METRO OFF</button>
+          <div class="bpm-box mono"><span>BPM</span><span id="samplerBpmValue">118</span></div>
+        </div>
       </div>
       <div class="sampler-center">
         <div class="sampler-sub-hint mono">Use headphones for cleanest vocal capture.</div>
@@ -569,7 +571,7 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
         <div class="jam-end-actions">
           <button type="button" class="btn-next" id="btnJamSave">SAVE</button>
           <button type="button" class="btn-secondary" id="btnJamShare">SHARE</button>
-          <button type="button" class="btn-secondary hidden" id="btnJamSend">SEND YOUR JAM</button>
+          <button type="button" class="btn-secondary hidden" id="btnJamSend">SEND TO BEATFRIEND</button>
           <button type="button" class="btn-secondary" id="btnJamLetGo">GO AGAIN</button>
         </div>
       </div>
@@ -847,7 +849,7 @@ function resetTracks() {
 }
 resetTracks();
 
-var audioCtx = null, audioUnlocked = false, mixBus = null, dryMixGain = null;
+var audioCtx = null, audioUnlocked = false, instBus = null, vocalBus = null, mixBus = null, dryMixGain = null, vocalDryGain = null;
 var snareWarmCurve = null, snareNoiseNormalBuffer = null, snareNoiseAccentBuffer = null, softClipShaper = null;
 var rewindWorklet = null, rewindInitStarted = false, rewindProcessor = null, rewindFallbackConnected = false;
 var rewindLPF = null, rewindOutGain = null, ringBuf = null, ringLen = 0, ringWriteIdx = 0;
@@ -862,11 +864,14 @@ var crushShaper = null, crushFilter = null, crushGateGain = null, crushOutGain =
 var globalStep = 0, activeGlobalStep = 0, activePlayStep = 0, nextNoteTime = 0, schedulerId = null, visualQueue = [];
 var mediaRecorder = null, recordedChunks = [], recordedBlob = null, recMimeInfo = { mime: 'audio/webm', ext: 'webm' }, savedRecordId = null, activeJamRecordName = '';
 
+var clubAmbienceActive = false, clubAmbienceGain = null, clubBassLPF1 = null, clubBassLPF2 = null, clubCrowdLPF = null;
+var clubSchedulerTimer = null, clubCrowdTimer = null, clubNextBeatTime = 0, clubBeatIndex = 0;
+
 var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null, samplerMicGraphBuilt = false;
 var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
 var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerSilentSink = null;
 var samplerAnalyser = null, samplerTimeData = null;
-var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false;
+var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false, samplerMetronomeOn = false;
 var samplerDryGain = null, samplerMidGain = null, samplerMidSlapGain = null, samplerSlapDelay = null;
 var samplerDubDelay = null, samplerDubFeedback = null, samplerDubWetGain = null, samplerVerbWetGain = null, samplerMonitorGain = null;
 var samplerState = 'idle', samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
@@ -1107,6 +1112,132 @@ function triggerLetgoTransition() {
     src.connect(bp); bp.connect(g); g.connect(masterHPF); detachOnEnded(src, [src, bp, g]); src.start(now); src.stop(now + 0.10);
   } catch (e) {}
 }
+
+/* ==================== START SCREEN CLUB-DOOR AMBIENCE ==================== */
+var CLUB_BASS_NOTES = [43.65, 43.65, 38.89, 34.65]; // F1, F1, Eb1, Db1
+function triggerClubThump(time, beatIdx) {
+  if (!audioCtx || audioCtx.state !== 'running' || !clubBassLPF1 || !clubAmbienceActive) return;
+  try {
+    var kick = audioCtx.createOscillator(), kg = audioCtx.createGain();
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(102, time);
+    kick.frequency.exponentialRampToValueAtTime(46, time + 0.042);
+    kg.gain.setValueAtTime(0.0001, time);
+    kg.gain.linearRampToValueAtTime(0.19, time + 0.006);
+    kg.gain.exponentialRampToValueAtTime(0.0001, time + 0.25);
+    kick.connect(kg); kg.connect(clubBassLPF1);
+    detachOnEnded(kick, [kick, kg]);
+    kick.start(time); kick.stop(time + 0.27);
+
+    var barIdx = Math.floor(beatIdx / 4) % CLUB_BASS_NOTES.length;
+    var bassFreq = CLUB_BASS_NOTES[barIdx];
+    var subTime = time + 0.245;
+    var sub = audioCtx.createOscillator(), sg = audioCtx.createGain();
+    sub.type = 'triangle';
+    sub.frequency.setValueAtTime(bassFreq, subTime);
+    sg.gain.setValueAtTime(0.0001, subTime);
+    sg.gain.linearRampToValueAtTime(0.085, subTime + 0.025);
+    sg.gain.exponentialRampToValueAtTime(0.0001, subTime + 0.21);
+    sub.connect(sg); sg.connect(clubBassLPF1);
+    detachOnEnded(sub, [sub, sg]);
+    sub.start(subTime); sub.stop(subTime + 0.23);
+  } catch (e) {}
+}
+function triggerClubCrowdBurst() {
+  if (!audioCtx || audioCtx.state !== 'running' || !noiseBuffer || !clubCrowdLPF || !clubAmbienceActive) return;
+  try {
+    var now = audioCtx.currentTime, dur = 1.9 + Math.random() * 1.4;
+    var s1 = audioCtx.createBufferSource(), s2 = audioCtx.createBufferSource();
+    s1.buffer = noiseBuffer; s2.buffer = noiseBuffer; s1.loop = true; s2.loop = true;
+    var bp1 = audioCtx.createBiquadFilter(); bp1.type = 'bandpass'; bp1.frequency.value = 290 + Math.random() * 40; bp1.Q.value = 2.2;
+    var bp2 = audioCtx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 480 + Math.random() * 70; bp2.Q.value = 2.4;
+    var lfo = audioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 3.2 + Math.random() * 1.4;
+    var lfoDepth = audioCtx.createGain(); lfoDepth.gain.value = 55;
+    lfo.connect(lfoDepth); lfoDepth.connect(bp2.frequency);
+    var g = audioCtx.createGain();
+    var peak = 0.028 + Math.random() * 0.016;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(peak, now + 0.48);
+    g.gain.setValueAtTime(peak * 0.85, now + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    s1.connect(bp1); s2.connect(bp2); bp1.connect(g); bp2.connect(g); g.connect(clubCrowdLPF);
+    s1.start(now, Math.random() * 1.1); s2.start(now, Math.random() * 1.1); lfo.start(now);
+    s1.stop(now + dur + 0.05); s2.stop(now + dur + 0.05); lfo.stop(now + dur + 0.05);
+    s1.onended = function() {
+      s1.onended = null;
+      [s1, s2, bp1, bp2, lfo, lfoDepth, g].forEach(function(n) { try { n.disconnect(); } catch (err) {} });
+    };
+  } catch (e) {}
+}
+function scheduleNextClubCrowd() {
+  if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
+  if (!clubAmbienceActive) return;
+  var waitMs = 5500 + Math.random() * 6500;
+  clubCrowdTimer = setTimeout(function() {
+    clubCrowdTimer = null;
+    if (!clubAmbienceActive) return;
+    triggerClubCrowdBurst();
+    scheduleNextClubCrowd();
+  }, waitMs);
+}
+function startClubAmbience() {
+  if (clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
+  if (!clubAmbienceGain) {
+    clubAmbienceGain = audioCtx.createGain(); clubAmbienceGain.gain.value = 0.0;
+    clubAmbienceGain.connect(audioCtx.destination);
+    clubBassLPF1 = audioCtx.createBiquadFilter(); clubBassLPF1.type = 'lowpass'; clubBassLPF1.frequency.value = 135; clubBassLPF1.Q.value = 0.7;
+    clubBassLPF2 = audioCtx.createBiquadFilter(); clubBassLPF2.type = 'lowpass'; clubBassLPF2.frequency.value = 165; clubBassLPF2.Q.value = 1.4;
+    clubBassLPF1.connect(clubBassLPF2); clubBassLPF2.connect(clubAmbienceGain);
+    clubCrowdLPF = audioCtx.createBiquadFilter(); clubCrowdLPF.type = 'lowpass'; clubCrowdLPF.frequency.value = 520; clubCrowdLPF.Q.value = 0.8;
+    clubCrowdLPF.connect(clubAmbienceGain);
+  }
+  clubAmbienceActive = true;
+  var now = audioCtx.currentTime;
+  clubAmbienceGain.gain.cancelScheduledValues(now);
+  clubAmbienceGain.gain.setValueAtTime(Math.max(0.0001, clubAmbienceGain.gain.value || 0.0001), now);
+  clubAmbienceGain.gain.linearRampToValueAtTime(0.60, now + 0.65);
+  clubNextBeatTime = now + 0.06;
+  clubBeatIndex = 0;
+  if (clubSchedulerTimer) clearInterval(clubSchedulerTimer);
+  clubSchedulerTimer = setInterval(function() {
+    if (!clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
+    var beatDur = 60 / 122;
+    if (clubNextBeatTime < audioCtx.currentTime - 0.1 || clubNextBeatTime > audioCtx.currentTime + 1.0) clubNextBeatTime = audioCtx.currentTime + 0.04;
+    while (clubNextBeatTime < audioCtx.currentTime + 0.25) {
+      triggerClubThump(clubNextBeatTime, clubBeatIndex++);
+      clubNextBeatTime += beatDur;
+    }
+  }, 110);
+  if (clubCrowdTimer) clearTimeout(clubCrowdTimer);
+  clubCrowdTimer = setTimeout(function() {
+    if (!clubAmbienceActive) return;
+    triggerClubCrowdBurst();
+    scheduleNextClubCrowd();
+  }, 2400 + Math.random() * 2400);
+}
+function stopClubAmbience() {
+  clubAmbienceActive = false;
+  if (clubSchedulerTimer) { clearInterval(clubSchedulerTimer); clubSchedulerTimer = null; }
+  if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
+  if (audioCtx && clubAmbienceGain) {
+    var now = audioCtx.currentTime;
+    try {
+      clubAmbienceGain.gain.cancelScheduledValues(now);
+      clubAmbienceGain.gain.setValueAtTime(clubAmbienceGain.gain.value, now);
+      clubAmbienceGain.gain.linearRampToValueAtTime(0.0, now + 0.14);
+    } catch (e) {}
+  }
+}
+function updateClubAmbienceState() {
+  var onStart = startScreen && !startScreen.classList.contains('hidden');
+  var libOpen = libraryOverlay && !libraryOverlay.classList.contains('hidden');
+  var mailOpen = mailOverlay && !mailOverlay.classList.contains('hidden');
+  var waitOpen = waitingScreen && !waitingScreen.classList.contains('hidden');
+  var shouldPlay = onStart && !libOpen && !mailOpen && !waitOpen && !isPlaying && !jamActive && !jamArmedPending && !samplerScreenActive && !swingScreenActive && !document.hidden;
+  if (shouldPlay) startClubAmbience();
+  else stopClubAmbience();
+}
+
 function syncAllTrackAudioParams() {
   if (!audioCtx) return;
   var now = audioCtx.currentTime, maxFreq = Math.min(20000, audioCtx.sampleRate * 0.45);
@@ -1136,8 +1267,15 @@ function initAndUnlockAudio(keepCaptureSession) {
           if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
         }).catch(function() {});
       }
+      if (audioCtx.state === 'running') updateClubAmbienceState();
     };
-    mixBus = audioCtx.createGain(); mixBus.gain.value = 0.60; dryMixGain = audioCtx.createGain(); dryMixGain.gain.value = 1.0;
+    instBus = audioCtx.createGain(); instBus.gain.value = 0.60;
+    vocalBus = audioCtx.createGain(); vocalBus.gain.value = 0.60;
+    mixBus = audioCtx.createGain(); mixBus.gain.value = 1.0;
+    instBus.connect(mixBus);
+    vocalBus.connect(mixBus);
+    dryMixGain = audioCtx.createGain(); dryMixGain.gain.value = 1.0;
+    vocalDryGain = audioCtx.createGain(); vocalDryGain.gain.value = 1.0;
     snareWarmCurve = createSnareWarmCurve(); softClipShaper = audioCtx.createWaveShaper(); softClipShaper.curve = createSoftClipCurve(); softClipShaper.oversample = 'none';
     masterHPF = audioCtx.createBiquadFilter(); masterHPF.type = 'highpass'; masterHPF.frequency.value = BASE_HPF_HZ; masterHPF.Q.value = 0.7;
     masterEQ = audioCtx.createBiquadFilter(); masterEQ.type = 'peaking'; masterEQ.frequency.value = 180; masterEQ.Q.value = 0.9; masterEQ.gain.value = 1.2;
@@ -1147,7 +1285,7 @@ function initAndUnlockAudio(keepCaptureSession) {
     reverbPreHPF = audioCtx.createBiquadFilter(); reverbPreHPF.type = 'highpass'; reverbPreHPF.frequency.value = 120; reverbPreHPF.connect(reverbConvolver);
     instReverbReturn = audioCtx.createGain(); instReverbReturn.gain.value = 0.70;
     reverbConvolver.connect(reverbToneLPF); reverbToneLPF.connect(instReverbReturn); instReverbReturn.connect(softClipShaper);
-    basslineDuckingGain = audioCtx.createGain(); basslineDuckingGain.gain.value = 1.0; basslineDuckingGain.connect(mixBus);
+    basslineDuckingGain = audioCtx.createGain(); basslineDuckingGain.gain.value = 1.0; basslineDuckingGain.connect(instBus);
     var maxFreq = Math.min(20000, audioCtx.sampleRate * 0.45);
     trackVolGains = []; trackLPFs = []; trackMuteGains = []; trackDryGains = []; trackRevGains = [];
     for (var i = 0; i < TOTAL_JAM_TRACKS; i++) {
@@ -1161,7 +1299,11 @@ function initAndUnlockAudio(keepCaptureSession) {
       trackLPFs[i] = tLpf;
       var muteG = audioCtx.createGain(); muteG.gain.value = trackMutes[i] ? 0.0 : 1.0; trackMuteGains[i] = muteG;
       volG.connect(tLpf); tLpf.connect(muteG);
-      var dryG = audioCtx.createGain(); dryG.gain.value = 1.0; if (i === 5) dryG.connect(basslineDuckingGain); else dryG.connect(mixBus); trackDryGains[i] = dryG;
+      var dryG = audioCtx.createGain(); dryG.gain.value = 1.0;
+      if (i === 5) dryG.connect(basslineDuckingGain);
+      else if (isVox) dryG.connect(vocalBus);
+      else dryG.connect(instBus);
+      trackDryGains[i] = dryG;
       var revG = audioCtx.createGain();
       revG.gain.value = (!isVox && tracks[i] && tracks[i].params && tracks[i].params.reverb !== undefined) ? tracks[i].params.reverb * 0.40 : 0.0;
       revG.connect(reverbPreHPF); trackRevGains[i] = revG; muteG.connect(dryG); muteG.connect(revG);
@@ -1180,11 +1322,13 @@ function initAndUnlockAudio(keepCaptureSession) {
     crushShaper = audioCtx.createWaveShaper(); crushShaper.curve = createBitcrushCurve(); crushShaper.oversample = 'none';
     crushFilter = audioCtx.createBiquadFilter(); crushFilter.type = 'bandpass'; crushFilter.frequency.value = 1800; crushFilter.Q.value = 1.0;
     crushGateGain = audioCtx.createGain(); crushGateGain.gain.value = 1.0; crushOutGain = audioCtx.createGain(); crushOutGain.gain.value = 0.0;
-    mixBus.connect(crushFilter); crushFilter.connect(crushShaper); crushShaper.connect(crushGateGain); crushGateGain.connect(crushOutGain); crushOutGain.connect(masterHPF);
+    instBus.connect(crushFilter); crushFilter.connect(crushShaper); crushShaper.connect(crushGateGain); crushGateGain.connect(crushOutGain); crushOutGain.connect(masterHPF);
     masterCompressor = audioCtx.createDynamicsCompressor();
     masterCompressor.threshold.setValueAtTime(-6, audioCtx.currentTime); masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
     masterCompressor.ratio.setValueAtTime(3.5, audioCtx.currentTime); masterCompressor.attack.setValueAtTime(0.008, audioCtx.currentTime); masterCompressor.release.setValueAtTime(0.16, audioCtx.currentTime);
-    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.85; mixBus.connect(dryMixGain); dryMixGain.connect(masterHPF);
+    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.85;
+    instBus.connect(dryMixGain); dryMixGain.connect(masterHPF);
+    vocalBus.connect(vocalDryGain); vocalDryGain.connect(masterHPF);
     rewindLPF = audioCtx.createBiquadFilter(); rewindLPF.type = 'lowpass'; rewindLPF.frequency.value = 950; rewindLPF.Q.value = 1.0;
     rewindOutGain = audioCtx.createGain(); rewindOutGain.gain.value = 0.0; rewindLPF.connect(rewindOutGain); rewindOutGain.connect(masterHPF);
     masterHPF.connect(masterEQ); masterEQ.connect(softClipShaper); masterHPF.connect(hpfReverbSend); hpfReverbSend.connect(reverbConvolver);
@@ -1198,7 +1342,10 @@ function initAndUnlockAudio(keepCaptureSession) {
   if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
     audioCtx.resume().then(function() {
       if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+      updateClubAmbienceState();
     }).catch(function() {});
+  } else if (audioCtx.state === 'running') {
+    updateClubAmbienceState();
   }
   if (!audioUnlocked) {
     try {
@@ -1207,19 +1354,34 @@ function initAndUnlockAudio(keepCaptureSession) {
     } catch (e) {}
   }
 }
-function ensureAudioUnlocked() {
+function ensureAudioUnlocked(e) {
   if (!hasLiveMicStream()) setPlaybackAudioSession();
+  var onStartVisible = startScreen && !startScreen.classList.contains('hidden');
+  var libOpen = libraryOverlay && !libraryOverlay.classList.contains('hidden');
+  var mailOpen = mailOverlay && !mailOverlay.classList.contains('hidden');
+  if (!audioCtx && onStartVisible && !libOpen && !mailOpen) {
+    initAndUnlockAudio(false);
+    return;
+  }
   if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio(hasLiveMicStream());
+  else if (audioCtx && audioCtx.state === 'running') updateClubAmbienceState();
 }
 document.addEventListener('touchend', ensureAudioUnlocked, true);
 document.addEventListener('click', ensureAudioUnlocked, true);
 document.addEventListener('pointerdown', ensureAudioUnlocked, true);
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && audioCtx && audioCtx.state !== 'running') {
-    if (!hasLiveMicStream()) setPlaybackAudioSession();
-    audioCtx.resume().then(function() {
-      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-    }).catch(function() {});
+  if (document.hidden) {
+    stopClubAmbience();
+  } else {
+    if (audioCtx && audioCtx.state !== 'running') {
+      if (!hasLiveMicStream()) setPlaybackAudioSession();
+      audioCtx.resume().then(function() {
+        if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+        updateClubAmbienceState();
+      }).catch(function() {});
+    } else {
+      updateClubAmbienceState();
+    }
   }
 });
 function setTrackMuteAudio(idx, muted) {
@@ -1244,10 +1406,13 @@ function setRewind(on) {
       rewindElapsedSamples = 0; rewindStutterBaseIdx = (rewindTopIdx - hitAgeSamples + ringLen) % ringLen;
       rewindCursor = Math.max(256, span - Math.max(0, Math.min(span - 512, hitAgeSamples - tailOffset)));
     }
-    dryMixGain.gain.setTargetAtTime(0.0, now, 0.005); rewindOutGain.gain.setTargetAtTime(1.15, now, 0.005);
+    dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
+    if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(0.0, now, 0.005);
+    rewindOutGain.gain.setTargetAtTime(1.15, now, 0.005);
   } else {
     if (rewindWorklet) rewindWorklet.port.postMessage({ type: 'stop' });
     rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
+    if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(1.0, now, 0.008);
     if (!crushGateActive) dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
     if (wasOn) triggerLetgoTransition();
   }
@@ -1489,7 +1654,7 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     var isAccent = velState === 2, isGhost = velState === 3, velGain = isAccent ? 1.35 : (isGhost ? 0.45 : 1.0);
     var trigTime = Math.max(audioCtx.currentTime, time);
     applyStepBusLocks(instIdx, stepIdx, trigTime, effP, true, velState);
-    var dest = trackVolGains[instIdx] || mixBus;
+    var dest = trackVolGains[instIdx] || instBus;
     if (inst.id === 'kick') {
       var osc = audioCtx.createOscillator(), g = audioCtx.createGain();
       osc.type = 'sine'; osc.frequency.setValueAtTime(pitchVal * (isAccent ? 3.25 : 2.8), trigTime); osc.frequency.exponentialRampToValueAtTime(pitchVal, trigTime + Math.min(0.055, decayVal * 0.6));
@@ -1531,7 +1696,8 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     } else if (inst.id === 'woodblock') {
       var wbFund = audioCtx.createOscillator(), wbFundG = audioCtx.createGain();
       wbFund.type = 'sine'; wbFund.frequency.setValueAtTime(pitchVal * (isAccent ? 1.16 : 1.10), trigTime); wbFund.frequency.exponentialRampToValueAtTime(pitchVal, trigTime + 0.008);
-      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42 * velGain, trigTime + 0.0015); wbFundG.gain.exponentialRampToValueAtTime(0.001, trigTime + decayVal); wbFundG.gain.linearRampToValueAtTime(0.0, trigTime + decayVal + 0.008);
+      wbFundG.gain.setValueAtTime(0.0001, trigTime); wbFundG.gain.linearRampToValueAtTime(0.42`)
+ * velGain, trigTime + 0.0015); wbFundG.gain.exponentialRampToValueAtTime(0.001, trigTime + decayVal); wbFundG.gain.linearRampToValueAtTime(0.0, trigTime + decayVal + 0.008);
       wbFund.connect(wbFundG); wbFundG.connect(dest); detachOnEnded(wbFund, [wbFund, wbFundG]); wbFund.start(trigTime); wbFund.stop(trigTime + decayVal + 0.012);
       var wbOver = audioCtx.createOscillator(), wbOverG = audioCtx.createGain(), overDec = Math.max(0.018, decayVal * 0.42);
       wbOver.type = 'sine'; wbOver.frequency.setValueAtTime(Math.min(audioCtx.sampleRate * 0.44, pitchVal * 2.52), trigTime);
@@ -1579,6 +1745,27 @@ function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount
     }
   } catch (err) { console.error('triggerSound error:', err); }
 }
+
+function triggerMetronomeClick(time, isDownbeat) {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  try {
+    var t = Math.max(audioCtx.currentTime, time);
+    var osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(isDownbeat ? 1320 : 880, t);
+    osc.frequency.exponentialRampToValueAtTime(isDownbeat ? 660 : 440, t + 0.018);
+    var peak = isDownbeat ? 0.22 : 0.14;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + 0.0015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    detachOnEnded(osc, [osc, g]);
+    osc.start(t);
+    osc.stop(t + 0.032);
+  } catch (e) {}
+}
+
 function stopVocalPlayback(fadeSec) {
   if (vocalActiveSource && audioCtx) {
     var src = vocalActiveSource, g = vocalActiveGain;
@@ -1599,7 +1786,7 @@ function triggerVocalLoopAt(when, offsetSec) {
     var g = audioCtx.createGain();
     g.gain.setValueAtTime(1.0, Math.max(audioCtx.currentTime, when));
     src.connect(g);
-    g.connect(trackVolGains[VOCAL_TRACK_IDX] || mixBus);
+    g.connect(trackVolGains[VOCAL_TRACK_IDX] || vocalBus);
     var off = Math.max(0, Math.min(vocalBuffer.duration - 0.02, offsetSec || 0));
     var dur = Math.max(0.01, vocalBuffer.duration - off);
     src.start(Math.max(audioCtx.currentTime, when), off, dur);
@@ -1620,6 +1807,10 @@ function scheduleStep(gStep, time) {
   var kickHit = false, anyHit = false, stepDur = 60 / bpm / 4;
   var fullActive = (jamActive || jamArmedPending || swingScreenActive || samplerScreenActive || gameMode === 'online');
   var maxIdx = fullActive ? INSTRUMENTS.length - 1 : turnIndex;
+
+  if (samplerScreenActive && samplerMetronomeOn && (gStep % 4 === 0)) {
+    triggerMetronomeClick(time, (gStep % 16) === 0);
+  }
 
   if (gStep % SAMPLER_TOTAL_STEPS === 0) {
     if (bar4CycleTimes.length > 8) bar4CycleTimes.shift();
@@ -1702,6 +1893,7 @@ function scheduler() {
   }
 }
 function startSequencer() {
+  stopClubAmbience();
   try { initAndUnlockAudio(hasLiveMicStream()); } catch (e) {}
   if (schedulerId) { clearInterval(schedulerId); schedulerId = null; }
   lastDuckTime = 0; lastCrushGateTime = 0; tiedChancePass = [true, true, true, true, true, true, true];
@@ -1732,7 +1924,7 @@ function stopSequencer() {
 }
 
 var samplerScreen = $('samplerScreen'), samplerBattleHeader = $('samplerBattleHeader'), samplerP1Badge = $('samplerP1Badge'), samplerP2Badge = $('samplerP2Badge');
-var samplerBpmValue = $('samplerBpmValue'), samplerStageBadge = $('samplerStageBadge'), samplerBarWrap = $('samplerBarWrap');
+var samplerBpmValue = $('samplerBpmValue'), btnSamplerMetro = $('btnSamplerMetro'), samplerStageBadge = $('samplerStageBadge'), samplerBarWrap = $('samplerBarWrap');
 var samplerBarCanvas = $('samplerBarCanvas'), samplerBarCtx = samplerBarCanvas.getContext('2d');
 var samplerCountdownOverlay = $('samplerCountdownOverlay'), samplerCountNum = $('samplerCountNum'), samplerCountSub = $('samplerCountSub');
 var samplerMacroBox = $('samplerMacroBox'), samplerMacroVal = $('samplerMacroVal'), samplerMacroSlider = $('samplerMacroSlider');
@@ -2012,6 +2204,10 @@ function wipeVocalRecording() {
 
 function updateSamplerUI() {
   samplerBpmValue.textContent = bpm;
+  if (btnSamplerMetro) {
+    btnSamplerMetro.textContent = samplerMetronomeOn ? 'METRO ON' : 'METRO OFF';
+    btnSamplerMetro.classList.toggle('active-toggle', samplerMetronomeOn);
+  }
   samplerBarWrap.classList.remove('state-armed', 'state-recording', 'state-playback');
   samplerStageBadge.classList.remove('armed', 'recording', 'playback');
   btnSamplerRecord.classList.remove('armed', 'recording');
@@ -2112,6 +2308,7 @@ function drawSamplerBar() {
 function openSamplerScreen() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate();
   samplerScreenActive = true; swingScreenActive = false; jamActive = false; jamArmedPending = false;
+  samplerMetronomeOn = false;
   sequencerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamScreen.classList.add('hidden'); samplerScreen.classList.remove('hidden');
   if (gameMode === 'online') {
     samplerBattleHeader.classList.remove('hidden');
@@ -2124,6 +2321,12 @@ function openSamplerScreen() {
   applyVocalVolume(vocalVolume);
   updateSamplerUI();
 }
+
+bindTap(btnSamplerMetro, function() {
+  ensureAudioUnlocked();
+  samplerMetronomeOn = !samplerMetronomeOn;
+  updateSamplerUI();
+});
 
 samplerMacroSlider.addEventListener('input', function(e) {
   if (samplerState === 'recording' || samplerState === 'playback' || vocalLocked) return;
@@ -2192,7 +2395,7 @@ btnSamplerRecord.addEventListener('click', async function() {
 bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(); });
 function proceedFromSamplerToSwing() {
   if (samplerState === 'armed') { samplerState = 'idle'; samplerArmedStartStep = -1; }
-  vocalLocked = true; samplerMonitorOn = false;
+  vocalLocked = true; samplerMonitorOn = false; samplerMetronomeOn = false;
   if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
   stopSamplerMicStream();
   ensureAudioUnlocked();
@@ -2325,7 +2528,19 @@ var btnJamSave = $('btnJamSave'), btnJamShare = $('btnJamShare'), btnJamSend = $
 var btnOpenLibrary = $('btnOpenLibrary'), libraryOverlay = $('libraryOverlay'), btnLibraryClose = $('btnLibraryClose'), libraryList = $('libraryList');
 var preJamArmModal = $('preJamArmModal'), armPads = document.querySelectorAll('.arm-pad'), btnStartArmedJam = $('btnStartArmedJam');
 var btnOpenMail = $('btnOpenMail'), mailBadgeCount = $('mailBadgeCount'), mailOverlay = $('mailOverlay'), btnMailClose = $('btnMailClose'), mailList = $('mailList');
-var inboxItems = [], myMailRef = null, mailAudioEl = null, mailPlayingId = null;
+var inboxItems = [], myMailRef = null, mailAudioEl = null, mailPlayingId = null, mailEditingId = null;
+
+var MAIL_SEEN_KEY = 'beatfriends_seen_mail_ids_' + myClientId;
+function loadSeenMailIds() {
+  try {
+    var raw = localStorage.getItem(MAIL_SEEN_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function saveSeenMailIds(map) {
+  try { localStorage.setItem(MAIL_SEEN_KEY, JSON.stringify(map)); } catch (e) {}
+}
+var seenMailIds = loadSeenMailIds();
 
 db.ref('presence').on('value', function(snap) {
   var count = snap ? snap.numChildren() : 0;
@@ -2339,15 +2554,33 @@ function formatSecs(sec) {
 }
 
 /* ==================== REALTIME DATABASE BASE64 MAIL SYSTEM ==================== */
+function getUnreadMailCount() {
+  var unread = 0;
+  for (var i = 0; i < inboxItems.length; i++) {
+    if (!seenMailIds[inboxItems[i].id]) unread++;
+  }
+  return unread;
+}
 function updateMailIconUI() {
-  var cnt = inboxItems.length;
-  btnOpenMail.classList.toggle('has-mail', cnt > 0);
-  if (cnt > 0) {
-    mailBadgeCount.textContent = cnt > 9 ? '9+' : String(cnt);
+  var unread = getUnreadMailCount();
+  btnOpenMail.classList.toggle('has-mail', unread > 0);
+  if (unread > 0) {
+    mailBadgeCount.textContent = unread > 9 ? '9+' : String(unread);
     mailBadgeCount.classList.remove('hidden');
   } else {
     mailBadgeCount.classList.add('hidden');
   }
+}
+function markAllInboxMailSeen() {
+  var changed = false;
+  for (var i = 0; i < inboxItems.length; i++) {
+    if (!seenMailIds[inboxItems[i].id]) {
+      seenMailIds[inboxItems[i].id] = true;
+      changed = true;
+    }
+  }
+  if (changed) saveSeenMailIds(seenMailIds);
+  updateMailIconUI();
 }
 
 function stopMailAudio() {
@@ -2397,27 +2630,45 @@ function startMailListener() {
     removeInboxItemById(rec.id);
     inboxItems.push(rec);
     inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); });
+    if (!mailOverlay.classList.contains('hidden')) {
+      seenMailIds[rec.id] = true;
+      saveSeenMailIds(seenMailIds);
+      if (mailEditingId === null) renderMailModal();
+    }
     updateMailIconUI();
-    if (!mailOverlay.classList.contains('hidden')) renderMailModal();
   });
   myMailRef.on('child_changed', function(snap) {
     var d = snap.val();
     if (!d || d.archived) {
       if (mailPlayingId === snap.key) stopMailAudio();
+      if (mailEditingId === snap.key) mailEditingId = null;
       removeInboxItemById(snap.key);
     } else {
-      var rec = decodeMailRecord(snap.key, d);
-      if (rec) {
-        removeInboxItemById(rec.id);
-        inboxItems.push(rec);
-        inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); });
+      var existing = null;
+      for (var i = 0; i < inboxItems.length; i++) {
+        if (inboxItems[i].id === snap.key) { existing = inboxItems[i]; break; }
+      }
+      if (existing && existing.objectUrl) {
+        existing.trackName = d.trackName || existing.trackName;
+        existing.fromName = d.fromName || existing.fromName;
+        existing.fromCountry = d.fromCountry || existing.fromCountry;
+        existing.bpm = d.bpm || existing.bpm;
+      } else {
+        var rec = decodeMailRecord(snap.key, d);
+        if (rec) {
+          removeInboxItemById(snap.key);
+          inboxItems.push(rec);
+          inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); });
+        }
       }
     }
     updateMailIconUI();
-    if (!mailOverlay.classList.contains('hidden')) renderMailModal();
+    if (!mailOverlay.classList.contains('hidden') && mailEditingId !== snap.key) renderMailModal();
   });
   myMailRef.on('child_removed', function(snap) {
     if (mailPlayingId === snap.key) stopMailAudio();
+    if (mailEditingId === snap.key) mailEditingId = null;
+    if (seenMailIds[snap.key]) { delete seenMailIds[snap.key]; saveSeenMailIds(seenMailIds); }
     removeInboxItemById(snap.key);
     updateMailIconUI();
     if (!mailOverlay.classList.contains('hidden')) renderMailModal();
@@ -2432,7 +2683,7 @@ function renderMailModal() {
   }
   var html = '';
   for (var i = 0; i < inboxItems.length; i++) {
-    var m = inboxItems[i], isThis = (mailPlayingId === m.id);
+    var m = inboxItems[i], isThis = (mailPlayingId === m.id), isEditingThis = (mailEditingId === m.id);
     var isPaused = isThis && mailAudioEl && mailAudioEl.paused;
     var curT = (isThis && mailAudioEl) ? mailAudioEl.currentTime : 0;
     var durT = (isThis && mailAudioEl && mailAudioEl.duration && isFinite(mailAudioEl.duration)) ? mailAudioEl.duration : ((m.sessionMeta && m.sessionMeta.durationSec) || 60);
@@ -2440,16 +2691,25 @@ function renderMailModal() {
     var meta = (m.bpm ? (m.bpm + ' BPM · ') : '') + (m.sessionMeta && m.sessionMeta.swingMode ? (m.sessionMeta.swingMode.toUpperCase() + ' · ') : '') + formatRecDate(m.createdAtMs);
     html += '<div class="lib-card" data-mail-id="' + escapeHtml(m.id) + '">';
     html += '<div class="lib-card-top"><div class="lib-name mono">' + escapeHtml(partnerName) + '</div><div class="lib-meta mono">' + escapeHtml(meta) + '</div></div>';
-    html += '<div style="font-size:11px;font-weight:800;color:#ccc;letter-spacing:0.6px;text-align:left;" class="mono">' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '</div>';
+    if (isEditingThis) {
+      html += '<div class="lib-rename-row"><input type="text" class="lib-rename-input mono" maxlength="60" value="' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '" data-mail-rename-input="' + escapeHtml(m.id) + '" /><button type="button" class="lib-btn mono" data-mail-act="save-rename" data-id="' + escapeHtml(m.id) + '">OK</button></div>';
+    } else {
+      html += '<div style="font-size:11px;font-weight:800;color:#ccc;letter-spacing:0.6px;text-align:left;" class="mono">' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '</div>';
+    }
     html += '<div class="mail-transport">';
     html += '<div class="mail-seek-row"><span class="mail-time mono" data-mail-cur="' + escapeHtml(m.id) + '">' + formatSecs(curT) + '</span><input type="range" min="0" max="100" value="' + Math.round((curT / Math.max(1, durT)) * 100) + '" data-mail-seek="' + escapeHtml(m.id) + '" /><span class="mail-time mono" data-mail-dur="' + escapeHtml(m.id) + '">' + formatSecs(durT) + '</span></div>';
-    html += '<div class="mail-actions-3">';
+    html += '<div class="lib-actions">';
     html += '<button type="button" class="lib-btn mono' + ((isThis && !isPaused) ? ' playing' : '') + '" data-mail-act="play" data-id="' + escapeHtml(m.id) + '">' + (isThis ? (isPaused ? 'RESUME' : 'PAUSE') : 'PLAY') + '</button>';
+    html += '<button type="button" class="lib-btn mono" data-mail-act="rename" data-id="' + escapeHtml(m.id) + '">' + (isEditingThis ? 'CANCEL' : 'RENAME') + '</button>';
     html += '<button type="button" class="lib-btn mono" data-mail-act="save" data-id="' + escapeHtml(m.id) + '">SAVE LIB</button>';
     html += '<button type="button" class="lib-btn danger mono" data-mail-act="archive" data-id="' + escapeHtml(m.id) + '">CLEAR</button>';
     html += '</div></div></div>';
   }
   mailList.innerHTML = html;
+  if (mailEditingId) {
+    var inp = mailList.querySelector('input[data-mail-rename-input="' + mailEditingId + '"]');
+    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
 }
 
 mailList.addEventListener('input', function(e) {
@@ -2458,6 +2718,26 @@ mailList.addEventListener('input', function(e) {
   var id = rng.getAttribute('data-mail-seek');
   if (!id || mailPlayingId !== id || !mailAudioEl || !mailAudioEl.duration || !isFinite(mailAudioEl.duration)) return;
   mailAudioEl.currentTime = (Number(rng.value) / 100) * mailAudioEl.duration;
+});
+
+function commitMailRename(id) {
+  var item = null;
+  for (var i = 0; i < inboxItems.length; i++) if (inboxItems[i].id === id) { item = inboxItems[i]; break; }
+  if (!item) { mailEditingId = null; renderMailModal(); return; }
+  var inp = mailList.querySelector('input[data-mail-rename-input="' + id + '"]');
+  var newName = sanitizeTrackName(inp ? inp.value : '');
+  if (!newName) { mailEditingId = null; renderMailModal(); return; }
+  item.trackName = newName;
+  mailEditingId = null;
+  renderMailModal();
+  db.ref('mail/' + myClientId + '/' + id + '/trackName').set(newName).catch(function(err) { console.warn('Rename mail error:', err); });
+}
+
+mailList.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target && e.target.getAttribute) {
+    var id = e.target.getAttribute('data-mail-rename-input');
+    if (id) { e.preventDefault(); commitMailRename(id); }
+  }
 });
 
 mailList.addEventListener('click', function(e) {
@@ -2491,6 +2771,11 @@ mailList.addEventListener('click', function(e) {
     };
     mailAudioEl.play().catch(function() { stopMailAudio(); renderMailModal(); });
     renderMailModal();
+  } else if (act === 'rename') {
+    mailEditingId = (mailEditingId === id) ? null : id;
+    renderMailModal();
+  } else if (act === 'save-rename') {
+    commitMailRename(id);
   } else if (act === 'save') {
     if (!item.decodedBlob) return;
     btn.textContent = 'SAVING...'; btn.disabled = true;
@@ -2508,12 +2793,25 @@ mailList.addEventListener('click', function(e) {
     }).catch(function() { btn.textContent = 'SAVE LIB'; btn.disabled = false; });
   } else if (act === 'archive') {
     if (mailPlayingId === id) stopMailAudio();
+    if (mailEditingId === id) mailEditingId = null;
     db.ref('mail/' + myClientId + '/' + id).remove().catch(function(err) { console.warn('Clear mail error:', err); });
   }
 });
 
-bindTap(btnOpenMail, function() { mailOverlay.classList.remove('hidden'); renderMailModal(); });
-bindTap(btnMailClose, function() { stopMailAudio(); mailOverlay.classList.add('hidden'); });
+bindTap(btnOpenMail, function() {
+  mailEditingId = null;
+  mailOverlay.classList.remove('hidden');
+  updateClubAmbienceState();
+  markAllInboxMailSeen();
+  renderMailModal();
+});
+bindTap(btnMailClose, function() {
+  stopMailAudio();
+  mailEditingId = null;
+  mailOverlay.classList.add('hidden');
+  updateMailIconUI();
+  updateClubAmbienceState();
+});
 
 function setJamEndStatus(msg) { jamEndStatus.textContent = msg || ''; jamEndStatus.classList.toggle('hidden', !msg); }
 function refreshLibraryBadge() {
@@ -2568,8 +2866,8 @@ libraryList.addEventListener('click', function(e) {
   } else if (act === 'share') { dbGetRecording(id).then(function(rec) { if (!rec || !rec.blob) return; shareOrDownloadAudio(rec.blob, rec.name, rec.ext, rec.mimeType, rec.bpm, null); }); }
   else if (act === 'delete') { if (libPlayingId === id) stopLibraryAudio(); if (libEditingId === id) libEditingId = null; dbDeleteRecording(id).then(function() { renderLibraryList(); }); }
 });
-btnOpenLibrary.addEventListener('click', function() { libEditingId = null; libraryOverlay.classList.remove('hidden'); renderLibraryList(); });
-btnLibraryClose.addEventListener('click', function() { stopLibraryAudio(); libEditingId = null; libraryOverlay.classList.add('hidden'); });
+btnOpenLibrary.addEventListener('click', function() { libEditingId = null; libraryOverlay.classList.remove('hidden'); updateClubAmbienceState(); renderLibraryList(); });
+btnLibraryClose.addEventListener('click', function() { stopLibraryAudio(); libEditingId = null; libraryOverlay.classList.add('hidden'); updateClubAmbienceState(); });
 
 function openJamEndModal() {
   activeJamRecordName = makeTimestampName(); jamNameInput.value = activeJamRecordName;
@@ -2583,7 +2881,7 @@ function openJamEndModal() {
   }
   btnJamSave.textContent = 'SAVE'; btnJamSave.classList.remove('btn-done-state'); btnJamSave.disabled = true;
   btnJamShare.textContent = 'SHARE'; btnJamShare.classList.remove('btn-done-state'); btnJamShare.disabled = true;
-  btnJamSend.textContent = 'SEND YOUR JAM'; btnJamSend.classList.remove('btn-done-state'); btnJamSend.disabled = true;
+  btnJamSend.textContent = 'SEND TO BEATFRIEND'; btnJamSend.classList.remove('btn-done-state'); btnJamSend.disabled = true;
 
   setJamEndStatus('FINALIZING AUDIO...');
   savedRecordId = null; jamEndModal.classList.remove('hidden');
@@ -2673,7 +2971,7 @@ btnJamSend.addEventListener('click', function() {
     setJamEndStatus('JAM SENT TO ' + (partnerInfo.country || 'BEATFRIEND') + '!');
   }).catch(function(err) {
     console.error('Send jam error:', err);
-    btnJamSend.textContent = 'SEND YOUR JAM';
+    btnJamSend.textContent = 'SEND TO BEATFRIEND';
     btnJamSend.disabled = false;
     setJamEndStatus('SEND FAILED — CHECK CONNECTION');
   });
@@ -2715,14 +3013,14 @@ var HELP_CONTENT = {
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('SWITCH IN HEADER → HOLD BUTTON → TAP STEPS'), body: 'Choose <strong>PER STEP</strong>, <strong>RETRIG</strong>, or <strong>CHANCE</strong>, hold <strong>HOLD</strong>, and tap active steps to customize parameters, repeats, or probability.' },
       { title: '3. SWITCHABLE PAIRS & POLYMETERS', shot: SHOTS.pairSwitch, body: 'Tap the dimmed name on <strong>SNARE / CLAP</strong> or <strong>SHAKER / WOODBLOCK</strong> to switch instruments. Lower <strong>STEPS (3–16)</strong> for polymeters.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDERS & TIES', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'Hold slider boxes to cycle <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong>, and <strong>REVERB / GLIDE</strong>. Drag sideways to tie notes.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Dial in the <strong>DRY ↔ WET Macro</strong> (0.0 Clean → 0.5 Warm Slap → 1.0 Dub Verb), tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in, and balance your loop with <strong>VOCAL VOLUME</strong>.' },
-      { title: '6. PRE-JAM ARMING, FX & MAIL', shot: SHOTS.jamFx, body: 'Arm starting tracks (including <strong>VOX</strong>), perform 60s with zero fade-in, then <strong>SAVE</strong>, <strong>SHARE</strong>, or <strong>SEND YOUR JAM</strong>. Envelope icon lights up on new mail!' }
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Dial in the <strong>DRY ↔ WET Macro</strong> (0.0 Clean → 0.5 Warm Slap → 1.0 Dub Verb), toggle <strong>METRO</strong> if needed, tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in, and balance your loop with <strong>VOCAL VOLUME</strong>.' },
+      { title: '6. PRE-JAM ARMING, FX & MAIL', shot: SHOTS.jamFx, body: 'Arm starting tracks (including <strong>VOX</strong>), perform 60s with zero fade-in, then <strong>SAVE</strong>, <strong>SHARE</strong>, or <strong>SEND TO BEATFRIEND</strong>. Envelope icon lights up on new mail!' }
     ],
     noCards: [
       { title: '1. HOW BEATFRIENDS WORKS', shot: SHOTS.startModes, body: 'Build 7 shared tracks, record a personal <strong>4-bar Vocal/Sample</strong>, pick a <strong>Groove</strong>, and perform a live 60s Jam. In 2-Player mode, send your jam to your Beatfriend!' },
       { title: '2. DRUM GRID & SOUND CONTROLS', shot: SHOTS.drumGrid, body: 'Tap or swipe pads to place beats. Hold a pad for Accent Mode. Tweak Pitch, Decay, Lowpass, Reverb, Steps & Volume below.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Pick a waveform, tap notes, or drag sideways to hold long notes. Tap <strong>+ / -</strong> to expand up to 4 bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Use headphones for cleanest capture. Set the Effect Macro slider, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, record your 4-bar loop, and adjust Vocal Volume.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Use headphones for cleanest capture. Set the Effect Macro slider, toggle <strong>METRO</strong> if desired, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, record your 4-bar loop, and adjust Vocal Volume.' },
       { title: '5. LIVE JAM & MAILBOX', shot: SHOTS.jamFull, body: 'Toggle starting tracks, tap <strong>START</strong>, mute <strong>BD..VOX</strong>, and hold the 4 vinyls for DJ FX. After 60s, Save, Share, or Send—and check the Start Screen envelope for replies!' }
     ]
   },
@@ -2735,14 +3033,14 @@ var HELP_CONTENT = {
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('IM HEADER WÄHLEN → BUTTON HALTEN → STEPS TIPPEN'), body: 'Wähle <strong>PER STEP</strong>, <strong>RETRIG</strong> oder <strong>CHANCE</strong>, halte <strong>HOLD</strong> und tippe aktive Steps an.' },
       { title: '3. WECHSELBARE PAARE & POLYMETER', shot: SHOTS.pairSwitch, body: 'Tippe bei <strong>SNARE / CLAP</strong> oder <strong>SHAKER / WOODBLOCK</strong> auf den gedimmten Namen. Kürze <strong>STEPS (3–16)</strong> für Polyrhythmen.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDER & TIES', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Halte Slider-Boxen für <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong> und <strong>REVERB / GLIDE</strong>.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Stelle das <strong>DRY ↔ WET Macro</strong> ein, tippe <strong>RECORD</strong> für den <strong>4-3-2-1</strong> Count-In, nimm 4 Takte auf und regle die <strong>VOCAL VOLUME</strong>.' },
-      { title: '6. PRE-JAM ARMING, FX & MAILBOX', shot: SHOTS.jamFx, body: 'Aktiviere Start-Tracks (inkl. <strong>VOX</strong>), jamme 60s ohne Fade-In und klicke dann auf <strong>SAVE</strong>, <strong>SHARE</strong> oder <strong>SEND YOUR JAM</strong>.' }
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Stelle das <strong>DRY ↔ WET Macro</strong> ein, aktiviere optional <strong>METRO</strong>, tippe <strong>RECORD</strong> für den <strong>4-3-2-1</strong> Count-In, nimm 4 Takte auf und regle die <strong>VOCAL VOLUME</strong>.' },
+      { title: '6. PRE-JAM ARMING, FX & MAILBOX', shot: SHOTS.jamFx, body: 'Aktiviere Start-Tracks (inkl. <strong>VOX</strong>), jamme 60s ohne Fade-In und klicke dann auf <strong>SAVE</strong>, <strong>SHARE</strong> oder <strong>SEND TO BEATFRIEND</strong>.' }
     ],
     noCards: [
       { title: '1. SO FUNKTIONIERT BEATFRIENDS', shot: SHOTS.startModes, body: 'Baut 7 Basis-Tracks, nehmt dann unabhängig eure eigene <strong>4-Bar Vocal/Sample-Spur</strong> auf, wählt den Groove und jammt 60s live!' },
       { title: '2. DRUM-GRID & REGLER', shot: SHOTS.drumGrid, body: 'Tippe oder wische über Pads. Halte ein Pad für Accent Mode. Regle Pitch, Decay, Lowpass, Reverb, Steps & Volume.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Wähle eine Waveform, tippe Noten oder ziehe waagerecht für lange Töne. Mit <strong>+ / -</strong> bis zu 4 Bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer nutzen! Macro einstellen, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen und Vocal Volume anpassen.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer nutzen! Macro einstellen, optional <strong>METRO</strong> aktivieren, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen und Vocal Volume anpassen.' },
       { title: '5. LIVE JAM & POSTFACH', shot: SHOTS.jamFull, body: 'Tracks aktivieren, <strong>START</strong> tippen, live muten & Vinyl-FX nutzen. Danach speichern, teilen oder senden—und Postfach oben rechts checken!' }
     ]
   }
@@ -3119,13 +3417,15 @@ function applyOpponentMove(moveData) {
 function applyIncomingMoveIfNew(m) { if (!m || !m.timestamp || m.sender === myRole || m.timestamp === lastHandledMoveTimestamp) return false; lastHandledMoveTimestamp = m.timestamp; applyOpponentMove(m); return true; }
 
 function startOnlineMatchmaking() {
+  stopClubAmbience();
   initAndUnlockAudio(false); gameMode = 'online'; onlineMatchActive = true; myRole = null; currentRoomId = null; turnIndex = 0; accentMode = false;
   battleLaunched = false; lastHandledMoveTimestamp = 0; isSendingMove = false; samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false; clearTimeout(oppDisconnectTimer);
-  applyVocalVolume(1.0); samplerMonitorOn = false;
+  applyVocalVolume(1.0); samplerMonitorOn = false; samplerMetronomeOn = false;
   wipeVocalRecording();
   roomCountries = { player1: '---', player2: '---' }; partnerInfo = { uid: '', country: '---', role: '' }; detectCountryAsync();
   helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden');
   startScreen.classList.add('hidden'); waitingScreen.classList.remove('hidden'); $('waitingStatusText').textContent = 'SEARCHING FOR BEATFRIEND...';
+  updateClubAmbienceState();
   var wq = db.ref('queue/waiting'); waitingQueueRef = wq; var targetRoomId = null, roleToAssign = null;
   wq.transaction(function(curr) {
     if (curr && curr.roomId) { targetRoomId = curr.roomId; roleToAssign = 'player2'; return null; }
@@ -3202,10 +3502,11 @@ function cancelMatchmaking() {
   if (waitingQueueRef && myRole === 'player1') { waitingQueueRef.onDisconnect().cancel(); waitingQueueRef.remove(); }
   if (roomRef) { roomRef.off(); if (myRole === 'player1') roomRef.remove(); roomRef = null; }
   waitingScreen.classList.add('hidden'); startScreen.classList.remove('hidden');
+  updateClubAmbienceState();
 }
 function exitToMainMenu() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate(); abortJamRecording();
-  samplerMonitorOn = false;
+  samplerMonitorOn = false; samplerMetronomeOn = false;
   wipeVocalRecording(); stopSamplerMicStream();
   samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false;
   battleLaunched = false; isSendingMove = false;
@@ -3213,9 +3514,10 @@ function exitToMainMenu() {
   detachOnlineRoom(); disconnectModal.classList.add('hidden'); jamEndModal.classList.add('hidden'); preJamArmModal.classList.add('hidden');
   sequencerScreen.classList.add('hidden'); samplerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamScreen.classList.add('hidden'); waitingScreen.classList.add('hidden'); startScreen.classList.remove('hidden');
   stopSequencer(); gameMode = 'solo'; myRole = null; roomCountries = { player1: '---', player2: '---' }; partnerInfo = { uid: '', country: '---', role: '' }; jamMatchup.classList.add('hidden'); refreshLibraryBadge();
+  updateClubAmbienceState();
 }
 
-bindTap(btnSoloMode, function() { initAndUnlockAudio(false); gameMode = 'solo'; onlineMatchActive = false; helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden'); battleHeader.classList.add('hidden'); startGame(); });
+bindTap(btnSoloMode, function() { stopClubAmbience(); initAndUnlockAudio(false); gameMode = 'solo'; onlineMatchActive = false; helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden'); battleHeader.classList.add('hidden'); startGame(); });
 bindTap(btnOnlineMode, startOnlineMatchmaking); bindTap(btnCancelMatchmaking, cancelMatchmaking); bindTap(btnBackToMenu, exitToMainMenu);
 bindTap(clearBtn, function() {
   if (gameMode === 'online' && !isMyTurn()) return;
@@ -3579,12 +3881,14 @@ volumeSlider.addEventListener('input', function(e) {
 });
 
 function startGame() {
-  resetTracks(); applyVocalVolume(1.0); samplerMonitorOn = false; wipeVocalRecording(); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
+  stopClubAmbience();
+  resetTracks(); applyVocalVolume(1.0); samplerMonitorOn = false; samplerMetronomeOn = false; wipeVocalRecording(); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
   currentSwingMode = 'straight'; updateSwingUI();
   trackMutes = [false, false, false, false, false, false, false, false]; updateMutePadsUI(); dragPointerId = null; pianoPointerId = null;
   jamMatchup.classList.add('hidden'); swingSubLogo.textContent = 'SELECT TIMING FEEL';
   startScreen.classList.add('hidden'); samplerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamScreen.classList.add('hidden'); jamEndModal.classList.add('hidden'); sequencerScreen.classList.remove('hidden');
+  updateClubAmbienceState();
   renderTurn(); startSequencer();
 }
 function nextTurn() {
@@ -3663,16 +3967,26 @@ function drawStartScene(nowMs) {
     ctx.fillStyle = 'rgba(72,72,72,' + cl.rimA + ')'; ctx.fillRect(cxPos + 3, cl.y, cl.w - 6, 1);
     ctx.fillStyle = 'rgba(14,14,14,' + cl.bodyA + ')'; ctx.fillRect(cxPos + 1, cl.y + 1, cl.w - 2, cl.h - 2); ctx.fillRect(cxPos, cl.y + cl.h - 1, cl.w, 1);
   }
+  // Shared flicker signal
+  var flickWave = 0.78 + 0.14 * Math.sin(t * 2.7), sputter = Math.sin(t * 23.0) * Math.sin(t * 37.0) * Math.sin(t * 7.1);
+  var flickBright = (sputter > 0.50) ? 0.18 : ((sputter < -0.62) ? 0.42 : Math.min(1, flickWave));
+  var fv = Math.round(248 * flickBright), fs = Math.round(92 * flickBright);
+
+  // Top floor: one light on
   ctx.fillStyle = '#2c2c2c'; ctx.fillRect(24, 7, 20, 5); ctx.fillStyle = '#3e3e3e'; ctx.fillRect(24, 7, 20, 1); ctx.fillRect(30, 3, 1, 4);
-  ctx.fillStyle = '#111'; ctx.fillRect(27, 9, 5, 2); ctx.fillRect(35, 9, 6, 2);
+  ctx.fillStyle = '#111'; ctx.fillRect(26, 8, 7, 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(27, 9, 5, 2);
+  ctx.fillStyle = '#111'; ctx.fillRect(35, 9, 6, 2);
+
+  // Second floor from top down: all windows flicker together
   ctx.fillStyle = '#262626'; ctx.fillRect(18, 12, 51, 9); ctx.fillStyle = '#1e1e1e'; ctx.fillRect(18, 12, 7, 9);
   ctx.fillStyle = '#383838'; ctx.fillRect(18, 12, 51, 1); ctx.fillStyle = '#2e2e2e'; ctx.fillRect(18, 12, 1, 9); ctx.fillStyle = '#1a1a1a'; ctx.fillRect(68, 12, 1, 9);
   var upWins = [23, 31, 39, 47, 55];
   for (var uw = 0; uw < upWins.length; uw++) {
-    var ux = upWins[uw], isUpLit = (ux === 39 || ux === 55);
+    var ux = upWins[uw];
     ctx.fillStyle = '#121212'; ctx.fillRect(ux - 1, 15, 6, 4);
-    ctx.fillStyle = isUpLit ? (ux === 39 ? '#fff' : '#ebebeb') : '#090909'; ctx.fillRect(ux, 16, 4, 2);
-    if (isUpLit) { ctx.fillStyle = '#4a4a4a'; ctx.fillRect(ux, 18, 4, 1); }
+    ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(ux, 16, 4, 2);
+    ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(ux, 18, 4, 1);
   }
   ctx.fillStyle = '#2f2f2f'; ctx.fillRect(12, 21, 59, 5); ctx.fillStyle = '#424242'; ctx.fillRect(12, 21, 59, 1);
   ctx.fillStyle = '#363636'; ctx.fillRect(12, 21, 1, 5); ctx.fillStyle = '#1f1f1f'; ctx.fillRect(70, 21, 1, 5); ctx.fillStyle = '#111'; ctx.fillRect(12, 26, 59, 2);
@@ -3683,12 +3997,11 @@ function drawStartScene(nowMs) {
   var seamRows = [37, 44, 51];
   for (var sr = 0; sr < seamRows.length; sr++) { ctx.fillStyle = '#161616'; ctx.fillRect(15, seamRows[sr], 83, 1); ctx.fillStyle = '#2c2c2c'; ctx.fillRect(20, seamRows[sr] + 1, 72, 1); }
   ctx.fillStyle = '#161616'; ctx.fillRect(20, 28, 1, 30); ctx.fillRect(91, 31, 1, 27);
-  var flickWave = 0.78 + 0.14 * Math.sin(t * 2.7), sputter = Math.sin(t * 23.0) * Math.sin(t * 37.0) * Math.sin(t * 7.1);
-  var flickBright = (sputter > 0.50) ? 0.18 : ((sputter < -0.62) ? 0.42 : Math.min(1, flickWave));
-  var fv = Math.round(248 * flickBright), fs = Math.round(92 * flickBright);
+
+  // Ground floor windows: left flickering, right turned off
   ctx.fillStyle = '#121212'; ctx.fillRect(22, 31, 6, 4); ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(23, 32, 4, 2); ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(23, 34, 4, 1);
   ctx.fillStyle = '#121212'; ctx.fillRect(30, 31, 6, 4); ctx.fillStyle = '#090909'; ctx.fillRect(31, 32, 4, 2);
-  ctx.fillStyle = '#121212'; ctx.fillRect(76, 31, 7, 4); ctx.fillStyle = '#fff'; ctx.fillRect(77, 32, 5, 2); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(77, 34, 5, 1);
+  ctx.fillStyle = '#121212'; ctx.fillRect(76, 31, 7, 4); ctx.fillStyle = '#090909'; ctx.fillRect(77, 32, 5, 2);
   ctx.fillStyle = '#121212'; ctx.fillRect(84, 31, 6, 4); ctx.fillStyle = '#090909'; ctx.fillRect(85, 32, 4, 2);
   var lowMist = [{ x0: 6, y: 49, w: 34, h: 2, spd: 1.3, a: 0.08 }, { x0: 48, y: 53, w: 38, h: 2, spd: 0.9, a: 0.07 }, { x0: 76, y: 46, w: 28, h: 2, spd: 1.6, a: 0.06 }];
   for (var lm = 0; lm < lowMist.length; lm++) {
@@ -3755,7 +4068,7 @@ function startJam() {
 
 function resetToNewRound() {
   stopSequencer();
-  samplerMonitorOn = false;
+  samplerMonitorOn = false; samplerMetronomeOn = false;
   wipeVocalRecording();
   stopSamplerMicStream();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
@@ -3763,7 +4076,7 @@ function resetToNewRound() {
   jamScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); samplerScreen.classList.add('hidden');
   preJamArmModal.classList.add('hidden'); jamEndModal.classList.add('hidden');
   if (gameMode === 'online') exitToMainMenu();
-  else { resetTracks(); startScreen.classList.remove('hidden'); refreshLibraryBadge(); }
+  else { resetTracks(); startScreen.classList.remove('hidden'); refreshLibraryBadge(); updateClubAmbienceState(); }
 }
 
 function getBopFrame(nowMs) { if (lastKickMs < 0) return 0; var t = ((nowMs - lastKickMs) / 1000) / Math.min(0.38, (60 / bpm) * 0.75); return t < 0.42 ? 1 : (t < 0.82 ? 2 : 0); }
