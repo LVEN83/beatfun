@@ -855,7 +855,8 @@ var crushShaper = null, crushFilter = null, crushGateGain = null, crushOutGain =
 var globalStep = 0, activeGlobalStep = 0, activePlayStep = 0, nextNoteTime = 0, schedulerId = null, visualQueue = [];
 var mediaRecorder = null, recordedChunks = [], recordedBlob = null, recMimeInfo = { mime: 'audio/webm', ext: 'webm' }, savedRecordId = null, activeJamRecordName = '';
 
-var samplerMicStream = null, samplerMicSource = null, samplerMicGraphBuilt = false, samplerCaptureInitStarted = false;
+var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null, samplerMicGraphBuilt = false;
+var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
 var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerSilentSink = null;
 var samplerAnalyser = null, samplerTimeData = null;
 var samplerMacroValue = 0.0, samplerMonitorOn = false;
@@ -864,6 +865,34 @@ var samplerDubDelay = null, samplerDubFeedback = null, samplerDubWetGain = null,
 var samplerState = 'idle', samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
 var vocalBuffer = null, vocalWaveformBins = null, vocalActiveSource = null, vocalActiveGain = null, vocalLocked = false;
 var bar4CycleTimes = [];
+
+function setPlayAndRecordAudioSession(ctx) {
+  if (typeof navigator !== 'undefined' && navigator.audioSession) {
+    try {
+      if (navigator.audioSession.type !== 'play-and-record') {
+        navigator.audioSession.type = 'play-and-record';
+      }
+    } catch (e) {}
+  }
+  var targetCtx = ctx || audioCtx;
+  if (targetCtx && typeof targetCtx.setAudioSessionCategory === 'function') {
+    try {
+      targetCtx.setAudioSessionCategory('play-and-record');
+    } catch (e) {}
+  }
+}
+
+async function ensureAudioReadyForCapture() {
+  setPlayAndRecordAudioSession(audioCtx);
+  initAndUnlockAudio();
+  setPlayAndRecordAudioSession(audioCtx);
+  if (audioCtx && audioCtx.state !== 'running') {
+    try {
+      await audioCtx.resume();
+    } catch (e) {}
+    setPlayAndRecordAudioSession(audioCtx);
+  }
+}
 
 function isSafariBrowser() {
   var ua = navigator.userAgent || '';
@@ -1086,12 +1115,19 @@ function syncAllTrackAudioParams() {
   updateMonoVoiceWaveform(5); updateMonoVoiceWaveform(6);
 }
 function initAndUnlockAudio() {
-  if (navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch (e) {} }
+  setPlayAndRecordAudioSession(audioCtx);
   if (!audioCtx) {
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     audioCtx = new AC();
+    setPlayAndRecordAudioSession(audioCtx);
     audioCtx.onstatechange = function() {
-      if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) audioCtx.resume().then(function() { if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {});
+      setPlayAndRecordAudioSession(audioCtx);
+      if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
+        audioCtx.resume().then(function() {
+          setPlayAndRecordAudioSession(audioCtx);
+          if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+        }).catch(function() {});
+      }
     };
     mixBus = audioCtx.createGain(); mixBus.gain.value = 0.60; dryMixGain = audioCtx.createGain(); dryMixGain.gain.value = 1.0;
     snareWarmCurve = createSnareWarmCurve(); softClipShaper = audioCtx.createWaveShaper(); softClipShaper.curve = createSoftClipCurve(); softClipShaper.oversample = 'none';
@@ -1151,7 +1187,13 @@ function initAndUnlockAudio() {
     var ch = noiseBuffer.getChannelData(0); for (var k = 0; k < len; k++) ch[k] = Math.random() * 2 - 1;
     metallicHatBuffer = createMetallicHatBuffer(audioCtx); buildSnareNoiseBuffers(audioCtx); initRewindEngine();
   }
-  if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {});
+  if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
+    setPlayAndRecordAudioSession(audioCtx);
+    audioCtx.resume().then(function() {
+      setPlayAndRecordAudioSession(audioCtx);
+      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+    }).catch(function() {});
+  }
   if (!audioUnlocked) {
     try {
       var sb = audioCtx.createBuffer(1, 1, 22050), ss = audioCtx.createBufferSource(); ss.buffer = sb; ss.connect(audioCtx.destination);
@@ -1159,11 +1201,22 @@ function initAndUnlockAudio() {
     } catch (e) {}
   }
 }
-function ensureAudioUnlocked() { if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio(); }
+function ensureAudioUnlocked() {
+  setPlayAndRecordAudioSession(audioCtx);
+  if (audioCtx && audioCtx.state !== 'running') initAndUnlockAudio();
+}
 document.addEventListener('touchend', ensureAudioUnlocked, true);
 document.addEventListener('click', ensureAudioUnlocked, true);
 document.addEventListener('pointerdown', ensureAudioUnlocked, true);
-document.addEventListener('visibilitychange', function() { if (!document.hidden && audioCtx && audioCtx.state !== 'running') audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {}); });
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && audioCtx && audioCtx.state !== 'running') {
+    setPlayAndRecordAudioSession(audioCtx);
+    audioCtx.resume().then(function() {
+      setPlayAndRecordAudioSession(audioCtx);
+      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+    }).catch(function() {});
+  }
+});
 function setTrackMuteAudio(idx, muted) {
   if (audioCtx && trackMuteGains[idx]) { trackMuteGains[idx].gain.cancelScheduledValues(audioCtx.currentTime); trackMuteGains[idx].gain.setTargetAtTime(muted ? 0.0 : 1.0, audioCtx.currentTime, 0.005); }
 }
@@ -1627,7 +1680,12 @@ function scheduleStep(gStep, time) {
 }
 function scheduler() {
   if (!isPlaying || !audioCtx) return;
-  if (audioCtx.state !== 'running') { audioCtx.resume().catch(function() {}); nextNoteTime = audioCtx.currentTime + 0.05; return; }
+  if (audioCtx.state !== 'running') {
+    setPlayAndRecordAudioSession(audioCtx);
+    audioCtx.resume().then(function() { setPlayAndRecordAudioSession(audioCtx); }).catch(function() {});
+    nextNoteTime = audioCtx.currentTime + 0.05;
+    return;
+  }
   var stepDur = 60 / bpm / 4;
   if (nextNoteTime < audioCtx.currentTime - 0.08 || nextNoteTime > audioCtx.currentTime + 1.0) nextNoteTime = audioCtx.currentTime + 0.02;
   var count = 0;
@@ -1678,6 +1736,42 @@ var btnSamplerNext = $('btnSamplerNext'), btnSamplerGoAgain = $('btnSamplerGoAga
 var scriptCapState = { armed: false, recording: false, startTime: 0, durationSamples: 0, buf: null, writeIdx: 0 };
 var samplerMicProcessedBus = null;
 
+function hasLiveMicStream() {
+  if (!samplerMicStream) return false;
+  var tr = samplerMicStream.getAudioTracks();
+  if (!tr || !tr.length) return false;
+  for (var i = 0; i < tr.length; i++) {
+    if (tr[i].readyState === 'live') return true;
+  }
+  return false;
+}
+
+async function acquireMicStream() {
+  await ensureAudioReadyForCapture();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
+  }
+  var stream = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err1) {
+    var msg1 = (err1 && err1.message) ? err1.message : String(err1 || '');
+    if (/audioSession|session|category|interrupted/i.test(msg1)) {
+      await ensureAudioReadyForCapture();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } else {
+      throw err1;
+    }
+  }
+  setPlayAndRecordAudioSession(audioCtx);
+  if (audioCtx && audioCtx.state !== 'running') {
+    try { await audioCtx.resume(); } catch (e) {}
+    setPlayAndRecordAudioSession(audioCtx);
+  }
+  if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
+  return stream;
+}
+
 function createVocalSatCurve() { var n = 2048, c = new Float32Array(n); for (var i = 0; i < n; i++) c[i] = Math.tanh(((i * 2) / (n - 1) - 1) * 1.85) * 0.88; return c; }
 function applySamplerMacro(val) {
   samplerMacroValue = Math.max(0, Math.min(1, Number(val) || 0));
@@ -1701,6 +1795,7 @@ function buildSamplerCaptureFallback() {
     samplerCaptureScript = audioCtx.createScriptProcessor(1024, 1, 1);
     samplerCaptureScript.onaudioprocess = function(e) {
       if (!scriptCapState.armed && !scriptCapState.recording) return;
+      if (!scriptCapState.buf || scriptCapState.durationSamples <= 0) return;
       var inp = e.inputBuffer.getChannelData(0), len = inp.length, sr = audioCtx.sampleRate;
       var t0 = e.playbackTime ? (e.playbackTime - len / sr) : (audioCtx.currentTime - len / sr);
       for (var i = 0; i < len; i++) {
@@ -1720,7 +1815,8 @@ function buildSamplerCaptureFallback() {
 }
 
 function initVocalCaptureNode() {
-  if (!audioCtx || !samplerMicProcessedBus || samplerCaptureInitStarted) return;
+  if (!audioCtx || !samplerMicProcessedBus) return Promise.resolve();
+  if (vocalCaptureInitPromise) return vocalCaptureInitPromise;
   samplerCaptureInitStarted = true;
   if (audioCtx.audioWorklet && window.AudioWorkletNode && window.Blob && window.URL) {
     try {
@@ -1740,7 +1836,7 @@ function initVocalCaptureNode() {
         '}registerProcessor("vocal-capture-processor",VocalCaptureProcessor);'
       ].join('\n');
       var blob = new Blob([code], { type: 'application/javascript' }), url = URL.createObjectURL(blob);
-      audioCtx.audioWorklet.addModule(url).then(function() {
+      vocalCaptureInitPromise = audioCtx.audioWorklet.addModule(url).then(function() {
         URL.revokeObjectURL(url); if (!audioCtx || !samplerMicProcessedBus) return;
         try {
           samplerCaptureWorklet = new AudioWorkletNode(audioCtx, 'vocal-capture-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
@@ -1748,10 +1844,12 @@ function initVocalCaptureNode() {
           samplerMicProcessedBus.connect(samplerCaptureWorklet); samplerCaptureWorklet.connect(samplerSilentSink);
         } catch (err) { buildSamplerCaptureFallback(); }
       }).catch(function() { URL.revokeObjectURL(url); buildSamplerCaptureFallback(); });
-      return;
+      return vocalCaptureInitPromise;
     } catch (e) {}
   }
   buildSamplerCaptureFallback();
+  vocalCaptureInitPromise = Promise.resolve();
+  return vocalCaptureInitPromise;
 }
 
 function armVocalCaptureNode(startTime, durationSamples) {
@@ -1769,60 +1867,76 @@ function cancelVocalCaptureNode() {
 
 function setupSamplerMicGraph(stream) {
   samplerMicStream = stream;
-  if (samplerMicGraphBuilt || !audioCtx) return;
+  if (!audioCtx) return;
+
+  if (!samplerMicGraphBuilt) {
+    samplerMicInputGain = audioCtx.createGain(); samplerMicInputGain.gain.value = 1.0;
+
+    var micHPF = audioCtx.createBiquadFilter(); micHPF.type = 'highpass'; micHPF.frequency.value = 95; micHPF.Q.value = 0.7;
+    var micComp = audioCtx.createDynamicsCompressor();
+    micComp.threshold.value = -18; micComp.knee.value = 12; micComp.ratio.value = 3.0; micComp.attack.value = 0.004; micComp.release.value = 0.12;
+
+    samplerDryGain = audioCtx.createGain();
+    var satShaper = audioCtx.createWaveShaper(); satShaper.curve = createVocalSatCurve(); satShaper.oversample = 'none';
+    var presEQ = audioCtx.createBiquadFilter(); presEQ.type = 'peaking'; presEQ.frequency.value = 3200; presEQ.Q.value = 1.0; presEQ.gain.value = 3.5;
+    samplerMidGain = audioCtx.createGain();
+    samplerSlapDelay = audioCtx.createDelay(0.5); samplerSlapDelay.delayTime.value = Math.min(0.14, (60 / bpm) * 0.25);
+    var slapLPF = audioCtx.createBiquadFilter(); slapLPF.type = 'lowpass'; slapLPF.frequency.value = 3400;
+    samplerMidSlapGain = audioCtx.createGain();
+
+    samplerDubDelay = audioCtx.createDelay(1.0); samplerDubDelay.delayTime.value = Math.min(0.95, (60 / bpm) * 0.75);
+    var dubHPF = audioCtx.createBiquadFilter(); dubHPF.type = 'highpass'; dubHPF.frequency.value = 260;
+    var dubLPF = audioCtx.createBiquadFilter(); dubLPF.type = 'lowpass'; dubLPF.frequency.value = 2600;
+    samplerDubFeedback = audioCtx.createGain(); samplerDubFeedback.gain.value = 0.46;
+    var modLFO = audioCtx.createOscillator(); modLFO.type = 'sine'; modLFO.frequency.value = 0.65;
+    var modDepth = audioCtx.createGain(); modDepth.gain.value = 0.0022;
+    modLFO.connect(modDepth); modDepth.connect(samplerDubDelay.delayTime); modLFO.start(0);
+    samplerDubWetGain = audioCtx.createGain();
+
+    var vVerb = audioCtx.createConvolver(); vVerb.buffer = createReverbImpulse(audioCtx, 1.25, 2.8);
+    var vVerbLPF = audioCtx.createBiquadFilter(); vVerbLPF.type = 'lowpass'; vVerbLPF.frequency.value = 3800;
+    samplerVerbWetGain = audioCtx.createGain();
+
+    samplerMicProcessedBus = audioCtx.createGain(); samplerMicProcessedBus.gain.value = 1.0;
+    samplerSilentSink = audioCtx.createGain(); samplerSilentSink.gain.value = 0.0;
+    samplerSilentSink.connect(audioCtx.destination);
+
+    samplerAnalyser = audioCtx.createAnalyser(); samplerAnalyser.fftSize = 256;
+    samplerTimeData = new Uint8Array(samplerAnalyser.fftSize);
+    samplerMonitorGain = audioCtx.createGain(); samplerMonitorGain.gain.value = samplerMonitorOn ? 0.85 : 0.0;
+
+    micComp.connect(samplerDryGain); samplerDryGain.connect(samplerMicProcessedBus);
+    micComp.connect(satShaper); satShaper.connect(presEQ);
+    presEQ.connect(samplerMidGain); samplerMidGain.connect(samplerMicProcessedBus);
+    presEQ.connect(samplerSlapDelay); samplerSlapDelay.connect(slapLPF); slapLPF.connect(samplerMidSlapGain); samplerMidSlapGain.connect(samplerMicProcessedBus);
+    presEQ.connect(samplerDubDelay); samplerDubDelay.connect(dubHPF); dubHPF.connect(dubLPF);
+    dubLPF.connect(samplerDubFeedback); samplerDubFeedback.connect(samplerDubDelay);
+    dubLPF.connect(samplerDubWetGain); samplerDubWetGain.connect(samplerMicProcessedBus);
+    presEQ.connect(vVerb); vVerb.connect(vVerbLPF); vVerbLPF.connect(samplerVerbWetGain); samplerVerbWetGain.connect(samplerMicProcessedBus);
+
+    samplerMicInputGain.connect(micHPF); micHPF.connect(micComp);
+    samplerMicProcessedBus.connect(samplerAnalyser);
+    samplerMicProcessedBus.connect(samplerMonitorGain); samplerMonitorGain.connect(audioCtx.destination);
+
+    samplerMicGraphBuilt = true;
+    initVocalCaptureNode();
+    applySamplerMacro(samplerMacroValue);
+  }
+
+  if (samplerMicSource) {
+    try { samplerMicSource.disconnect(); } catch (e) {}
+    samplerMicSource = null;
+  }
   samplerMicSource = audioCtx.createMediaStreamSource(stream);
-  var micHPF = audioCtx.createBiquadFilter(); micHPF.type = 'highpass'; micHPF.frequency.value = 95; micHPF.Q.value = 0.7;
-  var micComp = audioCtx.createDynamicsCompressor();
-  micComp.threshold.value = -18; micComp.knee.value = 12; micComp.ratio.value = 3.0; micComp.attack.value = 0.004; micComp.release.value = 0.12;
-
-  samplerDryGain = audioCtx.createGain();
-  var satShaper = audioCtx.createWaveShaper(); satShaper.curve = createVocalSatCurve(); satShaper.oversample = 'none';
-  var presEQ = audioCtx.createBiquadFilter(); presEQ.type = 'peaking'; presEQ.frequency.value = 3200; presEQ.Q.value = 1.0; presEQ.gain.value = 3.5;
-  samplerMidGain = audioCtx.createGain();
-  samplerSlapDelay = audioCtx.createDelay(0.5); samplerSlapDelay.delayTime.value = Math.min(0.14, (60 / bpm) * 0.25);
-  var slapLPF = audioCtx.createBiquadFilter(); slapLPF.type = 'lowpass'; slapLPF.frequency.value = 3400;
-  samplerMidSlapGain = audioCtx.createGain();
-
-  samplerDubDelay = audioCtx.createDelay(1.0); samplerDubDelay.delayTime.value = Math.min(0.95, (60 / bpm) * 0.75);
-  var dubHPF = audioCtx.createBiquadFilter(); dubHPF.type = 'highpass'; dubHPF.frequency.value = 260;
-  var dubLPF = audioCtx.createBiquadFilter(); dubLPF.type = 'lowpass'; dubLPF.frequency.value = 2600;
-  samplerDubFeedback = audioCtx.createGain(); samplerDubFeedback.gain.value = 0.46;
-  var modLFO = audioCtx.createOscillator(); modLFO.type = 'sine'; modLFO.frequency.value = 0.65;
-  var modDepth = audioCtx.createGain(); modDepth.gain.value = 0.0022;
-  modLFO.connect(modDepth); modDepth.connect(samplerDubDelay.delayTime); modLFO.start(0);
-  samplerDubWetGain = audioCtx.createGain();
-
-  var vVerb = audioCtx.createConvolver(); vVerb.buffer = createReverbImpulse(audioCtx, 1.25, 2.8);
-  var vVerbLPF = audioCtx.createBiquadFilter(); vVerbLPF.type = 'lowpass'; vVerbLPF.frequency.value = 3800;
-  samplerVerbWetGain = audioCtx.createGain();
-
-  samplerMicProcessedBus = audioCtx.createGain(); samplerMicProcessedBus.gain.value = 1.0;
-  samplerSilentSink = audioCtx.createGain(); samplerSilentSink.gain.value = 0.0;
-  samplerSilentSink.connect(audioCtx.destination);
-
-  samplerAnalyser = audioCtx.createAnalyser(); samplerAnalyser.fftSize = 256;
-  samplerTimeData = new Uint8Array(samplerAnalyser.fftSize);
-  samplerMonitorGain = audioCtx.createGain(); samplerMonitorGain.gain.value = samplerMonitorOn ? 0.85 : 0.0;
-
-  micComp.connect(samplerDryGain); samplerDryGain.connect(samplerMicProcessedBus);
-  micComp.connect(satShaper); satShaper.connect(presEQ);
-  presEQ.connect(samplerMidGain); samplerMidGain.connect(samplerMicProcessedBus);
-  presEQ.connect(samplerSlapDelay); samplerSlapDelay.connect(slapLPF); slapLPF.connect(samplerMidSlapGain); samplerMidSlapGain.connect(samplerMicProcessedBus);
-  presEQ.connect(samplerDubDelay); samplerDubDelay.connect(dubHPF); dubHPF.connect(dubLPF);
-  dubLPF.connect(samplerDubFeedback); samplerDubFeedback.connect(samplerDubDelay);
-  dubLPF.connect(samplerDubWetGain); samplerDubWetGain.connect(samplerMicProcessedBus);
-  presEQ.connect(vVerb); vVerb.connect(vVerbLPF); vVerbLPF.connect(samplerVerbWetGain); samplerVerbWetGain.connect(samplerMicProcessedBus);
-
-  samplerMicSource.connect(micHPF); micHPF.connect(micComp);
-  samplerMicProcessedBus.connect(samplerAnalyser);
-  samplerMicProcessedBus.connect(samplerMonitorGain); samplerMonitorGain.connect(audioCtx.destination);
-
-  samplerMicGraphBuilt = true;
-  initVocalCaptureNode();
-  applySamplerMacro(samplerMacroValue);
+  samplerMicSource.connect(samplerMicInputGain);
 }
 
 function stopSamplerMicStream() {
+  cancelVocalCaptureNode();
+  if (samplerMicSource) {
+    try { samplerMicSource.disconnect(); } catch (e) {}
+    samplerMicSource = null;
+  }
   if (samplerMicStream) {
     try {
       var tracksList = samplerMicStream.getTracks();
@@ -1830,8 +1944,6 @@ function stopSamplerMicStream() {
     } catch (e) {}
     samplerMicStream = null;
   }
-  samplerMicGraphBuilt = false; samplerCaptureInitStarted = false;
-  samplerCaptureWorklet = null; samplerCaptureScript = null; samplerMicProcessedBus = null;
 }
 
 function onVocalBufferCaptured(samples) {
@@ -1984,15 +2096,12 @@ samplerMacroSlider.addEventListener('input', function(e) {
 });
 
 btnSamplerMonitor.addEventListener('click', async function() {
-  initAndUnlockAudio();
-  if (!samplerMicStream) {
+  await ensureAudioReadyForCapture();
+  if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Microphone access is not supported in this browser.');
-        return;
-      }
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      var stream = await acquireMicStream();
       setupSamplerMicGraph(stream);
+      await initVocalCaptureNode();
     } catch (err) {
       alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
       return;
@@ -2004,19 +2113,17 @@ btnSamplerMonitor.addEventListener('click', async function() {
 });
 
 btnSamplerRecord.addEventListener('click', async function() {
-  initAndUnlockAudio();
+  await ensureAudioReadyForCapture();
   if (samplerState === 'armed') {
     samplerState = 'idle'; samplerArmedStartStep = -1; updateSamplerUI(); return;
   }
   if (samplerState !== 'idle') return;
   try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('Microphone recording is not supported in this browser.');
-    }
-    if (!samplerMicStream || !samplerMicGraphBuilt) {
-      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
+      var stream = await acquireMicStream();
       setupSamplerMicGraph(stream);
     }
+    await initVocalCaptureNode();
   } catch (err) {
     alert('Microphone access denied or unsupported: ' + (err && err.message ? err.message : err));
     samplerStageBadge.textContent = 'MICROPHONE REQUIRED TO RECORD';
