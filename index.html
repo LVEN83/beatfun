@@ -170,19 +170,16 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
 .sampler-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(8px, 1.4dvh, 14px) clamp(10px, 2.5vw, 14px); min-height: 0; gap: clamp(6px, 1.1dvh, 12px); }
 .sampler-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; gap: 8px; flex-shrink: 0; }
 .sampler-title { font-size: clamp(13px, 2.2dvh, 19px); font-weight: 900; letter-spacing: 1.0px; text-transform: uppercase; margin: 0; white-space: nowrap; }
-.sampler-sub-hint { font-size: 10px; letter-spacing: 0.6px; color: #888; text-align: center; line-height: 1.4; }
 .sampler-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: clamp(6px, 1.2dvh, 12px); min-height: 0; }
-.sampler-gate-box { border: 1.5px solid #fff; background: #0a0a0a; padding: clamp(8px, 1.3dvh, 12px); display: flex; flex-direction: column; gap: 7px; text-align: center; flex-shrink: 0; }
-.sampler-gate-title { font-size: 11px; font-weight: 900; letter-spacing: 1.4px; text-transform: uppercase; color: #fff; }
-.sampler-gate-sub { font-size: 9px; letter-spacing: 0.6px; color: #aaa; line-height: 1.35; }
+.sampler-gate-box { border: 1.5px solid #fff; background: #0a0a0a; padding: clamp(9px, 1.4dvh, 13px); display: flex; flex-direction: column; gap: 8px; text-align: center; flex-shrink: 0; }
+.sampler-gate-sub { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: #ccc; line-height: 1.4; }
 .sampler-gate-actions { display: flex; flex-direction: column; gap: 6px; }
-.sampler-gate-btn { width: 100%; min-height: 34px; padding: 6px 10px; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
-.sampler-gate-btn.skip { background: #fff; color: #000; border: 1px solid #fff; font-weight: 900; }
-.sampler-gate-btn.wired { background: #000; color: #fff; border: 1px solid #777; }
-.sampler-gate-btn.wired:active { background: #222; border-color: #fff; }
-.sampler-gate-btn.skip:active { background: #ccc; }
+.sampler-gate-btn { width: 100%; min-height: 36px; padding: 7px 10px; font-size: 10px; font-weight: 900; letter-spacing: 1.1px; text-transform: uppercase; cursor: pointer; }
+.sampler-gate-btn.wired { background: #fff; color: #000; border: 1px solid #fff; }
+.sampler-gate-btn.wired:active { background: #ccc; }
+.sampler-gate-btn.skip { background: #000; color: #fff; border: 1px solid #666; }
+.sampler-gate-btn.skip:active { background: #222; border-color: #fff; }
 .sampler-stage-badge { text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 2.0px; text-transform: uppercase; color: #25d366; min-height: 16px; }
-.sampler-stage-badge.locked { color: #999; }
 .sampler-stage-badge.armed { color: #fff; }
 .sampler-stage-badge.recording { color: #ff3b30; }
 .sampler-stage-badge.playback { color: #fff; }
@@ -466,14 +463,13 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
       </div>
       <div class="sampler-center">
         <div class="sampler-gate-box hidden" id="samplerGateBox">
-          <div class="sampler-gate-title mono">CONNECT HEADPHONES TO RECORD &amp; MONITOR</div>
-          <div class="sampler-gate-sub mono">Headphones keep the beat loud &amp; prevent speaker feedback.</div>
+          <div class="sampler-gate-sub mono">Headphones keep the beat louder &amp; prevent speaker feedback.</div>
           <div class="sampler-gate-actions">
-            <button type="button" class="sampler-gate-btn wired mono" id="btnSamplerConfirmWired">USING HEADPHONES WITHOUT MIC</button>
-            <button type="button" class="sampler-gate-btn skip mono" id="btnSamplerSkipVocal">SKIP VOCAL / CONTINUE WITHOUT MIC</button>
+            <button type="button" class="sampler-gate-btn wired mono" id="btnSamplerConfirmWired">USE HEADPHONES &amp; RECORD VOCAL</button>
+            <button type="button" class="sampler-gate-btn skip mono" id="btnSamplerSkipVocal">SKIP VOCAL</button>
           </div>
         </div>
-        <div class="sampler-stage-badge mono" id="samplerStageBadge">MONITOR READY — TAP RECORD</div>
+        <div class="sampler-stage-badge mono hidden" id="samplerStageBadge">MONITOR OFF — TAP RECORD</div>
         <div class="sampler-bar-wrap" id="samplerBarWrap">
           <canvas class="sampler-bar-canvas" id="samplerBarCanvas" width="460" height="120"></canvas>
           <div class="sampler-countdown-overlay hidden" id="samplerCountdownOverlay">
@@ -502,7 +498,7 @@ input[type="range"]:disabled { opacity: 0.38; cursor: default; }
         </div>
       </div>
       <div class="sampler-controls-row" id="samplerPreControls">
-        <button type="button" class="btn-secondary mono" id="btnSamplerMonitor">MON ON</button>
+        <button type="button" class="btn-secondary mono" id="btnSamplerMonitor">MON OFF</button>
         <button type="button" class="btn-record mono" id="btnSamplerRecord"><span class="rec-dot"></span><span id="btnSamplerRecordLabel">RECORD</span></button>
         <button type="button" class="btn-next mono" id="btnSamplerNext">NEXT</button>
       </div>
@@ -902,16 +898,32 @@ var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null
 var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
 var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerSilentSink = null;
 var samplerAnalyser = null, samplerTimeData = null;
-var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = true, samplerMetronomeOn = false;
+var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false, samplerMetronomeOn = false;
 var samplerDryGain = null, samplerMidGain = null, samplerMidSlapGain = null, samplerSlapDelay = null;
 var samplerDubDelay = null, samplerDubFeedback = null, samplerDubWetGain = null, samplerVerbWetGain = null, samplerMonitorGain = null;
 var samplerState = 'idle', samplerCaptureScheduled = false, samplerInputLatencySec = 0.020;
 var samplerArmedStartStep = -1, samplerRecStartStep = -1, samplerRecStartAudioTime = 0, samplerRecDurationSec = 0;
 var vocalBuffer = null, vocalWaveformBins = null, vocalActiveSource = null, vocalActiveGain = null, vocalLocked = false;
 var bar4CycleTimes = [];
-var micAcquiring = false;
+var micAcquiring = false, micSessionToken = 0, samplerHeadphonesConfirmed = false;
 
-var samplerHeadphonesDetected = false, samplerHeadphonesConfirmed = false, samplerHeadphoneCheckBusy = false, samplerMonitorRequestId = 0;
+function stopStreamTracks(s) {
+  if (!s) return;
+  try {
+    var tr = s.getTracks();
+    for (var i = 0; i < tr.length; i++) tr[i].stop();
+  } catch (e) {}
+}
+
+function hasLiveMicStream() {
+  if (!samplerMicStream) return false;
+  var tr = samplerMicStream.getAudioTracks();
+  if (!tr || !tr.length) return false;
+  for (var i = 0; i < tr.length; i++) {
+    if (tr[i].readyState === 'live') return true;
+  }
+  return false;
+}
 
 function setPlaybackAudioSession() {
   if (micAcquiring || hasLiveMicStream()) return;
@@ -1091,9 +1103,8 @@ function createVocalRadioCurve() {
   var n = 2048, c = new Float32Array(n);
   for (var i = 0; i < n; i++) {
     var x = (i * 2) / (n - 1) - 1;
-    // Asymmetric AM-radio / transistor crunch
-    var driven = (x + 0.08 * x * x) * 3.6;
-    c[i] = Math.tanh(driven) * 0.85;
+    var driven = (x + 0.05 * x * x) * 1.85;
+    c[i] = Math.tanh(driven) * 0.65;
   }
   return c;
 }
@@ -1160,7 +1171,6 @@ function triggerLetgoTransition() {
   } catch (e) {}
 }
 
-/* ==================== START SCREEN CLUB-DOOR AMBIENCE ==================== */
 var CLUB_BASS_NOTES = [43.65, 43.65, 38.89, 34.65];
 function triggerClubThump(time, beatIdx) {
   if (!audioCtx || audioCtx.state !== 'running' || !clubBassLPF1 || !clubAmbienceActive) return;
@@ -1168,7 +1178,6 @@ function triggerClubThump(time, beatIdx) {
     var hitPerfMs = performance.now() + (time - audioCtx.currentTime) * 1000;
     clubBeatTimesMs.push(hitPerfMs);
     if (clubBeatTimesMs.length > 16) clubBeatTimesMs.shift();
-
     var kick = audioCtx.createOscillator(), kg = audioCtx.createGain();
     kick.type = 'sine';
     kick.frequency.setValueAtTime(102, time);
@@ -1179,7 +1188,6 @@ function triggerClubThump(time, beatIdx) {
     kick.connect(kg); kg.connect(clubBassLPF1);
     detachOnEnded(kick, [kick, kg]);
     kick.start(time); kick.stop(time + 0.27);
-
     var barIdx = Math.floor(beatIdx / 4) % CLUB_BASS_NOTES.length;
     var bassFreq = CLUB_BASS_NOTES[barIdx];
     var subTime = time + 0.245;
@@ -1207,38 +1215,23 @@ function triggerClubCrowdBurst() {
         var src = audioCtx.createBufferSource();
         src.buffer = noiseBuffer;
         src.loop = true;
-
-        var f1 = audioCtx.createBiquadFilter();
-        f1.type = 'bandpass';
-        var f1Start = 270 + Math.random() * 85;
-        f1.frequency.setValueAtTime(f1Start, t0);
+        var f1 = audioCtx.createBiquadFilter(); f1.type = 'bandpass';
+        var f1Start = 270 + Math.random() * 85; f1.frequency.setValueAtTime(f1Start, t0);
         if (isCheer) f1.frequency.exponentialRampToValueAtTime(f1Start * (1.12 + Math.random() * 0.10), t0 + dur * 0.7);
         f1.Q.value = 5.2;
-
-        var f2 = audioCtx.createBiquadFilter();
-        f2.type = 'bandpass';
-        var f2Start = 550 + Math.random() * 170;
-        f2.frequency.setValueAtTime(f2Start, t0);
+        var f2 = audioCtx.createBiquadFilter(); f2.type = 'bandpass';
+        var f2Start = 550 + Math.random() * 170; f2.frequency.setValueAtTime(f2Start, t0);
         if (isCheer) f2.frequency.exponentialRampToValueAtTime(f2Start * (1.10 + Math.random() * 0.12), t0 + dur * 0.7);
         f2.Q.value = 5.6;
-
         var g = audioCtx.createGain();
         var peak = 0.007 + Math.random() * 0.006;
         g.gain.setValueAtTime(0.0001, t0);
         g.gain.linearRampToValueAtTime(peak, t0 + 0.035 + Math.random() * 0.03);
         g.gain.setValueAtTime(peak * 0.75, t0 + dur * 0.45);
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-
-        src.connect(f1); src.connect(f2);
-        f1.connect(g); f2.connect(g);
-        g.connect(clubCrowdLPF);
-
-        src.start(t0, Math.random() * 1.4);
-        src.stop(t0 + dur + 0.03);
-        src.onended = function() {
-          src.onended = null;
-          [src, f1, f2, g].forEach(function(n) { try { n.disconnect(); } catch (err) {} });
-        };
+        src.connect(f1); src.connect(f2); f1.connect(g); f2.connect(g); g.connect(clubCrowdLPF);
+        src.start(t0, Math.random() * 1.4); src.stop(t0 + dur + 0.03);
+        src.onended = function() { src.onended = null; [src, f1, f2, g].forEach(function(n) { try { n.disconnect(); } catch (err) {} }); };
       })(b * (0.09 + Math.random() * 0.14), b === 1 || Math.random() < 0.4);
     }
   } catch (e) {}
@@ -1259,48 +1252,34 @@ function scheduleNextClubCrowd() {
 function scheduleClubBeatsTick() {
   if (!clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
   var beatDur = 60 / 122;
-  if (clubNextBeatTime < audioCtx.currentTime - 0.1 || clubNextBeatTime > audioCtx.currentTime + 1.0) {
-    clubNextBeatTime = audioCtx.currentTime + 0.02;
-  }
-  while (clubNextBeatTime < audioCtx.currentTime + 0.22) {
-    triggerClubThump(clubNextBeatTime, clubBeatIndex++);
-    clubNextBeatTime += beatDur;
-  }
+  if (clubNextBeatTime < audioCtx.currentTime - 0.1 || clubNextBeatTime > audioCtx.currentTime + 1.0) clubNextBeatTime = audioCtx.currentTime + 0.02;
+  while (clubNextBeatTime < audioCtx.currentTime + 0.22) { triggerClubThump(clubNextBeatTime, clubBeatIndex++); clubNextBeatTime += beatDur; }
 }
 
 function startClubAmbience() {
   if (clubAmbienceActive || !audioCtx || audioCtx.state !== 'running') return;
   if (!clubAmbienceGain) {
-    clubAmbienceGain = audioCtx.createGain(); clubAmbienceGain.gain.value = 0.0;
-    clubAmbienceGain.connect(audioCtx.destination);
+    clubAmbienceGain = audioCtx.createGain(); clubAmbienceGain.gain.value = 0.0; clubAmbienceGain.connect(audioCtx.destination);
     clubBassLPF1 = audioCtx.createBiquadFilter(); clubBassLPF1.type = 'lowpass'; clubBassLPF1.frequency.value = 135; clubBassLPF1.Q.value = 0.7;
     clubBassLPF2 = audioCtx.createBiquadFilter(); clubBassLPF2.type = 'lowpass'; clubBassLPF2.frequency.value = 165; clubBassLPF2.Q.value = 1.4;
     clubBassLPF1.connect(clubBassLPF2); clubBassLPF2.connect(clubAmbienceGain);
     clubCrowdLPF = audioCtx.createBiquadFilter(); clubCrowdLPF.type = 'lowpass'; clubCrowdLPF.frequency.value = 430; clubCrowdLPF.Q.value = 0.8;
     clubCrowdLPF.connect(clubAmbienceGain);
   }
-  clubAmbienceActive = true;
-  clubBeatTimesMs = [];
+  clubAmbienceActive = true; clubBeatTimesMs = [];
   var now = audioCtx.currentTime;
   clubAmbienceGain.gain.cancelScheduledValues(now);
   clubAmbienceGain.gain.setValueAtTime(Math.max(0.0001, clubAmbienceGain.gain.value || 0.0001), now);
   clubAmbienceGain.gain.linearRampToValueAtTime(0.60, now + 0.14);
-  clubNextBeatTime = now + 0.02;
-  clubBeatIndex = 0;
-  scheduleClubBeatsTick();
+  clubNextBeatTime = now + 0.02; clubBeatIndex = 0; scheduleClubBeatsTick();
   if (clubSchedulerTimer) clearInterval(clubSchedulerTimer);
   clubSchedulerTimer = setInterval(scheduleClubBeatsTick, 60);
   if (clubCrowdTimer) clearTimeout(clubCrowdTimer);
-  clubCrowdTimer = setTimeout(function() {
-    if (!clubAmbienceActive) return;
-    triggerClubCrowdBurst();
-    scheduleNextClubCrowd();
-  }, 2200 + Math.random() * 2200);
+  clubCrowdTimer = setTimeout(function() { if (!clubAmbienceActive) return; triggerClubCrowdBurst(); scheduleNextClubCrowd(); }, 2200 + Math.random() * 2200);
 }
 
 function stopClubAmbience() {
-  clubAmbienceActive = false;
-  clubBeatTimesMs = [];
+  clubAmbienceActive = false; clubBeatTimesMs = [];
   if (clubSchedulerTimer) { clearInterval(clubSchedulerTimer); clubSchedulerTimer = null; }
   if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
   if (audioCtx && clubAmbienceGain) {
@@ -1348,9 +1327,7 @@ function initAndUnlockAudio(keepCaptureSession) {
     audioCtx.onstatechange = function() {
       if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
       if (isPlaying && (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted')) {
-        audioCtx.resume().then(function() {
-          if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-        }).catch(function() {});
+        audioCtx.resume().then(function() { if (audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {});
       }
       if (audioCtx.state === 'running') updateClubAmbienceState();
     };
@@ -1405,16 +1382,14 @@ function initAndUnlockAudio(keepCaptureSession) {
     mixBus.connect(spaceEchoSend); spaceEchoSend.connect(spaceEchoDelay); spaceEchoDelay.connect(spaceEchoToneHPF); spaceEchoToneHPF.connect(spaceEchoToneLPF);
     spaceEchoToneLPF.connect(spaceEchoFeedback); spaceEchoFeedback.connect(spaceEchoSaturator); spaceEchoSaturator.connect(spaceEchoDelay); spaceEchoSaturator.connect(spaceEchoOutGain); spaceEchoOutGain.connect(masterHPF);
 
-    // Beat Crush/Gate path (untouched)
     crushShaper = audioCtx.createWaveShaper(); crushShaper.curve = createBitcrushCurve(); crushShaper.oversample = 'none';
     crushFilter = audioCtx.createBiquadFilter(); crushFilter.type = 'bandpass'; crushFilter.frequency.value = 1800; crushFilter.Q.value = 1.0;
     crushGateGain = audioCtx.createGain(); crushGateGain.gain.value = 1.0; crushOutGain = audioCtx.createGain(); crushOutGain.gain.value = 0.0;
     instBus.connect(crushFilter); crushFilter.connect(crushShaper); crushShaper.connect(crushGateGain); crushGateGain.connect(crushOutGain); crushOutGain.connect(masterHPF);
 
-    // Vocal Radio Effect path (active only during Crush/Gate)
     vocalRadioHPF = audioCtx.createBiquadFilter(); vocalRadioHPF.type = 'highpass'; vocalRadioHPF.frequency.value = 520; vocalRadioHPF.Q.value = 0.85;
     vocalRadioLPF = audioCtx.createBiquadFilter(); vocalRadioLPF.type = 'lowpass'; vocalRadioLPF.frequency.value = 2400; vocalRadioLPF.Q.value = 1.1;
-    vocalRadioPeak = audioCtx.createBiquadFilter(); vocalRadioPeak.type = 'peaking'; vocalRadioPeak.frequency.value = 1350; vocalRadioPeak.Q.value = 2.2; vocalRadioPeak.gain.value = 7.5;
+    vocalRadioPeak = audioCtx.createBiquadFilter(); vocalRadioPeak.type = 'peaking'; vocalRadioPeak.frequency.value = 1350; vocalRadioPeak.Q.value = 2.0; vocalRadioPeak.gain.value = 3.5;
     vocalRadioShaper = audioCtx.createWaveShaper(); vocalRadioShaper.curve = createVocalRadioCurve(); vocalRadioShaper.oversample = 'none';
     vocalRadioPostLPF = audioCtx.createBiquadFilter(); vocalRadioPostLPF.type = 'lowpass'; vocalRadioPostLPF.frequency.value = 3200; vocalRadioPostLPF.Q.value = 0.7;
     vocalRadioOutGain = audioCtx.createGain(); vocalRadioOutGain.gain.value = 0.0;
@@ -1437,13 +1412,8 @@ function initAndUnlockAudio(keepCaptureSession) {
     metallicHatBuffer = createMetallicHatBuffer(audioCtx); buildSnareNoiseBuffers(audioCtx); initRewindEngine();
   }
   if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
-    audioCtx.resume().then(function() {
-      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-      updateClubAmbienceState();
-    }).catch(function() {});
-  } else if (audioCtx.state === 'running') {
-    updateClubAmbienceState();
-  }
+    audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; updateClubAmbienceState(); }).catch(function() {});
+  } else if (audioCtx.state === 'running') { updateClubAmbienceState(); }
   if (!audioUnlocked) {
     try {
       var sb = audioCtx.createBuffer(1, 1, 22050), ss = audioCtx.createBufferSource(); ss.buffer = sb; ss.connect(audioCtx.destination);
@@ -1453,38 +1423,22 @@ function initAndUnlockAudio(keepCaptureSession) {
 }
 function ensureAudioUnlocked() {
   if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
-  if (!audioCtx) {
-    initAndUnlockAudio(micAcquiring || hasLiveMicStream());
-    return;
-  }
+  if (!audioCtx) { initAndUnlockAudio(micAcquiring || hasLiveMicStream()); return; }
   if (audioCtx.state !== 'running') initAndUnlockAudio(micAcquiring || hasLiveMicStream());
   else updateClubAmbienceState();
 }
-function tryBootStartAudio() {
-  try {
-    if (!audioCtx) initAndUnlockAudio(false);
-    else updateClubAmbienceState();
-  } catch (e) {}
-}
+function tryBootStartAudio() { try { if (!audioCtx) initAndUnlockAudio(false); else updateClubAmbienceState(); } catch (e) {} }
 document.addEventListener('touchstart', ensureAudioUnlocked, true);
 document.addEventListener('touchend', ensureAudioUnlocked, true);
 document.addEventListener('pointerdown', ensureAudioUnlocked, true);
 document.addEventListener('click', ensureAudioUnlocked, true);
 document.addEventListener('keydown', ensureAudioUnlocked, true);
 document.addEventListener('visibilitychange', function() {
-  if (document.hidden) {
-    stopClubAmbience();
-  } else {
-    if (audioCtx && audioCtx.state !== 'running') {
-      if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
-      audioCtx.resume().then(function() {
-        if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-        updateClubAmbienceState();
-      }).catch(function() {});
-    } else {
-      updateClubAmbienceState();
-    }
-  }
+  if (document.hidden) { stopClubAmbience(); }
+  else if (audioCtx && audioCtx.state !== 'running') {
+    if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession();
+    audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; updateClubAmbienceState(); }).catch(function() {});
+  } else { updateClubAmbienceState(); }
 });
 function setTrackMuteAudio(idx, muted) {
   if (audioCtx && trackMuteGains[idx]) { trackMuteGains[idx].gain.cancelScheduledValues(audioCtx.currentTime); trackMuteGains[idx].gain.setTargetAtTime(muted ? 0.0 : 1.0, audioCtx.currentTime, 0.005); }
@@ -1515,13 +1469,13 @@ function setRewind(on) {
   } else {
     if (rewindWorklet) rewindWorklet.port.postMessage({ type: 'stop' });
     rewindOutGain.gain.setTargetAtTime(0.0, now, 0.008);
+    dryMixGain.gain.setTargetAtTime(crushGateActive ? 0.25 : 1.0, now, 0.008);
     if (crushGateActive) {
       if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(0.0, now, 0.008);
-      if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(1.15, now, 0.008);
+      if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(0.62, now, 0.008);
     } else {
       if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(1.0, now, 0.008);
       if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(0.0, now, 0.008);
-      dryMixGain.gain.setTargetAtTime(1.0, now, 0.008);
     }
     if (wasOn) triggerLetgoTransition();
   }
@@ -1569,7 +1523,7 @@ function setCrushGate(on) {
     crushOutGain.gain.setTargetAtTime(0.85, now, 0.008);
     if (!rewindActive) {
       if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(0.0, now, 0.008);
-      if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(1.15, now, 0.008);
+      if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(0.62, now, 0.008);
     }
   } else {
     crushGateGain.gain.cancelScheduledValues(0); crushGateGain.gain.setValueAtTime(1.0, now); lastCrushGateTime = now;
@@ -1998,11 +1952,7 @@ function scheduleStep(gStep, time) {
 }
 function scheduler() {
   if (!isPlaying || !audioCtx) return;
-  if (audioCtx.state !== 'running') {
-    audioCtx.resume().catch(function() {});
-    nextNoteTime = audioCtx.currentTime + 0.05;
-    return;
-  }
+  if (audioCtx.state !== 'running') { audioCtx.resume().catch(function() {}); nextNoteTime = audioCtx.currentTime + 0.05; return; }
   var stepDur = 60 / bpm / 4;
   if (nextNoteTime < audioCtx.currentTime - 0.08 || nextNoteTime > audioCtx.currentTime + 1.0) nextNoteTime = audioCtx.currentTime + 0.02;
   var count = 0;
@@ -2056,165 +2006,60 @@ var btnSamplerNext = $('btnSamplerNext'), btnSamplerGoAgain = $('btnSamplerGoAga
 var scriptCapState = { armed: false, recording: false, startTime: 0, durationSamples: 0, buf: null, writeIdx: 0 };
 var samplerMicProcessedBus = null;
 
-var EXTERNAL_AUDIO_REGEX = /headphone|headset|airpods|earpods|bluetooth|external|usb audio|beats|bose|sony|jabra|sennheiser|anker|soundcore|buds|hands-free|wired/i;
 var BLUETOOTH_AUDIO_REGEX = /airpods|bluetooth|hands-free|handsfree|buds|beats|bose|sony|jabra|anker|soundcore|wireless/i;
 var BUILTIN_MIC_REGEX = /iphone microphone|ipad microphone|built-in|internal|bottom|front|back|macbook|device microphone/i;
 
-function isSamplerHeadphoneUnlocked() {
-  return samplerHeadphonesDetected || samplerHeadphonesConfirmed || samplerState === 'playback';
-}
+function isSamplerHeadphoneUnlocked() { return samplerHeadphonesConfirmed || samplerState === 'playback'; }
 
-function hasLiveMicStream() {
-  if (!samplerMicStream) return false;
-  var tr = samplerMicStream.getAudioTracks();
-  if (!tr || !tr.length) return false;
-  for (var i = 0; i < tr.length; i++) {
-    if (tr[i].readyState === 'live') return true;
-  }
-  return false;
-}
-
-async function inspectAudioDevices() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-    return { hasExternal: false, hasBluetooth: false, hasLabels: false, builtInMic: null, inputs: [], outputs: [] };
-  }
+async function findBuiltInMicIfBluetooth() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return null;
   try {
     var devices = await navigator.mediaDevices.enumerateDevices();
-    var inputs = [], outputs = [], hasExternal = false, hasBluetooth = false, hasLabels = false, builtInMic = null;
+    var hasBluetooth = false, builtIn = null;
     for (var i = 0; i < devices.length; i++) {
-      var d = devices[i];
-      var lbl = (d.label || '').trim();
-      if (lbl) hasLabels = true;
-      if (d.kind === 'audioinput') {
-        inputs.push(d);
-        if (EXTERNAL_AUDIO_REGEX.test(lbl)) hasExternal = true;
-        if (BLUETOOTH_AUDIO_REGEX.test(lbl)) hasBluetooth = true;
-      } else if (d.kind === 'audiooutput') {
-        outputs.push(d);
-        if (EXTERNAL_AUDIO_REGEX.test(lbl)) hasExternal = true;
-        if (BLUETOOTH_AUDIO_REGEX.test(lbl)) hasBluetooth = true;
+      var d = devices[i], lbl = (d.label || '').trim();
+      if (BLUETOOTH_AUDIO_REGEX.test(lbl)) hasBluetooth = true;
+      if (d.kind === 'audioinput' && BUILTIN_MIC_REGEX.test(lbl) && !BLUETOOTH_AUDIO_REGEX.test(lbl) && !builtIn) builtIn = d;
+    }
+    if (!builtIn && hasBluetooth) {
+      for (var j = 0; j < devices.length; j++) {
+        var d2 = devices[j], lbl2 = (d2.label || '').trim();
+        if (d2.kind === 'audioinput' && lbl2 && !BLUETOOTH_AUDIO_REGEX.test(lbl2) && d2.deviceId && d2.deviceId !== 'default' && d2.deviceId !== 'communications') { builtIn = d2; break; }
       }
     }
-    for (var j = 0; j < inputs.length; j++) {
-      var inp = inputs[j], il = (inp.label || '').trim();
-      if (BUILTIN_MIC_REGEX.test(il) && !BLUETOOTH_AUDIO_REGEX.test(il)) {
-        builtInMic = inp; break;
-      }
-    }
-    if (!builtInMic && hasBluetooth) {
-      for (var k = 0; k < inputs.length; k++) {
-        var inp2 = inputs[k], il2 = (inp2.label || '').trim();
-        if (il2 && !BLUETOOTH_AUDIO_REGEX.test(il2) && inp2.deviceId && inp2.deviceId !== 'default' && inp2.deviceId !== 'communications') {
-          builtInMic = inp2; break;
-        }
-      }
-    }
-    return { hasExternal: hasExternal, hasBluetooth: hasBluetooth, hasLabels: hasLabels, builtInMic: builtInMic, inputs: inputs, outputs: outputs };
-  } catch (e) {
-    return { hasExternal: false, hasBluetooth: false, hasLabels: false, builtInMic: null, inputs: [], outputs: [] };
-  }
-}
-
-async function refreshHeadphoneGate(autoStartMonitorIfUnlocked) {
-  if (!samplerScreenActive || samplerHeadphoneCheckBusy) return;
-  samplerHeadphoneCheckBusy = true;
-  try {
-    var info = await inspectAudioDevices();
-    if (!samplerScreenActive) return;
-    samplerHeadphonesDetected = info.hasExternal;
-    updateSamplerUI();
-    if (autoStartMonitorIfUnlocked && isSamplerHeadphoneUnlocked() && samplerState === 'idle' && samplerMonitorOn && !hasLiveMicStream()) {
-      startSamplerMonitorIfNeeded();
-    }
-  } finally {
-    samplerHeadphoneCheckBusy = false;
-  }
-}
-
-if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === 'function') {
-  navigator.mediaDevices.addEventListener('devicechange', function() {
-    if (samplerScreenActive) refreshHeadphoneGate(true);
-  });
-}
-
-async function applyUncompressedMicConstraints(stream) {
-  if (!stream) return;
-  var aTracks = stream.getAudioTracks();
-  if (!aTracks || !aTracks.length || typeof aTracks[0].applyConstraints !== 'function') return;
-  try {
-    await aTracks[0].applyConstraints({
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false
-    });
-  } catch (e) {}
+    return (hasBluetooth && builtIn && builtIn.deviceId) ? builtIn.deviceId : null;
+  } catch (e) { return null; }
 }
 
 async function acquireMicStream() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
-  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Microphone recording is not supported in this browser (HTTPS required).');
+  if (samplerMicStream) { stopStreamTracks(samplerMicStream); samplerMicStream = null; }
+  var myToken = ++micSessionToken;
   micAcquiring = true;
   setPlayAndRecordAudioSession();
   initAndUnlockAudio(true);
 
-  var devInfo = await inspectAudioDevices();
-  var baseConstraints = {
-    echoCancellation: false,
-    noiseSuppression: false,
-    autoGainControl: false
-  };
-  if (devInfo.hasBluetooth && devInfo.builtInMic && devInfo.builtInMic.deviceId) {
-    baseConstraints.deviceId = { exact: devInfo.builtInMic.deviceId };
+  var builtInId = await findBuiltInMicIfBluetooth();
+  if (!samplerScreenActive || myToken !== micSessionToken) {
+    micAcquiring = false; setPlaybackAudioSession(); throw new Error('Cancelled');
   }
+  var constraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+  if (builtInId) constraints.deviceId = { exact: builtInId };
 
   try {
     var stream = null;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: baseConstraints });
-    } catch (err0) {
-      if (err0 && (err0.name === 'NotAllowedError' || err0.name === 'PermissionDeniedError' || err0.name === 'NotFoundError' || err0.name === 'DevicesNotFoundError')) {
-        throw err0;
-      }
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: constraints }); }
+    catch (err0) {
+      if (err0 && (err0.name === 'NotAllowedError' || err0.name === 'PermissionDeniedError' || err0.name === 'NotFoundError' || err0.name === 'DevicesNotFoundError')) throw err0;
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
     }
-
-    if (!samplerScreenActive) {
-      try {
-        var tr = stream.getTracks();
-        for (var i = 0; i < tr.length; i++) tr[i].stop();
-      } catch (e) {}
-      micAcquiring = false;
-      setPlaybackAudioSession();
-      throw new Error('Cancelled');
+    if (!samplerScreenActive || myToken !== micSessionToken) {
+      stopStreamTracks(stream); micAcquiring = false; setPlaybackAudioSession(); throw new Error('Cancelled');
     }
-
-    // Now that permission is granted, verify we did not accidentally bind to a Bluetooth mic
-    var postInfo = await inspectAudioDevices();
-    samplerHeadphonesDetected = postInfo.hasExternal || samplerHeadphonesDetected;
-    var activeTrack = stream.getAudioTracks()[0];
-    var activeLabel = activeTrack ? (activeTrack.label || '') : '';
-    if (BLUETOOTH_AUDIO_REGEX.test(activeLabel) && postInfo.builtInMic && postInfo.builtInMic.deviceId) {
-      try {
-        var oldTr = stream.getTracks();
-        for (var oi = 0; oi < oldTr.length; oi++) oldTr[oi].stop();
-      } catch (eStop) {}
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            deviceId: { exact: postInfo.builtInMic.deviceId },
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
-          }
-        });
-      } catch (eSwitch) {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      }
-    }
-
-    await applyUncompressedMicConstraints(stream);
     await ensureAudioReadyForCapture();
+    if (!samplerScreenActive || myToken !== micSessionToken) {
+      stopStreamTracks(stream); micAcquiring = false; setPlaybackAudioSession(); throw new Error('Cancelled');
+    }
     setPlayAndRecordAudioSession();
     if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
     return stream;
@@ -2249,9 +2094,7 @@ function applyVocalVolume(val) {
     trackVolGains[VOCAL_TRACK_IDX].gain.cancelScheduledValues(audioCtx.currentTime);
     trackVolGains[VOCAL_TRACK_IDX].gain.setTargetAtTime(vocalVolume, audioCtx.currentTime, 0.015);
   }
-  if (audioCtx && samplerMonitorGain && samplerMonitorOn) {
-    samplerMonitorGain.gain.setTargetAtTime(1.0 * Math.min(1.5, vocalVolume), audioCtx.currentTime, 0.015);
-  }
+  if (audioCtx && samplerMonitorGain && samplerMonitorOn) samplerMonitorGain.gain.setTargetAtTime(1.0 * Math.min(1.5, vocalVolume), audioCtx.currentTime, 0.015);
 }
 
 function buildSamplerCaptureFallback() {
@@ -2261,8 +2104,7 @@ function buildSamplerCaptureFallback() {
     samplerCaptureScript.onaudioprocess = function(e) {
       if (!scriptCapState.armed && !scriptCapState.recording) return;
       if (!scriptCapState.buf || scriptCapState.durationSamples <= 0) return;
-      var inp = e.inputBuffer.getChannelData(0), len = inp.length, sr = audioCtx.sampleRate;
-      var t0 = audioCtx.currentTime - len / sr;
+      var inp = e.inputBuffer.getChannelData(0), len = inp.length, sr = audioCtx.sampleRate, t0 = audioCtx.currentTime - len / sr;
       for (var i = 0; i < len; i++) {
         var st = t0 + i / sr;
         if (scriptCapState.armed && !scriptCapState.recording && st >= scriptCapState.startTime) { scriptCapState.recording = true; scriptCapState.armed = false; }
@@ -2276,7 +2118,7 @@ function buildSamplerCaptureFallback() {
       }
     };
     samplerMicProcessedBus.connect(samplerCaptureScript); samplerCaptureScript.connect(samplerSilentSink);
-  } catch (err) { console.warn('ScriptProcessor capture fallback error:', err); }
+  } catch (err) {}
 }
 
 function initVocalCaptureNode() {
@@ -2312,18 +2154,12 @@ function initVocalCaptureNode() {
       return vocalCaptureInitPromise;
     } catch (e) {}
   }
-  buildSamplerCaptureFallback();
-  vocalCaptureInitPromise = Promise.resolve();
-  return vocalCaptureInitPromise;
+  buildSamplerCaptureFallback(); vocalCaptureInitPromise = Promise.resolve(); return vocalCaptureInitPromise;
 }
 
 function armVocalCaptureNode(startTime, durationSamples) {
   if (samplerCaptureWorklet) samplerCaptureWorklet.port.postMessage({ type: 'arm', startTime: startTime, durationSamples: durationSamples });
-  else {
-    scriptCapState.startTime = startTime; scriptCapState.durationSamples = durationSamples;
-    scriptCapState.buf = new Float32Array(durationSamples); scriptCapState.writeIdx = 0;
-    scriptCapState.armed = true; scriptCapState.recording = false;
-  }
+  else { scriptCapState.startTime = startTime; scriptCapState.durationSamples = durationSamples; scriptCapState.buf = new Float32Array(durationSamples); scriptCapState.writeIdx = 0; scriptCapState.armed = true; scriptCapState.recording = false; }
 }
 function cancelVocalCaptureNode() {
   if (samplerCaptureWorklet) samplerCaptureWorklet.port.postMessage({ type: 'cancel' });
@@ -2331,24 +2167,21 @@ function cancelVocalCaptureNode() {
 }
 
 function setupSamplerMicGraph(stream) {
+  if (samplerMicStream && samplerMicStream !== stream) stopStreamTracks(samplerMicStream);
   samplerMicStream = stream;
   samplerInputLatencySec = 0.020;
   try {
     var aTracks = stream.getAudioTracks();
     if (aTracks && aTracks[0] && typeof aTracks[0].getSettings === 'function') {
       var trSettings = aTracks[0].getSettings();
-      if (trSettings && typeof trSettings.latency === 'number' && trSettings.latency > 0 && trSettings.latency < 0.25) {
-        samplerInputLatencySec = trSettings.latency;
-      }
+      if (trSettings && typeof trSettings.latency === 'number' && trSettings.latency > 0 && trSettings.latency < 0.25) samplerInputLatencySec = trSettings.latency;
     }
   } catch (e) {}
   if (!audioCtx) return;
 
   if (!samplerMicGraphBuilt) {
     samplerMicInputGain = audioCtx.createGain(); samplerMicInputGain.gain.value = 1.0;
-
     var micHPF = audioCtx.createBiquadFilter(); micHPF.type = 'highpass'; micHPF.frequency.value = 90; micHPF.Q.value = 0.7;
-
     samplerDryGain = audioCtx.createGain();
     var satShaper = audioCtx.createWaveShaper(); satShaper.curve = createVocalSatCurve(); satShaper.oversample = 'none';
     var presEQ = audioCtx.createBiquadFilter(); presEQ.type = 'peaking'; presEQ.frequency.value = 3200; presEQ.Q.value = 1.0; presEQ.gain.value = 3.2;
@@ -2356,7 +2189,6 @@ function setupSamplerMicGraph(stream) {
     samplerSlapDelay = audioCtx.createDelay(0.5); samplerSlapDelay.delayTime.value = Math.min(0.14, (60 / bpm) * 0.25);
     var slapLPF = audioCtx.createBiquadFilter(); slapLPF.type = 'lowpass'; slapLPF.frequency.value = 3400;
     samplerMidSlapGain = audioCtx.createGain();
-
     samplerDubDelay = audioCtx.createDelay(1.0); samplerDubDelay.delayTime.value = Math.min(0.95, (60 / bpm) * 0.75);
     var dubHPF = audioCtx.createBiquadFilter(); dubHPF.type = 'highpass'; dubHPF.frequency.value = 260;
     var dubLPF = audioCtx.createBiquadFilter(); dubLPF.type = 'lowpass'; dubLPF.frequency.value = 2600;
@@ -2365,19 +2197,13 @@ function setupSamplerMicGraph(stream) {
     var modDepth = audioCtx.createGain(); modDepth.gain.value = 0.0020;
     modLFO.connect(modDepth); modDepth.connect(samplerDubDelay.delayTime); modLFO.start(0);
     samplerDubWetGain = audioCtx.createGain();
-
     var vVerb = audioCtx.createConvolver(); vVerb.buffer = createMonoReverbImpulse(audioCtx, 0.55, 2.8);
     var vVerbLPF = audioCtx.createBiquadFilter(); vVerbLPF.type = 'lowpass'; vVerbLPF.frequency.value = 3800;
     samplerVerbWetGain = audioCtx.createGain();
-
     samplerMicProcessedBus = audioCtx.createGain(); samplerMicProcessedBus.gain.value = 1.0;
-    samplerSilentSink = audioCtx.createGain(); samplerSilentSink.gain.value = 0.0;
-    samplerSilentSink.connect(audioCtx.destination);
-
-    samplerAnalyser = audioCtx.createAnalyser(); samplerAnalyser.fftSize = 256;
-    samplerTimeData = new Uint8Array(samplerAnalyser.fftSize);
-    samplerMonitorGain = audioCtx.createGain();
-    samplerMonitorGain.gain.value = samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0;
+    samplerSilentSink = audioCtx.createGain(); samplerSilentSink.gain.value = 0.0; samplerSilentSink.connect(audioCtx.destination);
+    samplerAnalyser = audioCtx.createAnalyser(); samplerAnalyser.fftSize = 256; samplerTimeData = new Uint8Array(samplerAnalyser.fftSize);
+    samplerMonitorGain = audioCtx.createGain(); samplerMonitorGain.gain.value = samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0;
 
     micHPF.connect(samplerDryGain); samplerDryGain.connect(samplerMicProcessedBus);
     micHPF.connect(satShaper); satShaper.connect(presEQ);
@@ -2387,7 +2213,6 @@ function setupSamplerMicGraph(stream) {
     dubLPF.connect(samplerDubFeedback); samplerDubFeedback.connect(samplerDubDelay);
     dubLPF.connect(samplerDubWetGain); samplerDubWetGain.connect(samplerMicProcessedBus);
     presEQ.connect(vVerb); vVerb.connect(vVerbLPF); vVerbLPF.connect(samplerVerbWetGain); samplerVerbWetGain.connect(samplerMicProcessedBus);
-
     samplerMicInputGain.connect(micHPF);
     samplerMicProcessedBus.connect(samplerAnalyser);
     samplerMicProcessedBus.connect(samplerMonitorGain); samplerMonitorGain.connect(audioCtx.destination);
@@ -2396,66 +2221,24 @@ function setupSamplerMicGraph(stream) {
     initVocalCaptureNode();
     applySamplerMacro(samplerMacroValue);
   }
-
-  if (samplerMicSource) {
-    try { samplerMicSource.disconnect(); } catch (e) {}
-    samplerMicSource = null;
-  }
+  if (samplerMicSource) { try { samplerMicSource.disconnect(); } catch (e) {} samplerMicSource = null; }
   samplerMicSource = audioCtx.createMediaStreamSource(stream);
   samplerMicSource.connect(samplerMicInputGain);
 }
 
 function stopSamplerMicStream() {
+  micSessionToken++;
   micAcquiring = false;
-  samplerMonitorRequestId++;
   cancelVocalCaptureNode();
-  if (samplerMicSource) {
-    try { samplerMicSource.disconnect(); } catch (e) {}
-    samplerMicSource = null;
-  }
-  if (samplerMicStream) {
-    try {
-      var tracksList = samplerMicStream.getTracks();
-      for (var i = 0; i < tracksList.length; i++) tracksList[i].stop();
-    } catch (e) {}
-    samplerMicStream = null;
+  if (samplerMicSource) { try { samplerMicSource.disconnect(); } catch (e) {} samplerMicSource = null; }
+  if (samplerMicStream) { stopStreamTracks(samplerMicStream); samplerMicStream = null; }
+  if (audioCtx && samplerMonitorGain) {
+    try { samplerMonitorGain.gain.cancelScheduledValues(audioCtx.currentTime); samplerMonitorGain.gain.setValueAtTime(0.0, audioCtx.currentTime); } catch (e) {}
   }
   setPlaybackAudioSession();
+  setTimeout(function() { if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession(); }, 120);
   if (audioCtx && audioCtx.state !== 'running') {
-    audioCtx.resume().then(function() {
-      if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03;
-    }).catch(function() {});
-  }
-}
-
-async function startSamplerMonitorIfNeeded() {
-  if (!samplerScreenActive || !isSamplerHeadphoneUnlocked() || samplerState === 'playback') return;
-  var reqId = ++samplerMonitorRequestId;
-  try {
-    if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
-      var stream = await acquireMicStream();
-      if (!samplerScreenActive || reqId !== samplerMonitorRequestId || !samplerMonitorOn || samplerState === 'playback') {
-        if (!samplerScreenActive || samplerState === 'playback') {
-          try { var tr = stream.getTracks(); for (var i = 0; i < tr.length; i++) tr[i].stop(); } catch (e) {}
-          setPlaybackAudioSession();
-        }
-        return;
-      }
-      setupSamplerMicGraph(stream);
-    } else {
-      setPlayAndRecordAudioSession();
-      await ensureAudioReadyForCapture();
-    }
-    await initVocalCaptureNode();
-    if (audioCtx && samplerMonitorGain) {
-      samplerMonitorGain.gain.setTargetAtTime(samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0, audioCtx.currentTime, 0.015);
-    }
-    updateSamplerUI();
-  } catch (err) {
-    if (err && err.message === 'Cancelled') return;
-    samplerMonitorOn = false;
-    stopSamplerMicStream();
-    updateSamplerUI();
+    audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {});
   }
 }
 
@@ -2474,9 +2257,7 @@ function onVocalBufferCaptured(samples) {
     bins.push(Math.min(1, peak * 1.4));
   }
   vocalWaveformBins = bins; samplerState = 'playback';
-  // ALWAYS close the mic stream and restore pure 'playback' audioSession immediately
-  // so preview loudness & quality match the Groove and Jam pages 100%.
-  if (samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+  samplerMonitorOn = false;
   stopSamplerMicStream();
   updateSamplerUI();
   if (isPlaying && audioCtx) {
@@ -2487,32 +2268,26 @@ function onVocalBufferCaptured(samples) {
   }
 }
 
-function wipeVocalRecording(keepMicOpen) {
+function wipeVocalRecording() {
   cancelVocalCaptureNode(); stopVocalPlayback(0.015);
   vocalBuffer = null; vocalWaveformBins = null; vocalLocked = false;
   samplerCaptureScheduled = false;
   samplerState = 'idle'; samplerArmedStartStep = -1; samplerRecStartStep = -1;
+  samplerMonitorOn = false;
   samplerMacroSlider.disabled = false; samplerMacroBox.classList.remove('locked');
-  if (!keepMicOpen || !samplerMonitorOn || !samplerScreenActive) {
-    stopSamplerMicStream();
-  }
+  stopSamplerMicStream();
   updateSamplerUI();
-  if (keepMicOpen && samplerScreenActive && samplerMonitorOn && isSamplerHeadphoneUnlocked()) {
-    startSamplerMonitorIfNeeded();
-  }
 }
 
 function updateSamplerUI() {
   samplerBpmValue.textContent = bpm;
-  if (btnSamplerMetro) {
-    btnSamplerMetro.textContent = samplerMetronomeOn ? 'METRO ON' : 'METRO OFF';
-    btnSamplerMetro.classList.toggle('active-toggle', samplerMetronomeOn);
-  }
+  if (btnSamplerMetro) { btnSamplerMetro.textContent = samplerMetronomeOn ? 'METRO ON' : 'METRO OFF'; btnSamplerMetro.classList.toggle('active-toggle', samplerMetronomeOn); }
   var unlocked = isSamplerHeadphoneUnlocked();
   if (samplerGateBox) samplerGateBox.classList.toggle('hidden', unlocked);
 
   samplerBarWrap.classList.remove('state-locked', 'state-armed', 'state-recording', 'state-playback');
-  samplerStageBadge.classList.remove('locked', 'armed', 'recording', 'playback');
+  samplerStageBadge.classList.remove('armed', 'recording', 'playback');
+  samplerStageBadge.classList.toggle('hidden', !unlocked);
   btnSamplerRecord.classList.remove('armed', 'recording');
   samplerCountdownOverlay.classList.add('hidden');
   var isLocked = (samplerState === 'recording' || samplerState === 'playback' || vocalLocked);
@@ -2520,14 +2295,11 @@ function updateSamplerUI() {
 
   if (!unlocked) {
     samplerBarWrap.classList.add('state-locked');
-    samplerStageBadge.classList.add('locked');
-    samplerStageBadge.textContent = 'HEADPHONES REQUIRED TO RECORD';
     btnSamplerRecordLabel.textContent = 'RECORD';
-    btnSamplerRecord.disabled = true;
-    btnSamplerMonitor.disabled = true;
+    btnSamplerRecord.disabled = true; btnSamplerMonitor.disabled = true;
     samplerPreControls.classList.remove('hidden'); samplerPostControls.classList.add('hidden');
   } else if (samplerState === 'idle') {
-    samplerStageBadge.textContent = samplerMonitorOn ? 'MONITOR ON — TAP RECORD' : 'MONITOR OFF — TAP RECORD';
+    samplerStageBadge.textContent = samplerMonitorOn ? 'MONITOR ON — TAP RECORD' : 'MONITOR READY — TAP RECORD';
     btnSamplerRecordLabel.textContent = 'RECORD'; btnSamplerRecord.disabled = false; btnSamplerMonitor.disabled = false;
     samplerPreControls.classList.remove('hidden'); samplerPostControls.classList.add('hidden');
   } else if (samplerState === 'armed') {
@@ -2545,8 +2317,7 @@ function updateSamplerUI() {
   }
   btnSamplerMonitor.textContent = samplerMonitorOn ? 'MON ON' : 'MON OFF';
   btnSamplerMonitor.classList.toggle('active-toggle', unlocked && samplerMonitorOn && samplerState !== 'playback');
-  btnSamplerNext.disabled = false;
-  btnSamplerNextDone.disabled = false;
+  btnSamplerNext.disabled = false; btnSamplerNextDone.disabled = false;
 }
 
 function getCurrent4BarProgress() {
@@ -2623,10 +2394,10 @@ function drawSamplerBar() {
 
 function openSamplerScreen() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate();
+  stopSamplerMicStream();
   samplerScreenActive = true; swingScreenActive = false; jamActive = false; jamArmedPending = false;
-  samplerMetronomeOn = false;
-  samplerMonitorOn = true;
-  samplerHeadphonesConfirmed = false;
+  samplerMetronomeOn = false; samplerMonitorOn = false;
+  samplerHeadphonesConfirmed = !!vocalBuffer;
   sequencerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamScreen.classList.add('hidden'); samplerScreen.classList.remove('hidden');
   if (gameMode === 'online') {
     samplerBattleHeader.classList.remove('hidden');
@@ -2635,45 +2406,44 @@ function openSamplerScreen() {
     samplerP1Badge.classList.toggle('is-me', myRole === 'player1'); samplerP2Badge.classList.toggle('is-me', myRole === 'player2');
   } else samplerBattleHeader.classList.add('hidden');
   vocalLocked = false;
-  if (!vocalBuffer) { samplerState = 'idle'; samplerMacroSlider.disabled = false; }
-  else { samplerState = 'playback'; samplerHeadphonesConfirmed = true; }
+  samplerState = vocalBuffer ? 'playback' : 'idle';
+  if (!vocalBuffer) samplerMacroSlider.disabled = false;
   applyVocalVolume(vocalVolume);
   updateSamplerUI();
-  refreshHeadphoneGate(true);
 }
 
 bindTap(btnSamplerConfirmWired, function() {
   ensureAudioUnlocked();
   samplerHeadphonesConfirmed = true;
-  samplerMonitorOn = true;
-  updateSamplerUI();
-  startSamplerMonitorIfNeeded();
-});
-
-bindTap(btnSamplerSkipVocal, function() {
-  proceedFromSamplerToSwing();
-});
-
-bindTap(btnSamplerMetro, function() {
-  ensureAudioUnlocked();
-  samplerMetronomeOn = !samplerMetronomeOn;
   updateSamplerUI();
 });
+bindTap(btnSamplerSkipVocal, function() { proceedFromSamplerToSwing(); });
+bindTap(btnSamplerMetro, function() { ensureAudioUnlocked(); samplerMetronomeOn = !samplerMetronomeOn; updateSamplerUI(); });
+samplerMacroSlider.addEventListener('input', function(e) { if (samplerState === 'recording' || samplerState === 'playback' || vocalLocked) return; applySamplerMacro(e.target.value); });
+samplerVolumeSlider.addEventListener('input', function(e) { applyVocalVolume(e.target.value); });
 
-samplerMacroSlider.addEventListener('input', function(e) {
-  if (samplerState === 'recording' || samplerState === 'playback' || vocalLocked) return;
-  applySamplerMacro(e.target.value);
-});
-
-samplerVolumeSlider.addEventListener('input', function(e) {
-  applyVocalVolume(e.target.value);
-});
 btnSamplerMonitor.addEventListener('click', async function() {
   if (!isSamplerHeadphoneUnlocked() || samplerState === 'playback') return;
   if (!samplerMonitorOn) {
     samplerMonitorOn = true;
     updateSamplerUI();
-    await startSamplerMonitorIfNeeded();
+    try {
+      if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
+        var stream = await acquireMicStream();
+        if (!samplerScreenActive || !samplerMonitorOn || samplerState === 'playback') { stopStreamTracks(stream); setPlaybackAudioSession(); return; }
+        setupSamplerMicGraph(stream);
+      } else {
+        setPlayAndRecordAudioSession();
+        await ensureAudioReadyForCapture();
+      }
+      await initVocalCaptureNode();
+      if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0, audioCtx.currentTime, 0.015);
+    } catch (err) {
+      samplerMonitorOn = false;
+      stopSamplerMicStream();
+      updateSamplerUI();
+      if (err && err.message !== 'Cancelled') alert('Microphone permission denied or unavailable: ' + (err && err.message ? err.message : err));
+    }
   } else {
     samplerMonitorOn = false;
     if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
@@ -2685,8 +2455,7 @@ btnSamplerMonitor.addEventListener('click', async function() {
 btnSamplerRecord.addEventListener('click', async function() {
   if (!isSamplerHeadphoneUnlocked()) return;
   if (samplerState === 'armed') {
-    cancelVocalCaptureNode();
-    samplerCaptureScheduled = false;
+    cancelVocalCaptureNode(); samplerCaptureScheduled = false;
     samplerState = 'idle'; samplerArmedStartStep = -1;
     if (!samplerMonitorOn) stopSamplerMicStream();
     updateSamplerUI(); return;
@@ -2697,20 +2466,17 @@ btnSamplerRecord.addEventListener('click', async function() {
   try {
     if (!hasLiveMicStream() || !samplerMicGraphBuilt) {
       var stream = await acquireMicStream();
-      if (!samplerScreenActive) return;
+      if (!samplerScreenActive) { stopStreamTracks(stream); setPlaybackAudioSession(); return; }
       setupSamplerMicGraph(stream);
     } else {
       setPlayAndRecordAudioSession();
       await ensureAudioReadyForCapture();
     }
     await initVocalCaptureNode();
-    if (audioCtx && samplerMonitorGain) {
-      samplerMonitorGain.gain.setTargetAtTime(samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0, audioCtx.currentTime, 0.015);
-    }
+    if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(samplerMonitorOn ? (1.0 * Math.min(1.5, vocalVolume)) : 0.0, audioCtx.currentTime, 0.015);
   } catch (err) {
     stopSamplerMicStream();
-    btnSamplerRecord.disabled = false;
-    btnSamplerRecordLabel.textContent = 'RECORD';
+    btnSamplerRecord.disabled = false; btnSamplerRecordLabel.textContent = 'RECORD';
     if (err && err.message === 'Cancelled') return;
     alert('Microphone access denied or unsupported: ' + (err && err.message ? err.message : err));
     samplerStageBadge.textContent = 'MICROPHONE REQUIRED TO RECORD';
@@ -2718,22 +2484,17 @@ btnSamplerRecord.addEventListener('click', async function() {
   }
   var nextCycleStep = Math.ceil((globalStep + 2) / SAMPLER_TOTAL_STEPS) * SAMPLER_TOTAL_STEPS;
   if (nextCycleStep - globalStep < 16) nextCycleStep += SAMPLER_TOTAL_STEPS;
-  samplerCaptureScheduled = false;
-  samplerArmedStartStep = nextCycleStep;
-  samplerState = 'armed';
+  samplerCaptureScheduled = false; samplerArmedStartStep = nextCycleStep; samplerState = 'armed';
   updateSamplerUI();
 });
 
-bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(true); });
+bindTap(btnSamplerGoAgain, function() { ensureAudioUnlocked(); wipeVocalRecording(); });
 function proceedFromSamplerToSwing() {
   if (samplerState === 'armed' || samplerState === 'recording') {
-    cancelVocalCaptureNode();
-    samplerCaptureScheduled = false;
-    samplerState = vocalBuffer ? 'playback' : 'idle';
-    samplerArmedStartStep = -1;
+    cancelVocalCaptureNode(); samplerCaptureScheduled = false;
+    samplerState = vocalBuffer ? 'playback' : 'idle'; samplerArmedStartStep = -1;
   }
   vocalLocked = true; samplerMonitorOn = false; samplerMetronomeOn = false;
-  if (audioCtx && samplerMonitorGain) samplerMonitorGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
   stopSamplerMicStream();
   ensureAudioUnlocked();
   samplerScreenActive = false; samplerScreen.classList.add('hidden');
@@ -2742,28 +2503,18 @@ function proceedFromSamplerToSwing() {
 bindTap(btnSamplerNext, proceedFromSamplerToSwing);
 bindTap(btnSamplerNextDone, proceedFromSamplerToSwing);
 
-/* ==================== BASE64 HELPERS & WAV ENCODER ==================== */
 function blobToDataUrl(blob) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
-    reader.onloadend = function() {
-      if (reader.result) resolve(reader.result);
-      else reject(new Error('FileReader produced empty result'));
-    };
+    reader.onloadend = function() { if (reader.result) resolve(reader.result); else reject(new Error('FileReader produced empty result')); };
     reader.onerror = function() { reject(reader.error || new Error('FileReader error')); };
     reader.readAsDataURL(blob);
   });
 }
 function dataUrlToBlob(dataUrl, fallbackMime) {
-  var parts = String(dataUrl || '').split(',');
-  if (parts.length < 2) return null;
-  var mimeMatch = parts[0].match(/:(.*?);/);
-  var mime = (mimeMatch && mimeMatch[1]) ? mimeMatch[1] : (fallbackMime || 'audio/webm');
-  try {
-    var bin = atob(parts[1]), len = bin.length, u8 = new Uint8Array(len);
-    for (var i = 0; i < len; i++) u8[i] = bin.charCodeAt(i);
-    return new Blob([u8], { type: mime });
-  } catch (e) { return null; }
+  var parts = String(dataUrl || '').split(','); if (parts.length < 2) return null;
+  var mimeMatch = parts[0].match(/:(.*?);/), mime = (mimeMatch && mimeMatch[1]) ? mimeMatch[1] : (fallbackMime || 'audio/webm');
+  try { var bin = atob(parts[1]), len = bin.length, u8 = new Uint8Array(len); for (var i = 0; i < len; i++) u8[i] = bin.charCodeAt(i); return new Blob([u8], { type: mime }); } catch (e) { return null; }
 }
 function encodeAudioBufferToWavBlob(audioBuffer) {
   var numCh = 1, sr = audioBuffer.sampleRate, samples = audioBuffer.getChannelData(0), len = samples.length;
@@ -2775,11 +2526,7 @@ function encodeAudioBufferToWavBlob(audioBuffer) {
   view.setUint16(32, 2, true); view.setUint16(34, 16, true);
   writeStr(36, 'data'); view.setUint32(40, len * 2, true);
   var offset = 44;
-  for (var i = 0; i < len; i++) {
-    var s = Math.max(-1, Math.min(1, samples[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    offset += 2;
-  }
+  for (var i = 0; i < len; i++) { var s = Math.max(-1, Math.min(1, samples[i])); view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true); offset += 2; }
   return new Blob([buf], { type: 'audio/wav' });
 }
 
@@ -2790,8 +2537,7 @@ function openRecordingsDB() {
     if (!window.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
     var req = indexedDB.open(IDB_NAME, IDB_VERSION);
     req.onupgradeneeded = function(e) { var d = e.target.result; if (!d.objectStoreNames.contains(IDB_STORE)) d.createObjectStore(IDB_STORE, { keyPath: 'id' }); };
-    req.onsuccess = function(e) { resolve(e.target.result); };
-    req.onerror = function() { reject(req.error || new Error('IDB open error')); };
+    req.onsuccess = function(e) { resolve(e.target.result); }; req.onerror = function() { reject(req.error || new Error('IDB open error')); };
   });
 }
 function dbPutRecording(rec) {
@@ -2869,15 +2615,8 @@ var btnOpenMail = $('btnOpenMail'), mailBadgeCount = $('mailBadgeCount'), mailOv
 var inboxItems = [], myMailRef = null, mailAudioEl = null, mailPlayingId = null, mailEditingId = null;
 
 var MAIL_SEEN_KEY = 'beatfriends_seen_mail_ids_' + myClientId;
-function loadSeenMailIds() {
-  try {
-    var raw = localStorage.getItem(MAIL_SEEN_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) { return {}; }
-}
-function saveSeenMailIds(map) {
-  try { localStorage.setItem(MAIL_SEEN_KEY, JSON.stringify(map)); } catch (e) {}
-}
+function loadSeenMailIds() { try { var raw = localStorage.getItem(MAIL_SEEN_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } }
+function saveSeenMailIds(map) { try { localStorage.setItem(MAIL_SEEN_KEY, JSON.stringify(map)); } catch (e) {} }
 var seenMailIds = loadSeenMailIds();
 
 db.ref('presence').on('value', function(snap) {
@@ -2885,295 +2624,136 @@ db.ref('presence').on('value', function(snap) {
   if (onlineCountText) onlineCountText.textContent = count + ' ONLINE';
   if (onlineCounterEl) onlineCounterEl.classList.toggle('has-others', count >= 2);
 });
-function formatSecs(sec) {
-  if (!sec || isNaN(sec) || sec < 0) sec = 0;
-  var m = Math.floor(sec / 60), s = Math.floor(sec % 60);
-  return m + ':' + (s < 10 ? '0' + s : s);
-}
+function formatSecs(sec) { if (!sec || isNaN(sec) || sec < 0) sec = 0; var m = Math.floor(sec / 60), s = Math.floor(sec % 60); return m + ':' + (s < 10 ? '0' + s : s); }
 
-/* ==================== REALTIME DATABASE BASE64 MAIL SYSTEM ==================== */
-function getUnreadMailCount() {
-  var unread = 0;
-  for (var i = 0; i < inboxItems.length; i++) {
-    if (!seenMailIds[inboxItems[i].id]) unread++;
-  }
-  return unread;
-}
+function getUnreadMailCount() { var u = 0; for (var i = 0; i < inboxItems.length; i++) if (!seenMailIds[inboxItems[i].id]) u++; return u; }
 function updateMailIconUI() {
   var unread = getUnreadMailCount();
   btnOpenMail.classList.toggle('has-mail', unread > 0);
-  if (unread > 0) {
-    mailBadgeCount.textContent = unread > 9 ? '9+' : String(unread);
-    mailBadgeCount.classList.remove('hidden');
-  } else {
-    mailBadgeCount.classList.add('hidden');
-  }
+  if (unread > 0) { mailBadgeCount.textContent = unread > 9 ? '9+' : String(unread); mailBadgeCount.classList.remove('hidden'); }
+  else mailBadgeCount.classList.add('hidden');
 }
 function markAllInboxMailSeen() {
   var changed = false;
-  for (var i = 0; i < inboxItems.length; i++) {
-    if (!seenMailIds[inboxItems[i].id]) {
-      seenMailIds[inboxItems[i].id] = true;
-      changed = true;
-    }
-  }
+  for (var i = 0; i < inboxItems.length; i++) if (!seenMailIds[inboxItems[i].id]) { seenMailIds[inboxItems[i].id] = true; changed = true; }
   if (changed) saveSeenMailIds(seenMailIds);
   updateMailIconUI();
 }
-
-function stopMailAudio() {
-  if (mailAudioEl) {
-    try { mailAudioEl.pause(); } catch (e) {}
-    mailAudioEl.onended = null; mailAudioEl.ontimeupdate = null; mailAudioEl = null;
-  }
-  mailPlayingId = null;
-}
-
+function stopMailAudio() { if (mailAudioEl) { try { mailAudioEl.pause(); } catch (e) {} mailAudioEl.onended = null; mailAudioEl.ontimeupdate = null; mailAudioEl = null; } mailPlayingId = null; }
 function decodeMailRecord(key, data) {
   if (!data || data.archived) return null;
   var decodedBlob = data.audioDataUrl ? dataUrlToBlob(data.audioDataUrl, data.mimeType || 'audio/webm') : null;
   var objectUrl = decodedBlob ? URL.createObjectURL(decodedBlob) : '';
-  return {
-    id: key,
-    fromId: data.fromId || '',
-    fromName: data.fromName || ('BEATFRIEND · ' + (data.fromCountry || '---')),
-    fromCountry: data.fromCountry || '---',
-    trackName: data.trackName || 'BEATFRIENDS JAM',
-    bpm: data.bpm || 118,
-    mimeType: (decodedBlob && decodedBlob.type) || data.mimeType || 'audio/webm',
-    ext: data.ext || 'webm',
-    decodedBlob: decodedBlob,
-    objectUrl: objectUrl,
-    sessionMeta: data.sessionMeta || {},
-    createdAtMs: data.createdAtMs || 0
-  };
+  return { id: key, fromId: data.fromId || '', fromName: data.fromName || ('BEATFRIEND · ' + (data.fromCountry || '---')), fromCountry: data.fromCountry || '---', trackName: data.trackName || 'BEATFRIENDS JAM', bpm: data.bpm || 118, mimeType: (decodedBlob && decodedBlob.type) || data.mimeType || 'audio/webm', ext: data.ext || 'webm', decodedBlob: decodedBlob, objectUrl: objectUrl, sessionMeta: data.sessionMeta || {}, createdAtMs: data.createdAtMs || 0 };
 }
-
 function removeInboxItemById(id) {
   for (var i = 0; i < inboxItems.length; i++) {
-    if (inboxItems[i].id === id) {
-      if (inboxItems[i].objectUrl) { try { URL.revokeObjectURL(inboxItems[i].objectUrl); } catch (e) {} }
-      inboxItems.splice(i, 1);
-      break;
-    }
+    if (inboxItems[i].id === id) { if (inboxItems[i].objectUrl) { try { URL.revokeObjectURL(inboxItems[i].objectUrl); } catch (e) {} } inboxItems.splice(i, 1); break; }
   }
 }
-
 function startMailListener() {
   if (myMailRef) { myMailRef.off(); myMailRef = null; }
   myMailRef = db.ref('mail/' + myClientId);
   myMailRef.on('child_added', function(snap) {
-    var rec = decodeMailRecord(snap.key, snap.val());
-    if (!rec) return;
-    removeInboxItemById(rec.id);
-    inboxItems.push(rec);
+    var rec = decodeMailRecord(snap.key, snap.val()); if (!rec) return;
+    removeInboxItemById(rec.id); inboxItems.push(rec);
     inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); });
-    if (!mailOverlay.classList.contains('hidden')) {
-      seenMailIds[rec.id] = true;
-      saveSeenMailIds(seenMailIds);
-      if (mailEditingId === null) renderMailModal();
-    }
+    if (!mailOverlay.classList.contains('hidden')) { seenMailIds[rec.id] = true; saveSeenMailIds(seenMailIds); if (mailEditingId === null) renderMailModal(); }
     updateMailIconUI();
   });
   myMailRef.on('child_changed', function(snap) {
     var d = snap.val();
-    if (!d || d.archived) {
-      if (mailPlayingId === snap.key) stopMailAudio();
-      if (mailEditingId === snap.key) mailEditingId = null;
-      removeInboxItemById(snap.key);
-    } else {
-      var existing = null;
-      for (var i = 0; i < inboxItems.length; i++) {
-        if (inboxItems[i].id === snap.key) { existing = inboxItems[i]; break; }
-      }
-      if (existing && existing.objectUrl) {
-        existing.trackName = d.trackName || existing.trackName;
-        existing.fromName = d.fromName || existing.fromName;
-        existing.fromCountry = d.fromCountry || existing.fromCountry;
-        existing.bpm = d.bpm || existing.bpm;
-      } else {
-        var rec = decodeMailRecord(snap.key, d);
-        if (rec) {
-          removeInboxItemById(snap.key);
-          inboxItems.push(rec);
-          inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); });
-        }
-      }
+    if (!d || d.archived) { if (mailPlayingId === snap.key) stopMailAudio(); if (mailEditingId === snap.key) mailEditingId = null; removeInboxItemById(snap.key); }
+    else {
+      var existing = null; for (var i = 0; i < inboxItems.length; i++) if (inboxItems[i].id === snap.key) { existing = inboxItems[i]; break; }
+      if (existing && existing.objectUrl) { existing.trackName = d.trackName || existing.trackName; existing.fromName = d.fromName || existing.fromName; existing.fromCountry = d.fromCountry || existing.fromCountry; existing.bpm = d.bpm || existing.bpm; }
+      else { var rec = decodeMailRecord(snap.key, d); if (rec) { removeInboxItemById(snap.key); inboxItems.push(rec); inboxItems.sort(function(a, b) { return (b.createdAtMs || 0) - (a.createdAtMs || 0); }); } }
     }
     updateMailIconUI();
     if (!mailOverlay.classList.contains('hidden') && mailEditingId !== snap.key) renderMailModal();
   });
   myMailRef.on('child_removed', function(snap) {
-    if (mailPlayingId === snap.key) stopMailAudio();
-    if (mailEditingId === snap.key) mailEditingId = null;
+    if (mailPlayingId === snap.key) stopMailAudio(); if (mailEditingId === snap.key) mailEditingId = null;
     if (seenMailIds[snap.key]) { delete seenMailIds[snap.key]; saveSeenMailIds(seenMailIds); }
-    removeInboxItemById(snap.key);
-    updateMailIconUI();
+    removeInboxItemById(snap.key); updateMailIconUI();
     if (!mailOverlay.classList.contains('hidden')) renderMailModal();
   });
 }
 startMailListener();
 
 function renderMailModal() {
-  if (!inboxItems.length) {
-    mailList.innerHTML = '<div class="lib-empty mono">INBOX EMPTY.<br/>WHEN A BEATFRIEND SENDS THEIR 1-MIN JAM,<br/>THIS ENVELOPE LIGHTS UP.</div>';
-    return;
-  }
+  if (!inboxItems.length) { mailList.innerHTML = '<div class="lib-empty mono">INBOX EMPTY.<br/>WHEN A BEATFRIEND SENDS THEIR 1-MIN JAM,<br/>THIS ENVELOPE LIGHTS UP.</div>'; return; }
   var html = '';
   for (var i = 0; i < inboxItems.length; i++) {
-    var m = inboxItems[i], isThis = (mailPlayingId === m.id), isEditingThis = (mailEditingId === m.id);
-    var isPaused = isThis && mailAudioEl && mailAudioEl.paused;
-    var curT = (isThis && mailAudioEl) ? mailAudioEl.currentTime : 0;
-    var durT = (isThis && mailAudioEl && mailAudioEl.duration && isFinite(mailAudioEl.duration)) ? mailAudioEl.duration : ((m.sessionMeta && m.sessionMeta.durationSec) || 60);
-    var partnerName = m.fromName || ('BEATFRIEND · ' + (m.fromCountry || '---'));
-    var meta = (m.bpm ? (m.bpm + ' BPM · ') : '') + (m.sessionMeta && m.sessionMeta.swingMode ? (m.sessionMeta.swingMode.toUpperCase() + ' · ') : '') + formatRecDate(m.createdAtMs);
-    html += '<div class="lib-card" data-mail-id="' + escapeHtml(m.id) + '">';
-    html += '<div class="lib-card-top"><div class="lib-name mono">' + escapeHtml(partnerName) + '</div><div class="lib-meta mono">' + escapeHtml(meta) + '</div></div>';
-    if (isEditingThis) {
-      html += '<div class="lib-rename-row"><input type="text" class="lib-rename-input mono" maxlength="60" value="' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '" data-mail-rename-input="' + escapeHtml(m.id) + '" /><button type="button" class="lib-btn mono" data-mail-act="save-rename" data-id="' + escapeHtml(m.id) + '">OK</button></div>';
-    } else {
-      html += '<div style="font-size:11px;font-weight:800;color:#ccc;letter-spacing:0.6px;text-align:left;" class="mono">' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '</div>';
-    }
-    html += '<div class="mail-transport">';
-    html += '<div class="mail-seek-row"><span class="mail-time mono" data-mail-cur="' + escapeHtml(m.id) + '">' + formatSecs(curT) + '</span><input type="range" min="0" max="100" value="' + Math.round((curT / Math.max(1, durT)) * 100) + '" data-mail-seek="' + escapeHtml(m.id) + '" /><span class="mail-time mono" data-mail-dur="' + escapeHtml(m.id) + '">' + formatSecs(durT) + '</span></div>';
-    html += '<div class="lib-actions">';
-    html += '<button type="button" class="lib-btn mono' + ((isThis && !isPaused) ? ' playing' : '') + '" data-mail-act="play" data-id="' + escapeHtml(m.id) + '">' + (isThis ? (isPaused ? 'RESUME' : 'PAUSE') : 'PLAY') + '</button>';
-    html += '<button type="button" class="lib-btn mono" data-mail-act="rename" data-id="' + escapeHtml(m.id) + '">' + (isEditingThis ? 'CANCEL' : 'RENAME') + '</button>';
-    html += '<button type="button" class="lib-btn mono" data-mail-act="save" data-id="' + escapeHtml(m.id) + '">SAVE LIB</button>';
-    html += '<button type="button" class="lib-btn danger mono" data-mail-act="archive" data-id="' + escapeHtml(m.id) + '">CLEAR</button>';
-    html += '</div></div></div>';
+    var m = inboxItems[i], isThis = (mailPlayingId === m.id), isEditingThis = (mailEditingId === m.id), isPaused = isThis && mailAudioEl && mailAudioEl.paused;
+    var curT = (isThis && mailAudioEl) ? mailAudioEl.currentTime : 0, durT = (isThis && mailAudioEl && mailAudioEl.duration && isFinite(mailAudioEl.duration)) ? mailAudioEl.duration : ((m.sessionMeta && m.sessionMeta.durationSec) || 60);
+    var partnerName = m.fromName || ('BEATFRIEND · ' + (m.fromCountry || '---')), meta = (m.bpm ? (m.bpm + ' BPM · ') : '') + (m.sessionMeta && m.sessionMeta.swingMode ? (m.sessionMeta.swingMode.toUpperCase() + ' · ') : '') + formatRecDate(m.createdAtMs);
+    html += '<div class="lib-card" data-mail-id="' + escapeHtml(m.id) + '"><div class="lib-card-top"><div class="lib-name mono">' + escapeHtml(partnerName) + '</div><div class="lib-meta mono">' + escapeHtml(meta) + '</div></div>';
+    if (isEditingThis) html += '<div class="lib-rename-row"><input type="text" class="lib-rename-input mono" maxlength="60" value="' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '" data-mail-rename-input="' + escapeHtml(m.id) + '" /><button type="button" class="lib-btn mono" data-mail-act="save-rename" data-id="' + escapeHtml(m.id) + '">OK</button></div>';
+    else html += '<div style="font-size:11px;font-weight:800;color:#ccc;letter-spacing:0.6px;text-align:left;" class="mono">' + escapeHtml(m.trackName || 'BEATFRIENDS JAM') + '</div>';
+    html += '<div class="mail-transport"><div class="mail-seek-row"><span class="mail-time mono" data-mail-cur="' + escapeHtml(m.id) + '">' + formatSecs(curT) + '</span><input type="range" min="0" max="100" value="' + Math.round((curT / Math.max(1, durT)) * 100) + '" data-mail-seek="' + escapeHtml(m.id) + '" /><span class="mail-time mono" data-mail-dur="' + escapeHtml(m.id) + '">' + formatSecs(durT) + '</span></div>';
+    html += '<div class="lib-actions"><button type="button" class="lib-btn mono' + ((isThis && !isPaused) ? ' playing' : '') + '" data-mail-act="play" data-id="' + escapeHtml(m.id) + '">' + (isThis ? (isPaused ? 'RESUME' : 'PAUSE') : 'PLAY') + '</button><button type="button" class="lib-btn mono" data-mail-act="rename" data-id="' + escapeHtml(m.id) + '">' + (isEditingThis ? 'CANCEL' : 'RENAME') + '</button><button type="button" class="lib-btn mono" data-mail-act="save" data-id="' + escapeHtml(m.id) + '">SAVE LIB</button><button type="button" class="lib-btn danger mono" data-mail-act="archive" data-id="' + escapeHtml(m.id) + '">CLEAR</button></div></div></div>';
   }
   mailList.innerHTML = html;
-  if (mailEditingId) {
-    var inp = mailList.querySelector('input[data-mail-rename-input="' + mailEditingId + '"]');
-    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-  }
+  if (mailEditingId) { var inp = mailList.querySelector('input[data-mail-rename-input="' + mailEditingId + '"]'); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
 }
-
 mailList.addEventListener('input', function(e) {
-  var rng = e.target;
-  if (!rng || !rng.getAttribute) return;
+  var rng = e.target; if (!rng || !rng.getAttribute) return;
   var id = rng.getAttribute('data-mail-seek');
   if (!id || mailPlayingId !== id || !mailAudioEl || !mailAudioEl.duration || !isFinite(mailAudioEl.duration)) return;
   mailAudioEl.currentTime = (Number(rng.value) / 100) * mailAudioEl.duration;
 });
-
 function commitMailRename(id) {
-  var item = null;
-  for (var i = 0; i < inboxItems.length; i++) if (inboxItems[i].id === id) { item = inboxItems[i]; break; }
+  var item = null; for (var i = 0; i < inboxItems.length; i++) if (inboxItems[i].id === id) { item = inboxItems[i]; break; }
   if (!item) { mailEditingId = null; renderMailModal(); return; }
-  var inp = mailList.querySelector('input[data-mail-rename-input="' + id + '"]');
-  var newName = sanitizeTrackName(inp ? inp.value : '');
+  var inp = mailList.querySelector('input[data-mail-rename-input="' + id + '"]'), newName = sanitizeTrackName(inp ? inp.value : '');
   if (!newName) { mailEditingId = null; renderMailModal(); return; }
-  item.trackName = newName;
-  mailEditingId = null;
-  renderMailModal();
-  db.ref('mail/' + myClientId + '/' + id + '/trackName').set(newName).catch(function(err) { console.warn('Rename mail error:', err); });
+  item.trackName = newName; mailEditingId = null; renderMailModal();
+  db.ref('mail/' + myClientId + '/' + id + '/trackName').set(newName).catch(function() {});
 }
-
-mailList.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && e.target && e.target.getAttribute) {
-    var id = e.target.getAttribute('data-mail-rename-input');
-    if (id) { e.preventDefault(); commitMailRename(id); }
-  }
-});
-
+mailList.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target && e.target.getAttribute) { var id = e.target.getAttribute('data-mail-rename-input'); if (id) { e.preventDefault(); commitMailRename(id); } } });
 mailList.addEventListener('click', function(e) {
-  var btn = e.target && e.target.closest ? e.target.closest('[data-mail-act]') : null;
-  if (!btn) return;
+  var btn = e.target && e.target.closest ? e.target.closest('[data-mail-act]') : null; if (!btn) return;
   var act = btn.getAttribute('data-mail-act'), id = btn.getAttribute('data-id'), item = null;
   for (var i = 0; i < inboxItems.length; i++) if (inboxItems[i].id === id) { item = inboxItems[i]; break; }
   if (!item) return;
-
   if (act === 'play') {
-    if (mailPlayingId === id && mailAudioEl) {
-      if (mailAudioEl.paused) mailAudioEl.play().catch(function() {});
-      else mailAudioEl.pause();
-      renderMailModal();
-      return;
-    }
-    stopMailAudio();
-    if (!item.objectUrl) return;
-    mailPlayingId = id;
-    mailAudioEl = new Audio(item.objectUrl);
+    if (mailPlayingId === id && mailAudioEl) { if (mailAudioEl.paused) mailAudioEl.play().catch(function() {}); else mailAudioEl.pause(); renderMailModal(); return; }
+    stopMailAudio(); if (!item.objectUrl) return;
+    mailPlayingId = id; mailAudioEl = new Audio(item.objectUrl);
     mailAudioEl.onended = function() { stopMailAudio(); renderMailModal(); };
     mailAudioEl.ontimeupdate = function() {
       if (!mailAudioEl || mailPlayingId !== id) return;
-      var curEl = mailList.querySelector('[data-mail-cur="' + id + '"]');
-      var durEl = mailList.querySelector('[data-mail-dur="' + id + '"]');
-      var seekEl = mailList.querySelector('[data-mail-seek="' + id + '"]');
+      var curEl = mailList.querySelector('[data-mail-cur="' + id + '"]'), durEl = mailList.querySelector('[data-mail-dur="' + id + '"]'), seekEl = mailList.querySelector('[data-mail-seek="' + id + '"]');
       var dur = (mailAudioEl.duration && isFinite(mailAudioEl.duration)) ? mailAudioEl.duration : 60;
-      if (curEl) curEl.textContent = formatSecs(mailAudioEl.currentTime);
-      if (durEl) durEl.textContent = formatSecs(dur);
+      if (curEl) curEl.textContent = formatSecs(mailAudioEl.currentTime); if (durEl) durEl.textContent = formatSecs(dur);
       if (seekEl) seekEl.value = Math.round((mailAudioEl.currentTime / Math.max(1, dur)) * 100);
     };
-    mailAudioEl.play().catch(function() { stopMailAudio(); renderMailModal(); });
-    renderMailModal();
-  } else if (act === 'rename') {
-    mailEditingId = (mailEditingId === id) ? null : id;
-    renderMailModal();
-  } else if (act === 'save-rename') {
-    commitMailRename(id);
-  } else if (act === 'save') {
-    if (!item.decodedBlob) return;
-    btn.textContent = 'SAVING...'; btn.disabled = true;
-    var rec = {
-      id: 'mail-' + item.id,
-      name: (item.trackName || makeTimestampName()) + ' (' + (item.fromCountry || 'BF') + ')',
-      createdAt: item.createdAtMs || Date.now(),
-      bpm: item.bpm || 118,
-      mimeType: item.mimeType || item.decodedBlob.type || 'audio/webm',
-      ext: item.ext || 'webm',
-      blob: item.decodedBlob
-    };
-    dbPutRecording(rec).then(function() {
-      btn.textContent = 'SAVED ✓'; btn.classList.add('btn-done-state'); refreshLibraryBadge();
-    }).catch(function() { btn.textContent = 'SAVE LIB'; btn.disabled = false; });
-  } else if (act === 'archive') {
-    if (mailPlayingId === id) stopMailAudio();
-    if (mailEditingId === id) mailEditingId = null;
-    db.ref('mail/' + myClientId + '/' + id).remove().catch(function(err) { console.warn('Clear mail error:', err); });
-  }
+    mailAudioEl.play().catch(function() { stopMailAudio(); renderMailModal(); }); renderMailModal();
+  } else if (act === 'rename') { mailEditingId = (mailEditingId === id) ? null : id; renderMailModal(); }
+  else if (act === 'save-rename') { commitMailRename(id); }
+  else if (act === 'save') {
+    if (!item.decodedBlob) return; btn.textContent = 'SAVING...'; btn.disabled = true;
+    dbPutRecording({ id: 'mail-' + item.id, name: (item.trackName || makeTimestampName()) + ' (' + (item.fromCountry || 'BF') + ')', createdAt: item.createdAtMs || Date.now(), bpm: item.bpm || 118, mimeType: item.mimeType || item.decodedBlob.type || 'audio/webm', ext: item.ext || 'webm', blob: item.decodedBlob })
+      .then(function() { btn.textContent = 'SAVED ✓'; btn.classList.add('btn-done-state'); refreshLibraryBadge(); })
+      .catch(function() { btn.textContent = 'SAVE LIB'; btn.disabled = false; });
+  } else if (act === 'archive') { if (mailPlayingId === id) stopMailAudio(); if (mailEditingId === id) mailEditingId = null; db.ref('mail/' + myClientId + '/' + id).remove().catch(function() {}); }
 });
-
-bindTap(btnOpenMail, function() {
-  mailEditingId = null;
-  mailOverlay.classList.remove('hidden');
-  updateClubAmbienceState();
-  markAllInboxMailSeen();
-  renderMailModal();
-});
-bindTap(btnMailClose, function() {
-  stopMailAudio();
-  mailEditingId = null;
-  mailOverlay.classList.add('hidden');
-  updateMailIconUI();
-  updateClubAmbienceState();
-});
+bindTap(btnOpenMail, function() { mailEditingId = null; mailOverlay.classList.remove('hidden'); updateClubAmbienceState(); markAllInboxMailSeen(); renderMailModal(); });
+bindTap(btnMailClose, function() { stopMailAudio(); mailEditingId = null; mailOverlay.classList.add('hidden'); updateMailIconUI(); updateClubAmbienceState(); });
 
 function setJamEndStatus(msg) { jamEndStatus.textContent = msg || ''; jamEndStatus.classList.toggle('hidden', !msg); }
-function refreshLibraryBadge() {
-  dbGetAllRecordings().then(function(list) { btnOpenLibrary.textContent = list.length > 0 ? ('LIBRARY (' + list.length + ')') : 'LIBRARY'; }).catch(function() { btnOpenLibrary.textContent = 'LIBRARY'; });
-}
-function stopLibraryAudio() {
-  if (libAudioEl) { try { libAudioEl.pause(); } catch (e) {} libAudioEl.onended = null; libAudioEl = null; }
-  if (libPlayingUrl) { try { URL.revokeObjectURL(libPlayingUrl); } catch (e) {} libPlayingUrl = null; }
-  libPlayingId = null;
-}
+function refreshLibraryBadge() { dbGetAllRecordings().then(function(list) { btnOpenLibrary.textContent = list.length > 0 ? ('LIBRARY (' + list.length + ')') : 'LIBRARY'; }).catch(function() { btnOpenLibrary.textContent = 'LIBRARY'; }); }
+function stopLibraryAudio() { if (libAudioEl) { try { libAudioEl.pause(); } catch (e) {} libAudioEl.onended = null; libAudioEl = null; } if (libPlayingUrl) { try { URL.revokeObjectURL(libPlayingUrl); } catch (e) {} libPlayingUrl = null; } libPlayingId = null; }
 function escapeHtml(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-function formatRecDate(ts) {
-  if (!ts) return '';
-  var d = new Date(ts); function p(n) { return n < 10 ? '0' + n : '' + n; }
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
-}
+function formatRecDate(ts) { if (!ts) return ''; var d = new Date(ts); function p(n) { return n < 10 ? '0' + n : '' + n; } return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
 function renderLibraryList() {
   dbGetAllRecordings().then(function(list) {
     btnOpenLibrary.textContent = list.length > 0 ? ('LIBRARY (' + list.length + ')') : 'LIBRARY';
     if (!list.length) { libraryList.innerHTML = '<div class="lib-empty mono">NO SAVED JAMS YET.<br/>FINISH A 60S LIVE JAM AND TAP SAVE.</div>'; return; }
     var html = '';
     for (var i = 0; i < list.length; i++) {
-      var r = list[i], isPlayingThis = (libPlayingId === r.id), isEditingThis = (libEditingId === r.id);
-      var meta = (r.bpm ? (r.bpm + ' BPM · ') : '') + formatRecDate(r.createdAt);
+      var r = list[i], isPlayingThis = (libPlayingId === r.id), isEditingThis = (libEditingId === r.id), meta = (r.bpm ? (r.bpm + ' BPM · ') : '') + formatRecDate(r.createdAt);
       html += '<div class="lib-card" data-rec-id="' + escapeHtml(r.id) + '">';
       if (isEditingThis) html += '<div class="lib-rename-row"><input type="text" class="lib-rename-input mono" maxlength="60" value="' + escapeHtml(r.name) + '" data-rename-input="' + escapeHtml(r.id) + '" /><button type="button" class="lib-btn mono" data-lib-act="save-rename" data-id="' + escapeHtml(r.id) + '">OK</button></div>';
       else html += '<div class="lib-card-top"><div class="lib-name mono">' + escapeHtml(r.name) + '</div><div class="lib-meta mono">' + escapeHtml(meta) + '</div></div>';
@@ -3210,77 +2790,46 @@ btnLibraryClose.addEventListener('click', function() { stopLibraryAudio(); libEd
 var jamStopCallbacks = [], jamStoppingNow = false;
 function finalizeJamRecording(onDone) {
   if (recordedBlob && recordedBlob.size > 0) { if (onDone) onDone(recordedBlob); return; }
-  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-    if (!jamStoppingNow) {
-      if (recordedChunks.length > 0 && !recordedBlob) recordedBlob = new Blob(recordedChunks, { type: recMimeInfo.mime });
-      if (onDone) onDone(recordedBlob);
-      return;
-    }
+  if ((!mediaRecorder || mediaRecorder.state === 'inactive') && !jamStoppingNow) {
+    if (recordedChunks.length > 0 && !recordedBlob) recordedBlob = new Blob(recordedChunks, { type: recMimeInfo.mime });
+    if (onDone) onDone(recordedBlob);
+    return;
   }
   if (onDone) jamStopCallbacks.push(onDone);
   if (jamStoppingNow) return;
   jamStoppingNow = true;
   stopJamRecording(function(blob) {
     jamStoppingNow = false;
-    var cbs = jamStopCallbacks.slice();
-    jamStopCallbacks = [];
+    var cbs = jamStopCallbacks.slice(); jamStopCallbacks = [];
     for (var i = 0; i < cbs.length; i++) cbs[i](blob);
   });
 }
 
 function openJamHappyModal() {
-  if (gameMode === 'online') {
-    jamHappyMeta.innerHTML = escapeHtml(roomCountries.player1) + ' ' + HEART_HTML + ' ' + escapeHtml(roomCountries.player2);
-    jamHappyMeta.classList.remove('hidden');
-  } else {
-    jamHappyMeta.textContent = '';
-    jamHappyMeta.classList.add('hidden');
-  }
+  if (gameMode === 'online') { jamHappyMeta.innerHTML = escapeHtml(roomCountries.player1) + ' ' + HEART_HTML + ' ' + escapeHtml(roomCountries.player2); jamHappyMeta.classList.remove('hidden'); }
+  else { jamHappyMeta.textContent = ''; jamHappyMeta.classList.add('hidden'); }
   jamHappyModal.classList.remove('hidden');
   finalizeJamRecording(null);
 }
-
-btnJamHappyYes.addEventListener('click', function() {
-  jamHappyModal.classList.add('hidden');
-  openJamEndModal();
-});
-
+btnJamHappyYes.addEventListener('click', function() { jamHappyModal.classList.add('hidden'); openJamEndModal(); });
 btnJamHappyNo.addEventListener('click', function() {
   ensureAudioUnlocked();
-  jamStopCallbacks = [];
-  jamStoppingNow = false;
-  abortJamRecording();
-  jamHappyModal.classList.add('hidden');
-  appEl.classList.remove('vanishing');
-  startSequencer();
-  openPreJamArmModal();
+  jamStopCallbacks = []; jamStoppingNow = false; abortJamRecording();
+  jamHappyModal.classList.add('hidden'); appEl.classList.remove('vanishing');
+  startSequencer(); openPreJamArmModal();
 });
 
 function openJamEndModal() {
   activeJamRecordName = makeTimestampName(); jamNameInput.value = activeJamRecordName;
-  if (gameMode === 'online') {
-    jamEndMeta.innerHTML = escapeHtml(roomCountries.player1) + ' ' + HEART_HTML + ' ' + escapeHtml(roomCountries.player2);
-    jamEndMeta.classList.remove('hidden');
-    btnJamSend.classList.remove('hidden');
-  } else {
-    jamEndMeta.textContent = ''; jamEndMeta.classList.add('hidden');
-    btnJamSend.classList.add('hidden');
-  }
+  if (gameMode === 'online') { jamEndMeta.innerHTML = escapeHtml(roomCountries.player1) + ' ' + HEART_HTML + ' ' + escapeHtml(roomCountries.player2); jamEndMeta.classList.remove('hidden'); btnJamSend.classList.remove('hidden'); }
+  else { jamEndMeta.textContent = ''; jamEndMeta.classList.add('hidden'); btnJamSend.classList.add('hidden'); }
   btnJamSave.textContent = 'SAVE'; btnJamSave.classList.remove('btn-done-state'); btnJamSave.disabled = true;
   btnJamShare.textContent = 'SHARE'; btnJamShare.classList.remove('btn-done-state'); btnJamShare.disabled = true;
   btnJamSend.textContent = 'SEND TO BEATFRIEND'; btnJamSend.classList.remove('btn-done-state'); btnJamSend.disabled = true;
-
-  setJamEndStatus('FINALIZING AUDIO...');
-  savedRecordId = null; jamEndModal.classList.remove('hidden');
+  setJamEndStatus('FINALIZING AUDIO...'); savedRecordId = null; jamEndModal.classList.remove('hidden');
   finalizeJamRecording(function(blob) {
-    if (blob && blob.size > 0) {
-      setJamEndStatus('');
-      btnJamSave.disabled = false;
-      btnJamShare.disabled = false;
-      if (gameMode === 'online' && partnerInfo.uid) btnJamSend.disabled = false;
-    } else {
-      setJamEndStatus('NO AUDIO CAPTURED IN THIS BROWSER');
-    }
+    if (blob && blob.size > 0) { setJamEndStatus(''); btnJamSave.disabled = false; btnJamShare.disabled = false; if (gameMode === 'online' && partnerInfo.uid) btnJamSend.disabled = false; }
+    else setJamEndStatus('NO AUDIO CAPTURED IN THIS BROWSER');
   });
 }
 
@@ -3291,10 +2840,8 @@ btnJamSave.addEventListener('click', function() {
   var rec = { id: savedRecordId || ('jam-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)), name: chosenName, createdAt: Date.now(), bpm: bpm, mimeType: recMimeInfo.mime, ext: recMimeInfo.ext, blob: recordedBlob };
   btnJamSave.disabled = true;
   dbPutRecording(rec).then(function() {
-    savedRecordId = rec.id; btnJamSave.disabled = false;
-    btnJamSave.textContent = 'SAVED ✓'; btnJamSave.classList.add('btn-done-state');
-    setJamEndStatus(isUpdate ? 'RENAMED & SAVED TO LIBRARY' : 'SAVED TO LIBRARY');
-    refreshLibraryBadge();
+    savedRecordId = rec.id; btnJamSave.disabled = false; btnJamSave.textContent = 'SAVED ✓'; btnJamSave.classList.add('btn-done-state');
+    setJamEndStatus(isUpdate ? 'RENAMED & SAVED TO LIBRARY' : 'SAVED TO LIBRARY'); refreshLibraryBadge();
   }).catch(function() { btnJamSave.disabled = false; setJamEndStatus('SAVE FAILED (STORAGE FULL/BLOCKED)'); });
 });
 
@@ -3303,72 +2850,25 @@ btnJamShare.addEventListener('click', function() {
   var chosenName = sanitizeTrackName(jamNameInput.value) || activeJamRecordName || makeTimestampName(); jamNameInput.value = chosenName;
   shareOrDownloadAudio(recordedBlob, chosenName, recMimeInfo.ext, recMimeInfo.mime, bpm, function(msg, statusType) {
     setJamEndStatus(msg);
-    if (statusType === 'shared' || statusType === 'downloaded') {
-      btnJamShare.textContent = statusType === 'shared' ? 'SHARED ✓' : 'DOWNLOADED ✓';
-      btnJamShare.classList.add('btn-done-state');
-    }
+    if (statusType === 'shared' || statusType === 'downloaded') { btnJamShare.textContent = statusType === 'shared' ? 'SHARED ✓' : 'DOWNLOADED ✓'; btnJamShare.classList.add('btn-done-state'); }
   });
 });
 
 btnJamSend.addEventListener('click', function() {
   if (!recordedBlob || gameMode !== 'online' || !partnerInfo.uid) return;
   var chosenName = sanitizeTrackName(jamNameInput.value) || activeJamRecordName || makeTimestampName(); jamNameInput.value = chosenName;
-  btnJamSend.disabled = true;
-  btnJamSend.textContent = 'SENDING...';
-  setJamEndStatus('ENCODING & SENDING TO BEATFRIEND...');
-
-  var mainPromise = blobToDataUrl(recordedBlob);
-  var vocalPromise = Promise.resolve(null);
-  if (vocalBuffer) {
-    var wavBlob = encodeAudioBufferToWavBlob(vocalBuffer);
-    if (wavBlob.size < 3500000) vocalPromise = blobToDataUrl(wavBlob).catch(function() { return null; });
-  }
-
+  btnJamSend.disabled = true; btnJamSend.textContent = 'SENDING...'; setJamEndStatus('ENCODING & SENDING TO BEATFRIEND...');
+  var mainPromise = blobToDataUrl(recordedBlob), vocalPromise = Promise.resolve(null);
+  if (vocalBuffer) { var wavBlob = encodeAudioBufferToWavBlob(vocalBuffer); if (wavBlob.size < 3500000) vocalPromise = blobToDataUrl(wavBlob).catch(function() { return null; }); }
   Promise.all([mainPromise, vocalPromise]).then(function(results) {
-    var audioDataUrl = results[0], vocalStemDataUrl = results[1];
-    var sessionMeta = {
-      bpm: bpm,
-      swingMode: currentSwingMode,
-      tracks: serializeMove().tracks,
-      trackMutes: trackMutes.slice(),
-      vocalMacro: samplerMacroValue,
-      vocalVolume: vocalVolume,
-      hasVocalStem: !!vocalBuffer,
-      durationSec: JAM_SECONDS
-    };
-    return db.ref('mail/' + partnerInfo.uid).push({
-      fromId: myClientId,
-      fromName: 'BEATFRIEND · ' + myCountryCode,
-      fromCountry: myCountryCode,
-      toCountry: partnerInfo.country || '---',
-      trackName: chosenName,
-      bpm: bpm,
-      audioDataUrl: audioDataUrl,
-      vocalStemDataUrl: vocalStemDataUrl || null,
-      mimeType: recMimeInfo.mime || 'audio/webm',
-      ext: recMimeInfo.ext || 'webm',
-      sessionMeta: sessionMeta,
-      archived: false,
-      createdAtMs: Date.now()
-    });
+    var sessionMeta = { bpm: bpm, swingMode: currentSwingMode, tracks: serializeMove().tracks, trackMutes: trackMutes.slice(), vocalMacro: samplerMacroValue, vocalVolume: vocalVolume, hasVocalStem: !!vocalBuffer, durationSec: JAM_SECONDS };
+    return db.ref('mail/' + partnerInfo.uid).push({ fromId: myClientId, fromName: 'BEATFRIEND · ' + myCountryCode, fromCountry: myCountryCode, toCountry: partnerInfo.country || '---', trackName: chosenName, bpm: bpm, audioDataUrl: results[0], vocalStemDataUrl: results[1] || null, mimeType: recMimeInfo.mime || 'audio/webm', ext: recMimeInfo.ext || 'webm', sessionMeta: sessionMeta, archived: false, createdAtMs: Date.now() });
   }).then(function() {
-    btnJamSend.textContent = 'SENT ✓';
-    btnJamSend.classList.add('btn-done-state');
-    btnJamSend.disabled = true;
-    setJamEndStatus('JAM SENT TO ' + (partnerInfo.country || 'BEATFRIEND') + '!');
-  }).catch(function(err) {
-    console.error('Send jam error:', err);
-    btnJamSend.textContent = 'SEND TO BEATFRIEND';
-    btnJamSend.disabled = false;
-    setJamEndStatus('SEND FAILED — CHECK CONNECTION');
-  });
+    btnJamSend.textContent = 'SENT ✓'; btnJamSend.classList.add('btn-done-state'); btnJamSend.disabled = true; setJamEndStatus('JAM SENT TO ' + (partnerInfo.country || 'BEATFRIEND') + '!');
+  }).catch(function() { btnJamSend.textContent = 'SEND TO BEATFRIEND'; btnJamSend.disabled = false; setJamEndStatus('SEND FAILED — CHECK CONNECTION'); });
 });
 
-btnJamLetGo.addEventListener('click', function() {
-  abortJamRecording();
-  jamEndModal.classList.add('hidden');
-  resetToNewRound();
-});
+btnJamLetGo.addEventListener('click', function() { abortJamRecording(); jamEndModal.classList.add('hidden'); resetToNewRound(); });
 
 var helpOverlay = $('helpOverlay'), helpHeaderTitle = $('helpHeaderTitle'), helpGate = $('helpGate'), helpGateQ = $('helpGateQ'), helpGateSub = $('helpGateSub'), helpGuideScroll = $('helpGuideScroll');
 var btnOpenHelp = $('btnOpenHelp'), btnHelpBack = $('btnHelpBack'), btnHelpClose = $('btnHelpClose'), btnHelpYes = $('btnHelpYes'), btnHelpNo = $('btnHelpNo');
@@ -3393,41 +2893,39 @@ var SHOTS = {
 var HELP_CONTENT = {
   en: {
     headerGate: 'MANUAL', headerYes: 'HIDDEN FEATURES', headerNo: 'FULL GUIDE', back: 'BACK', close: 'CLOSE',
-    gateQ: 'DO YOU KNOW HOW TO USE A DRUM MACHINE & SYNTH?', gateSub: 'CHOOSE A GUIDE TAILORED TO YOUR LEVEL',
-    btnYes: 'YES — HIDDEN FEATURES', btnNo: 'NO — EXPLAIN EVERYTHING',
+    gateQ: 'DO YOU KNOW HOW TO USE A DRUM MACHINE & SYNTH?', gateSub: 'CHOOSE A GUIDE TAILORED TO YOUR LEVEL', btnYes: 'YES — HIDDEN FEATURES', btnNo: 'NO — EXPLAIN EVERYTHING',
     yesCards: [
       { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('HOLD ANY PAD TO TOGGLE'), body: 'Hold any drum pad to toggle <strong>Accent Mode</strong> (Normal → Accent → Ghost → Off). Swipe pads to draw fast.' },
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('SWITCH IN HEADER → HOLD BUTTON → TAP STEPS'), body: 'Choose <strong>PER STEP</strong>, <strong>RETRIG</strong>, or <strong>CHANCE</strong>, hold <strong>HOLD</strong>, and tap active steps to customize parameters, repeats, or probability.' },
       { title: '3. SWITCHABLE PAIRS & POLYMETERS', shot: SHOTS.pairSwitch, body: 'Tap the dimmed name on <strong>SNARE / CLAP</strong> or <strong>SHAKER / WOODBLOCK</strong> to switch instruments. Lower <strong>STEPS (3–16)</strong> for polymeters.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDERS & TIES', shot: SHOTS.dualBox('HOLD BOX TO CYCLE PARAMETER'), body: 'Hold slider boxes to cycle <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong>, and <strong>REVERB / GLIDE</strong>. Drag sideways to tie notes.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Connect headphones (or tap Using Headphones Without Mic), dial in the <strong>DRY ↔ WET Macro</strong>, toggle <strong>METRO</strong> if needed, and tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in.' },
-      { title: '6. PRE-JAM ARMING, RADIO FX & RE-JAM', shot: SHOTS.jamFx, body: 'Arm starting tracks, hold <strong>CRUSH/GATE</strong> for bitcrushed drums + <strong>AM Radio Vocals</strong>, and choose <strong>YES / NEXT</strong> or <strong>NO / JAM AGAIN</strong> after 60s!' }
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Tap <strong>USE HEADPHONES & RECORD VOCAL</strong>, dial in the <strong>DRY ↔ WET Macro</strong>, toggle <strong>METRO</strong> if needed, and tap <strong>RECORD</strong> for the <strong>4-3-2-1</strong> count-in. Mic closes automatically after recording for full playback preview.' },
+      { title: '6. PRE-JAM ARMING, RADIO FX & RE-JAM', shot: SHOTS.jamFx, body: 'Arm starting tracks, hold <strong>CRUSH/GATE</strong> for bitcrushed drums + <strong>Radio Vocals</strong>, and choose <strong>YES / NEXT</strong> or <strong>NO / JAM AGAIN</strong> after 60s!' }
     ],
     noCards: [
       { title: '1. HOW BEATFRIENDS WORKS', shot: SHOTS.startModes, body: 'Build 7 shared tracks, record a personal <strong>4-bar Vocal/Sample</strong>, pick a <strong>Groove</strong>, and perform a live 60s Jam. In 2-Player mode, send your jam to your Beatfriend!' },
       { title: '2. DRUM GRID & SOUND CONTROLS', shot: SHOTS.drumGrid, body: 'Tap or swipe pads to place beats. Hold a pad for Accent Mode. Tweak Pitch, Decay, Lowpass, Reverb, Steps & Volume below.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Pick a waveform, tap notes, or drag sideways to hold long notes. Tap <strong>+ / -</strong> to expand up to 4 bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Connect headphones! Adjust the Effect Macro, toggle <strong>METRO</strong> if desired, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, record 4 bars, or skip straight to Groove.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Use headphones for best results! Adjust the Effect Macro, toggle <strong>METRO</strong> if desired, tap <strong>RECORD</strong>, wait for <strong>4-3-2-1</strong>, record 4 bars, or skip straight to Groove.' },
       { title: '5. LIVE JAM, RE-JAM & MAILBOX', shot: SHOTS.jamFull, body: 'Arm tracks, tap <strong>START</strong>, mute <strong>BD..VOX</strong>, and hold the 4 vinyls for DJ FX. After 60s, re-jam if you want another take, or Save, Share & Send!' }
     ]
   },
   de: {
     headerGate: 'ANLEITUNG', headerYes: 'VERSTECKTE FEATURES', headerNo: 'KOMPLETTER GUIDE', back: 'ZURÜCK', close: 'SCHLIESSEN',
-    gateQ: 'WEISST DU, WIE MAN EINE DRUM MACHINE & EINEN SYNTH BEDIENT?', gateSub: 'WÄHLE DIE PASSENDE ANLEITUNG',
-    btnYes: 'JA — VERSTECKTE FEATURES', btnNo: 'NEIN — ALLES ERKLÄREN',
+    gateQ: 'WEISST DU, WIE MAN EINE DRUM MACHINE & EINEN SYNTH BEDIENT?', gateSub: 'WÄHLE DIE PASSENDE ANLEITUNG', btnYes: 'JA — VERSTECKTE FEATURES', btnNo: 'NEIN — ALLES ERKLÄREN',
     yesCards: [
       { title: '1. DRUMS: LONG-PRESS ACCENT MODE', shot: SHOTS.drumAccent('PAD HALTEN ZUM UMSCHALTEN'), body: 'Halte ein Drum-Pad für <strong>Accent Mode</strong> (Normal → Accent → Ghost → Off). Wischen zeichnet schnelle Patterns.' },
       { title: '2. PER STEP, RETRIG & CHANCE', shot: SHOTS.perStep('IM HEADER WÄHLEN → BUTTON HALTEN → STEPS TIPPEN'), body: 'Wähle <strong>PER STEP</strong>, <strong>RETRIG</strong> oder <strong>CHANCE</strong>, halte <strong>HOLD</strong> und tippe aktive Steps an.' },
       { title: '3. WECHSELBARE PAARE & POLYMETER', shot: SHOTS.pairSwitch, body: 'Tippe bei <strong>SNARE / CLAP</strong> oder <strong>SHAKER / WOODBLOCK</strong> auf den gedimmten Namen. Kürze <strong>STEPS (3–16)</strong> für Polyrhythmen.' },
       { title: '4. SYNTH & BASS: MULTI-SLIDER & TIES', shot: SHOTS.dualBox('BOX HALTEN ZUM WECHSELN'), body: 'Halte Slider-Boxen für <strong>ATTACK / DECAY / RELEASE</strong>, <strong>LOWPASS / RESONANCE</strong> und <strong>REVERB / GLIDE</strong>.' },
-      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Kopfhörer verbinden, <strong>DRY ↔ WET Macro</strong> einstellen, optional <strong>METRO</strong> an, <strong>RECORD</strong> tippen für den <strong>4-3-2-1</strong> Count-In.' },
-      { title: '6. PRE-JAM ARMING, RADIO FX & RE-JAM', shot: SHOTS.jamFx, body: 'Tracks aktivieren, <strong>CRUSH/GATE</strong> für Bitcrush-Drums + <strong>AM Radio Vocals</strong> halten, und nach 60s direkt <strong>NO / JAM AGAIN</strong> oder speichern!' }
+      { title: '5. VOCAL / SAMPLER: 4-BAR LOOP', shot: SHOTS.sampler, body: 'Tippe <strong>USE HEADPHONES & RECORD VOCAL</strong>, stelle <strong>DRY ↔ WET</strong> ein, optional <strong>METRO</strong> an, und <strong>RECORD</strong> für den <strong>4-3-2-1</strong> Count-In. Nach der Aufnahme schließt das Mikro automatisch für die volle Vorschau.' },
+      { title: '6. PRE-JAM ARMING, RADIO FX & RE-JAM', shot: SHOTS.jamFx, body: 'Tracks aktivieren, <strong>CRUSH/GATE</strong> für Bitcrush-Drums + <strong>Radio Vocals</strong> halten, und nach 60s direkt <strong>NO / JAM AGAIN</strong> oder speichern!' }
     ],
     noCards: [
       { title: '1. SO FUNKTIONIERT BEATFRIENDS', shot: SHOTS.startModes, body: 'Baut 7 Basis-Tracks, nehmt dann unabhängig eure eigene <strong>4-Bar Vocal/Sample-Spur</strong> auf, wählt den Groove und jammt 60s live!' },
       { title: '2. DRUM-GRID & REGLER', shot: SHOTS.drumGrid, body: 'Tippe oder wische über Pads. Halte ein Pad für Accent Mode. Regle Pitch, Decay, Lowpass, Reverb, Steps & Volume.' },
       { title: '3. BASSLINE & SYNTH PIANO ROLL', shot: SHOTS.pianoWave, body: 'Wähle eine Waveform, tippe Noten oder ziehe waagerecht für lange Töne. Mit <strong>+ / -</strong> bis zu 4 Bars.' },
-      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer anschließen! Macro einstellen, optional <strong>METRO</strong> an, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen oder direkt überspringen.' },
+      { title: '4. VOCAL / LIVE SAMPLER', shot: SHOTS.sampler, body: 'Kopfhörer nutzen! Macro einstellen, optional <strong>METRO</strong> an, <strong>RECORD</strong> tippen, nach <strong>4-3-2-1</strong> 4 Takte aufnehmen oder direkt überspringen.' },
       { title: '5. LIVE JAM, RE-JAM & POSTFACH', shot: SHOTS.jamFull, body: 'Tracks aktivieren, <strong>START</strong> tippen, live muten & Vinyl-FX nutzen. Nach 60s nochmal jammen oder speichern, teilen & senden!' }
     ]
   }
@@ -3710,40 +3208,28 @@ function detachOnlineRoom() {
 function isMyTurn() { return gameMode === 'online' && onlineMatchActive && myRole === roomTurn; }
 function updateOnlineCountryBadges() {
   var c1 = roomCountries.player1 || '---', c2 = roomCountries.player2 || '---';
-  p1CountryBadge.textContent = 'P1 · ' + c1;
-  p2CountryBadge.textContent = 'P2 · ' + c2;
-  p1CountryBadge.classList.toggle('is-me', myRole === 'player1');
-  p2CountryBadge.classList.toggle('is-me', myRole === 'player2');
+  p1CountryBadge.textContent = 'P1 · ' + c1; p2CountryBadge.textContent = 'P2 · ' + c2;
+  p1CountryBadge.classList.toggle('is-me', myRole === 'player1'); p2CountryBadge.classList.toggle('is-me', myRole === 'player2');
   if (gameMode === 'online') {
     swingSubLogo.innerHTML = escapeHtml(c1) + ' ' + HEART_HTML + ' ' + escapeHtml(c2) + ' · TIMING FEEL';
-    jamMatchup.innerHTML = escapeHtml(c1) + ' ' + HEART_HTML + ' ' + escapeHtml(c2);
-    jamMatchup.classList.remove('hidden');
-  } else {
-    swingSubLogo.textContent = 'SELECT TIMING FEEL';
-    jamMatchup.classList.add('hidden');
-  }
+    jamMatchup.innerHTML = escapeHtml(c1) + ' ' + HEART_HTML + ' ' + escapeHtml(c2); jamMatchup.classList.remove('hidden');
+  } else { swingSubLogo.textContent = 'SELECT TIMING FEEL'; jamMatchup.classList.add('hidden'); }
 }
 function updateTurnStatusUI() {
   if (gameMode !== 'online' || !onlineMatchActive) { lockedOverlay.classList.add('hidden'); return; }
   updateOnlineCountryBadges();
   var cname = getActiveInstConfig(turnIndex).name.toUpperCase(), turnC = roomCountries[roomTurn] || '---';
   if (isMyTurn()) { lockedOverlay.classList.add('hidden'); nextBtn.textContent = 'NEXT'; }
-  else {
-    lockedOverlay.classList.remove('hidden'); lockedTitle.textContent = "BEATFRIEND'S TURN...";
-    lockedSub.textContent = (roomTurn === 'player1' ? 'P1' : 'P2') + ' (' + turnC + ') IS ADDING ' + cname;
-    nextBtn.textContent = 'WAITING...';
-  }
+  else { lockedOverlay.classList.remove('hidden'); lockedTitle.textContent = "BEATFRIEND'S TURN..."; lockedSub.textContent = (roomTurn === 'player1' ? 'P1' : 'P2') + ' (' + turnC + ') IS ADDING ' + cname; nextBtn.textContent = 'WAITING...'; }
 }
 function toArrayN(val, len, def) { var out = []; for (var i = 0; i < len; i++) out.push((val && val[i] !== undefined) ? val[i] : def); return out; }
 function serializeStepLocks(locksObj) {
-  if (!locksObj) return null;
-  var out = {}, count = 0;
+  if (!locksObj) return null; var out = {}, count = 0;
   for (var s in locksObj) if (Object.prototype.hasOwnProperty.call(locksObj, s) && locksObj[s]) { var cloned = cloneStepLockObj(locksObj[s]); if (cloned) { out[String(s)] = cloned; count++; } }
   return count > 0 ? out : null;
 }
 function serializeNumericLockMap(mapObj) {
-  if (!mapObj) return null;
-  var out = {}, count = 0;
+  if (!mapObj) return null; var out = {}, count = 0;
   for (var s in mapObj) if (Object.prototype.hasOwnProperty.call(mapObj, s) && mapObj[s] !== undefined) { out[String(s)] = Number(mapObj[s]); count++; }
   return count > 0 ? out : null;
 }
@@ -3786,13 +3272,10 @@ function applyOpponentMove(moveData) {
       tracks[i].trackLength = sanitizeTrackLength(mt.trackLength || STEPS); tracks[i].notes = mt.notes ? toArrayN(mt.notes, MAX_MELODIC_STEPS, 0) : tracks[i].notes; tracks[i].tied = mt.tied ? toArrayN(mt.tied, MAX_MELODIC_STEPS, false) : tracks[i].tied;
     } else {
       if (mt.steps) tracks[i].steps = toArrayN(mt.steps, MAX_MELODIC_STEPS, false);
-      tracks[i].notes = mt.notes ? toArrayN(mt.notes, MAX_MELODIC_STEPS, 0) : tracks[i].notes;
-      tracks[i].tied = mt.tied ? toArrayN(mt.tied, MAX_MELODIC_STEPS, false) : tracks[i].tied;
-      tracks[i].barCount = sanitizeBarCount(mt.barCount || 1);
-      if ((viewedBar[i] || 0) >= tracks[i].barCount) viewedBar[i] = tracks[i].barCount - 1;
+      tracks[i].notes = mt.notes ? toArrayN(mt.notes, MAX_MELODIC_STEPS, 0) : tracks[i].notes; tracks[i].tied = mt.tied ? toArrayN(mt.tied, MAX_MELODIC_STEPS, false) : tracks[i].tied;
+      tracks[i].barCount = sanitizeBarCount(mt.barCount || 1); if ((viewedBar[i] || 0) >= tracks[i].barCount) viewedBar[i] = tracks[i].barCount - 1;
     }
-    tracks[i].waveform = mt.waveform || 'sine';
-    tracks[i].stepLocks = parseStepLocks(mt.stepLocks); tracks[i].retrigLocks = parseNumericLockMap(mt.retrigLocks); tracks[i].chanceLocks = parseNumericLockMap(mt.chanceLocks);
+    tracks[i].waveform = mt.waveform || 'sine'; tracks[i].stepLocks = parseStepLocks(mt.stepLocks); tracks[i].retrigLocks = parseNumericLockMap(mt.retrigLocks); tracks[i].chanceLocks = parseNumericLockMap(mt.chanceLocks);
     if (mt.params) {
       var def = INSTRUMENTS[i].defaults;
       tracks[i].params = { pitch: mt.params.pitch !== undefined ? mt.params.pitch : tracks[i].params.pitch, decay: mt.params.decay !== undefined ? mt.params.decay : tracks[i].params.decay, filter: mt.params.filter !== undefined ? mt.params.filter : tracks[i].params.filter, reverb: mt.params.reverb !== undefined ? mt.params.reverb : 0.0, volume: mt.params.volume !== undefined ? mt.params.volume : 1.0 };
@@ -3804,11 +3287,11 @@ function applyOpponentMove(moveData) {
 function applyIncomingMoveIfNew(m) { if (!m || !m.timestamp || m.sender === myRole || m.timestamp === lastHandledMoveTimestamp) return false; lastHandledMoveTimestamp = m.timestamp; applyOpponentMove(m); return true; }
 
 function startOnlineMatchmaking() {
-  stopClubAmbience();
+  stopClubAmbience(); stopSamplerMicStream();
   initAndUnlockAudio(false); gameMode = 'online'; onlineMatchActive = true; myRole = null; currentRoomId = null; turnIndex = 0; accentMode = false;
   battleLaunched = false; lastHandledMoveTimestamp = 0; isSendingMove = false; samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false; clearTimeout(oppDisconnectTimer);
-  applyVocalVolume(1.0); samplerMonitorOn = true; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false;
-  wipeVocalRecording(false);
+  applyVocalVolume(1.0); samplerMonitorOn = false; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false;
+  wipeVocalRecording();
   roomCountries = { player1: '---', player2: '---' }; partnerInfo = { uid: '', country: '---', role: '' }; detectCountryAsync();
   helpOverlay.classList.add('hidden'); libraryOverlay.classList.add('hidden'); mailOverlay.classList.add('hidden');
   startScreen.classList.add('hidden'); waitingScreen.classList.remove('hidden'); $('waitingStatusText').textContent = 'SEARCHING FOR BEATFRIEND...';
@@ -3844,16 +3327,11 @@ function launchOnlineBattle() {
     if (data.players) {
       if (data.players.player1 && data.players.player1.country) roomCountries.player1 = data.players.player1.country;
       if (data.players.player2 && data.players.player2.country) roomCountries.player2 = data.players.player2.country;
-      if (data.players[opp]) {
-        partnerInfo.role = opp;
-        if (data.players[opp].country) partnerInfo.country = data.players[opp].country;
-        if (data.players[opp].uid) partnerInfo.uid = data.players[opp].uid;
-      }
+      if (data.players[opp]) { partnerInfo.role = opp; if (data.players[opp].country) partnerInfo.country = data.players[opp].country; if (data.players[opp].uid) partnerInfo.uid = data.players[opp].uid; }
     }
     if (data.status === 'divergent' || data.status === 'swing') {
       if (data.lastMove) applyIncomingMoveIfNew(data.lastMove);
-      updateOnlineCountryBadges();
-      detachOnlineRoom();
+      updateOnlineCountryBadges(); detachOnlineRoom();
       if (!samplerScreenActive && !swingScreenActive && !jamActive && !jamArmedPending) openSamplerScreen();
       return;
     }
@@ -3888,14 +3366,13 @@ function cancelMatchmaking() {
   if (p2JoinRef) { p2JoinRef.off(); p2JoinRef = null; }
   if (waitingQueueRef && myRole === 'player1') { waitingQueueRef.onDisconnect().cancel(); waitingQueueRef.remove(); }
   if (roomRef) { roomRef.off(); if (myRole === 'player1') roomRef.remove(); roomRef = null; }
-  waitingScreen.classList.add('hidden'); startScreen.classList.remove('hidden');
-  updateClubAmbienceState();
+  waitingScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); updateClubAmbienceState();
 }
 function exitToMainMenu() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); hideAccentBannerImmediate();
   jamStopCallbacks = []; jamStoppingNow = false; abortJamRecording();
   samplerMonitorOn = false; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false;
-  wipeVocalRecording(false); stopSamplerMicStream();
+  wipeVocalRecording();
   samplerScreenActive = false; swingScreenActive = false; jamActive = false; jamArmedPending = false;
   battleLaunched = false; isSendingMove = false;
   if (roomRef && myRole) try { roomRef.child('players/' + myRole + '/connected').set(false); } catch (e) {}
@@ -4183,10 +3660,7 @@ mutePads.forEach(function(pad) {
 armPads.forEach(function(pad) {
   pad.addEventListener('pointerdown', function(e) {
     e.preventDefault(); ensureAudioUnlocked();
-    var idx = parseInt(pad.getAttribute('data-arm-inst'));
-    trackMutes[idx] = !trackMutes[idx];
-    setTrackMuteAudio(idx, trackMutes[idx]);
-    updateMutePadsUI();
+    var idx = parseInt(pad.getAttribute('data-arm-inst')); trackMutes[idx] = !trackMutes[idx]; setTrackMuteAudio(idx, trackMutes[idx]); updateMutePadsUI();
   });
 });
 holdBtn.addEventListener('pointerdown', function(e) { e.preventDefault(); ensureAudioUnlocked(); isHoldActive = true; holdPointerId = e.pointerId; stagedMutes = trackMutes.slice(); holdBtn.classList.add('active'); updateMutePadsUI(); });
@@ -4269,20 +3743,18 @@ volumeSlider.addEventListener('input', function(e) {
 });
 
 function startGame() {
-  stopClubAmbience();
-  resetTracks(); applyVocalVolume(1.0); samplerMonitorOn = true; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false; wipeVocalRecording(false); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
+  stopClubAmbience(); stopSamplerMicStream();
+  resetTracks(); applyVocalVolume(1.0); samplerMonitorOn = false; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false; wipeVocalRecording(); turnIndex = 0; accentMode = false; hideAccentBannerImmediate();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
   currentSwingMode = 'straight'; updateSwingUI();
   trackMutes = [false, false, false, false, false, false, false, false]; updateMutePadsUI(); dragPointerId = null; pianoPointerId = null;
   jamMatchup.classList.add('hidden'); swingSubLogo.textContent = 'SELECT TIMING FEEL';
   startScreen.classList.add('hidden'); samplerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamScreen.classList.add('hidden'); jamHappyModal.classList.add('hidden'); jamEndModal.classList.add('hidden'); sequencerScreen.classList.remove('hidden');
-  updateClubAmbienceState();
-  renderTurn(); startSequencer();
+  updateClubAmbienceState(); renderTurn(); startSequencer();
 }
 function nextTurn() {
   cancelDrumLongPress(); cancelAllDualLongPresses(); releasePerStepMode(); dragPointerId = null; pianoPointerId = null;
-  if (turnIndex < INSTRUMENTS.length - 1) { turnIndex++; renderTurn(); }
-  else openSamplerScreen();
+  if (turnIndex < INSTRUMENTS.length - 1) { turnIndex++; renderTurn(); } else openSamplerScreen();
 }
 function setSwingMode(m) { currentSwingMode = m; updateSwingUI(); }
 function updateSwingUI() { btnPush.classList.toggle('active', currentSwingMode === 'push'); btnStraight.classList.toggle('active', currentSwingMode === 'straight'); btnGroove.classList.toggle('active', currentSwingMode === 'groove'); }
@@ -4327,27 +3799,16 @@ function drawStartScene(nowMs) {
   if (!startSceneCanvas || !startSceneCtx) return;
   var t = (nowMs || 0) * 0.001, ctx = startSceneCtx, W = startSceneCanvas.width, H = startSceneCanvas.height;
   ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  var dimStars = [[7, 8], [16, 13], [35, 6], [60, 7], [104, 19], [11, 25], [102, 27]];
-  ctx.fillStyle = '#484848';
+  var dimStars = [[7, 8], [16, 13], [35, 6], [60, 7], [104, 19], [11, 25], [102, 27]]; ctx.fillStyle = '#484848';
   for (var st = 0; st < dimStars.length; st++) ctx.fillRect(dimStars[st][0], dimStars[st][1], 1, 1);
   var brightStars = [[11, 5], [50, 4], [99, 9]];
-  for (var bs = 0; bs < brightStars.length; bs++) {
-    var bx = brightStars[bs][0], by = brightStars[bs][1];
-    ctx.fillStyle = '#555'; ctx.fillRect(bx - 1, by, 3, 1); ctx.fillRect(bx, by - 1, 1, 3);
-    ctx.fillStyle = '#fff'; ctx.fillRect(bx, by, 1, 1);
-  }
-  var mx = 74, my = 19, mr = 14;
-  var moonHalo = ctx.createRadialGradient(mx, my, mr - 1, mx, my, mr + 15);
+  for (var bs = 0; bs < brightStars.length; bs++) { var bx = brightStars[bs][0], by = brightStars[bs][1]; ctx.fillStyle = '#555'; ctx.fillRect(bx - 1, by, 3, 1); ctx.fillRect(bx, by - 1, 1, 3); ctx.fillStyle = '#fff'; ctx.fillRect(bx, by, 1, 1); }
+  var mx = 74, my = 19, mr = 14, moonHalo = ctx.createRadialGradient(mx, my, mr - 1, mx, my, mr + 15);
   moonHalo.addColorStop(0, 'rgba(255,255,255,0.20)'); moonHalo.addColorStop(0.45, 'rgba(255,255,255,0.08)'); moonHalo.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = moonHalo; ctx.fillRect(mx - mr - 15, my - mr - 15, (mr + 15) * 2, (mr + 15) * 2);
-  for (var y = -mr; y <= mr; y++) {
-    for (var x = -mr; x <= mr; x++) {
-      if (x * x + y * y <= mr * mr) {
-        var d = Math.sqrt(x * x + y * y), isRim = d > mr - 1.2;
-        var isCrater = ((x + 3) * (x + 3) + (y - 3) * (y - 3) <= 7) || ((x - 5) * (x - 5) + (y + 3) * (y + 3) <= 5) || ((x + 1) * (x + 1) + (y + 7) * (y + 7) <= 3);
-        ctx.fillStyle = isRim ? '#c8c8c8' : (isCrater ? '#d4d4d4' : '#fff'); ctx.fillRect(mx + x, my + y, 1, 1);
-      }
-    }
+  for (var y = -mr; y <= mr; y++) for (var x = -mr; x <= mr; x++) if (x * x + y * y <= mr * mr) {
+    var d = Math.sqrt(x * x + y * y), isRim = d > mr - 1.2, isCrater = ((x + 3) * (x + 3) + (y - 3) * (y - 3) <= 7) || ((x - 5) * (x - 5) + (y + 3) * (y + 3) <= 5) || ((x + 1) * (x + 1) + (y + 7) * (y + 7) <= 3);
+    ctx.fillStyle = isRim ? '#c8c8c8' : (isCrater ? '#d4d4d4' : '#fff'); ctx.fillRect(mx + x, my + y, 1, 1);
   }
   var skyClouds = [{ x0: 8, y: 8, w: 26, h: 3, spd: 1.4, bodyA: 0.56, rimA: 0.22 }, { x0: 54, y: 12, w: 30, h: 4, spd: 1.1, bodyA: 0.64, rimA: 0.26 }, { x0: 78, y: 20, w: 28, h: 3, spd: 1.7, bodyA: 0.60, rimA: 0.24 }, { x0: 30, y: 16, w: 22, h: 3, spd: 0.9, bodyA: 0.50, rimA: 0.20 }];
   for (var sc = 0; sc < skyClouds.length; sc++) {
@@ -4355,44 +3816,22 @@ function drawStartScene(nowMs) {
     ctx.fillStyle = 'rgba(72,72,72,' + cl.rimA + ')'; ctx.fillRect(cxPos + 3, cl.y, cl.w - 6, 1);
     ctx.fillStyle = 'rgba(14,14,14,' + cl.bodyA + ')'; ctx.fillRect(cxPos + 1, cl.y + 1, cl.w - 2, cl.h - 2); ctx.fillRect(cxPos, cl.y + cl.h - 1, cl.w, 1);
   }
-  var beatDur = 60 / 122;
-  var beatAge = ((t % beatDur) + beatDur) % beatDur;
+  var beatDur = 60 / 122, beatAge = ((t % beatDur) + beatDur) % beatDur;
   if (clubAmbienceActive && clubBeatTimesMs.length > 0) {
     var latestBeatMs = -1;
-    for (var cb = clubBeatTimesMs.length - 1; cb >= 0; cb--) {
-      if (clubBeatTimesMs[cb] <= nowMs + 18) { latestBeatMs = clubBeatTimesMs[cb]; break; }
-    }
-    if (latestBeatMs >= 0 && (nowMs - latestBeatMs) < 1200) {
-      beatAge = Math.max(0, (nowMs - latestBeatMs) / 1000);
-    }
+    for (var cb = clubBeatTimesMs.length - 1; cb >= 0; cb--) if (clubBeatTimesMs[cb] <= nowMs + 18) { latestBeatMs = clubBeatTimesMs[cb]; break; }
+    if (latestBeatMs >= 0 && (nowMs - latestBeatMs) < 1200) beatAge = Math.max(0, (nowMs - latestBeatMs) / 1000);
   }
-  var kickEnv = Math.exp(-beatAge * 10.5);
-  var buzz = Math.sin(beatAge * 68.0) * Math.sin(beatAge * 113.0);
-  var flickBright;
-  if (beatAge < 0.048) {
-    flickBright = 1.0;
-  } else if (beatAge < 0.19) {
-    flickBright = (buzz > 0.28) ? 0.22 : (0.55 + 0.45 * kickEnv);
-  } else {
-    flickBright = 0.28 + 0.18 * Math.max(0, Math.sin(t * 9.0)) + (buzz > 0.65 ? -0.12 : 0);
-  }
+  var kickEnv = Math.exp(-beatAge * 10.5), buzz = Math.sin(beatAge * 68.0) * Math.sin(beatAge * 113.0);
+  var flickBright = beatAge < 0.048 ? 1.0 : (beatAge < 0.19 ? ((buzz > 0.28) ? 0.22 : (0.55 + 0.45 * kickEnv)) : (0.28 + 0.18 * Math.max(0, Math.sin(t * 9.0)) + (buzz > 0.65 ? -0.12 : 0)));
   flickBright = Math.max(0.14, Math.min(1.0, flickBright));
   var fv = Math.round(248 * flickBright), fs = Math.round(92 * flickBright);
-
   ctx.fillStyle = '#2c2c2c'; ctx.fillRect(24, 7, 20, 5); ctx.fillStyle = '#3e3e3e'; ctx.fillRect(24, 7, 20, 1); ctx.fillRect(30, 3, 1, 4);
-  ctx.fillStyle = '#111'; ctx.fillRect(26, 8, 7, 4);
-  ctx.fillStyle = '#fff'; ctx.fillRect(27, 9, 5, 2);
-  ctx.fillStyle = '#111'; ctx.fillRect(35, 9, 6, 2);
-
+  ctx.fillStyle = '#111'; ctx.fillRect(26, 8, 7, 4); ctx.fillStyle = '#fff'; ctx.fillRect(27, 9, 5, 2); ctx.fillStyle = '#111'; ctx.fillRect(35, 9, 6, 2);
   ctx.fillStyle = '#262626'; ctx.fillRect(18, 12, 51, 9); ctx.fillStyle = '#1e1e1e'; ctx.fillRect(18, 12, 7, 9);
   ctx.fillStyle = '#383838'; ctx.fillRect(18, 12, 51, 1); ctx.fillStyle = '#2e2e2e'; ctx.fillRect(18, 12, 1, 9); ctx.fillStyle = '#1a1a1a'; ctx.fillRect(68, 12, 1, 9);
   var upWins = [23, 31, 39, 47, 55];
-  for (var uw = 0; uw < upWins.length; uw++) {
-    var ux = upWins[uw];
-    ctx.fillStyle = '#121212'; ctx.fillRect(ux - 1, 15, 6, 4);
-    ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(ux, 16, 4, 2);
-    ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(ux, 18, 4, 1);
-  }
+  for (var uw = 0; uw < upWins.length; uw++) { var ux = upWins[uw]; ctx.fillStyle = '#121212'; ctx.fillRect(ux - 1, 15, 6, 4); ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(ux, 16, 4, 2); ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(ux, 18, 4, 1); }
   ctx.fillStyle = '#2f2f2f'; ctx.fillRect(12, 21, 59, 5); ctx.fillStyle = '#424242'; ctx.fillRect(12, 21, 59, 1);
   ctx.fillStyle = '#363636'; ctx.fillRect(12, 21, 1, 5); ctx.fillStyle = '#1f1f1f'; ctx.fillRect(70, 21, 1, 5); ctx.fillStyle = '#111'; ctx.fillRect(12, 26, 59, 2);
   for (var hx = 16; hx <= 62; hx += 8) { ctx.fillStyle = '#161616'; ctx.fillRect(hx, 23, 4, 2); }
@@ -4402,30 +3841,19 @@ function drawStartScene(nowMs) {
   var seamRows = [37, 44, 51];
   for (var sr = 0; sr < seamRows.length; sr++) { ctx.fillStyle = '#161616'; ctx.fillRect(15, seamRows[sr], 83, 1); ctx.fillStyle = '#2c2c2c'; ctx.fillRect(20, seamRows[sr] + 1, 72, 1); }
   ctx.fillStyle = '#161616'; ctx.fillRect(20, 28, 1, 30); ctx.fillRect(91, 31, 1, 27);
-
   ctx.fillStyle = '#121212'; ctx.fillRect(22, 31, 6, 4); ctx.fillStyle = 'rgb(' + fv + ',' + fv + ',' + fv + ')'; ctx.fillRect(23, 32, 4, 2); ctx.fillStyle = 'rgb(' + fs + ',' + fs + ',' + fs + ')'; ctx.fillRect(23, 34, 4, 1);
   ctx.fillStyle = '#121212'; ctx.fillRect(30, 31, 6, 4); ctx.fillStyle = '#090909'; ctx.fillRect(31, 32, 4, 2);
   ctx.fillStyle = '#121212'; ctx.fillRect(76, 31, 7, 4); ctx.fillStyle = '#090909'; ctx.fillRect(77, 32, 5, 2);
   ctx.fillStyle = '#121212'; ctx.fillRect(84, 31, 6, 4); ctx.fillStyle = '#090909'; ctx.fillRect(85, 32, 4, 2);
   var lowMist = [{ x0: 6, y: 49, w: 34, h: 2, spd: 1.3, a: 0.08 }, { x0: 48, y: 53, w: 38, h: 2, spd: 0.9, a: 0.07 }, { x0: 76, y: 46, w: 28, h: 2, spd: 1.6, a: 0.06 }];
-  for (var lm = 0; lm < lowMist.length; lm++) {
-    var m = lowMist[lm], mxPos = Math.floor(((m.x0 + t * m.spd) % (W + m.w + 10)) - m.w);
-    ctx.fillStyle = 'rgba(220,220,220,' + m.a + ')'; ctx.fillRect(mxPos + 3, m.y, m.w - 6, 1); ctx.fillRect(mxPos, m.y + 1, m.w, m.h - 1);
-  }
+  for (var lm = 0; lm < lowMist.length; lm++) { var m = lowMist[lm], mxPos = Math.floor(((m.x0 + t * m.spd) % (W + m.w + 10)) - m.w); ctx.fillStyle = 'rgba(220,220,220,' + m.a + ')'; ctx.fillRect(mxPos + 3, m.y, m.w - 6, 1); ctx.fillRect(mxPos, m.y + 1, m.w, m.h - 1); }
   ctx.fillStyle = '#686868'; ctx.fillRect(4, 58, W - 8, 1); ctx.fillStyle = '#2a2a2a'; ctx.fillRect(8, 60, W - 16, 1);
   function stampSprite(rows, ox, oy, flipX, isRabbit) {
     var h = rows.length, w = rows[0].length; ctx.fillStyle = '#000';
     for (var r = 0; r < h; r++) for (var c = 0; c < w; c++) { if (rows[r].charAt(c) === '.') continue; var dx = ox + (flipX ? (w - 1 - c) : c), dy = oy + r; ctx.fillRect(dx - 1, dy, 3, 1); ctx.fillRect(dx, dy - 1, 1, 3); }
-    for (var r2 = 0; r2 < h; r2++) for (var c2 = 0; c2 < w; c2++) {
-      var ch2 = rows[r2].charAt(c2); if (ch2 === '.') continue;
-      var dx2 = ox + (flipX ? (w - 1 - c2) : c2), dy2 = oy + r2;
-      ctx.fillStyle = isRabbit ? ((ch2 === '#') ? '#fff' : '#666') : ((ch2 === '#' || ch2 === '=') ? '#fff' : '#666');
-      ctx.fillRect(dx2, dy2, 1, 1);
-    }
+    for (var r2 = 0; r2 < h; r2++) for (var c2 = 0; c2 < w; c2++) { var ch2 = rows[r2].charAt(c2); if (ch2 === '.') continue; var dx2 = ox + (flipX ? (w - 1 - c2) : c2), dy2 = oy + r2; ctx.fillStyle = isRabbit ? ((ch2 === '#') ? '#fff' : '#666') : ((ch2 === '#' || ch2 === '=') ? '#fff' : '#666'); ctx.fillRect(dx2, dy2, 1, 1); }
   }
-  stampSprite(RABBIT_FRAMES[0], 40, 29, false, true);
-  stampSprite(PIGEON_P1_FRAMES[0], 17, 41, false, false);
-  stampSprite(PIGEON_P1_FRAMES[0], 82, 41, true, false);
+  stampSprite(RABBIT_FRAMES[0], 40, 29, false, true); stampSprite(PIGEON_P1_FRAMES[0], 17, 41, false, false); stampSprite(PIGEON_P1_FRAMES[0], 82, 41, true, false);
 }
 drawStartScene(performance.now());
 
@@ -4436,12 +3864,9 @@ function openPreJamArmModal() {
   ensureRewindFallbackConnected(true);
   trackMutes = [false, false, false, false, false, false, false, false];
   for (var i = 0; i < TOTAL_JAM_TRACKS; i++) setTrackMuteAudio(i, false);
-  updateMutePadsUI();
-  updateOnlineCountryBadges();
-  progressFill.style.width = '0%';
+  updateMutePadsUI(); updateOnlineCountryBadges(); progressFill.style.width = '0%';
   sequencerScreen.classList.add('hidden'); samplerScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); jamHappyModal.classList.add('hidden'); jamEndModal.classList.add('hidden');
-  jamScreen.classList.remove('hidden');
-  preJamArmModal.classList.remove('hidden');
+  jamScreen.classList.remove('hidden'); preJamArmModal.classList.remove('hidden');
   drawJamDancer(performance.now());
   drawVinyl(vinylRewind, vinylCtxs.rewind, vinylAngles.rewind, false, 'rewind');
   drawVinyl(vinylHighpass, vinylCtxs.highpass, vinylAngles.highpass, false, 'highpass');
@@ -4449,34 +3874,22 @@ function openPreJamArmModal() {
   drawVinyl(vinylCrush, vinylCtxs.crush, vinylAngles.crush, false, 'crush');
 }
 
-bindTap(btnStartArmedJam, function() {
-  ensureAudioUnlocked();
-  preJamArmModal.classList.add('hidden');
-  startJam();
-});
+bindTap(btnStartArmedJam, function() { ensureAudioUnlocked(); preJamArmModal.classList.add('hidden'); startJam(); });
 
 function startJam() {
   jamArmedPending = false; jamActive = true; swingScreenActive = false; samplerScreenActive = false;
   ensureRewindFallbackConnected(true);
   fadeTriggered = false; jamStartMs = performance.now(); lastJamDrawMs = 0; lastKickMs = -1; progressFill.style.width = '0%';
   setRewind(false); setHighPass(false); setSpaceEcho(false); setCrushGate(false);
-  updateMutePadsUI();
-  updateOnlineCountryBadges();
-  if (masterGain && audioCtx) {
-    var nowIn = audioCtx.currentTime;
-    masterGain.gain.cancelScheduledValues(nowIn);
-    masterGain.gain.setValueAtTime(0.85, nowIn);
-  }
-  jamStopCallbacks = [];
-  jamStoppingNow = false;
-  startJamRecording();
+  updateMutePadsUI(); updateOnlineCountryBadges();
+  if (masterGain && audioCtx) { var nowIn = audioCtx.currentTime; masterGain.gain.cancelScheduledValues(nowIn); masterGain.gain.setValueAtTime(0.85, nowIn); }
+  jamStopCallbacks = []; jamStoppingNow = false; startJamRecording();
 }
 
 function resetToNewRound() {
   stopSequencer();
   samplerMonitorOn = false; samplerMetronomeOn = false; samplerHeadphonesConfirmed = false;
-  wipeVocalRecording(false);
-  stopSamplerMicStream();
+  wipeVocalRecording();
   jamActive = false; jamArmedPending = false; samplerScreenActive = false; swingScreenActive = false;
   appEl.classList.remove('vanishing');
   jamScreen.classList.add('hidden'); swingScreen.classList.add('hidden'); samplerScreen.classList.add('hidden');
@@ -4498,10 +3911,7 @@ function loop(nowMs) {
     while (visualQueue.length && visualQueue[0].time <= audioCtx.currentTime + 0.015) {
       var ev = visualQueue.shift(); activeGlobalStep = ev.globalStep; activePlayStep = activeGlobalStep % STEPS;
       if ((jamActive || jamArmedPending) && ev.kickHit && !rewindActive) lastKickMs = nowMs;
-      if (samplerScreenActive && samplerState === 'armed' && samplerCaptureScheduled && activeGlobalStep >= samplerArmedStartStep) {
-        samplerState = 'recording';
-        updateSamplerUI();
-      }
+      if (samplerScreenActive && samplerState === 'armed' && samplerCaptureScheduled && activeGlobalStep >= samplerArmedStartStep) { samplerState = 'recording'; updateSamplerUI(); }
     }
     if (activeGlobalStep !== lastVisualGlobalStep) { lastVisualGlobalStep = activeGlobalStep; updatePlayheadVisual(); }
   }
@@ -4533,10 +3943,7 @@ function loop(nowMs) {
     progressFill.style.width = (Math.min(1, elapsed / JAM_SECONDS) * 100) + '%';
     if (elapsed >= JAM_SECONDS - 1.2 && !fadeTriggered) {
       fadeTriggered = true; appEl.classList.add('vanishing');
-      if (masterGain && audioCtx) {
-        var nowOut = audioCtx.currentTime; masterGain.gain.cancelScheduledValues(nowOut);
-        masterGain.gain.setValueAtTime(masterGain.gain.value, nowOut); masterGain.gain.linearRampToValueAtTime(0.0001, nowOut + 1.1);
-      }
+      if (masterGain && audioCtx) { var nowOut = audioCtx.currentTime; masterGain.gain.cancelScheduledValues(nowOut); masterGain.gain.setValueAtTime(masterGain.gain.value, nowOut); masterGain.gain.linearRampToValueAtTime(0.0001, nowOut + 1.1); }
     }
     if (elapsed >= JAM_SECONDS) { jamActive = false; stopSequencer(); appEl.classList.remove('vanishing'); openJamHappyModal(); }
   }
