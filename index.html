@@ -770,7 +770,7 @@ var ISO2_TO_SHORT = {
   UY:'URU', EC:'ECU', VE:'VEN', BO:'BOL', PY:'PAR', CR:'CRC', PA:'PAN', DO:'DOM', PR:'PUR', CU:'CUB', JM:'JAM', JP:'JPN', KR:'KOR', CN:'CHN',
   TW:'TPE', HK:'HKG', SG:'SGP', MY:'MAS', TH:'THA', VN:'VIE', PH:'PHI', ID:'INA', IN:'IND', PK:'PAK', BD:'BAN', LK:'SRI', NP:'NEP', AU:'AUS',
   NZ:'NZL', ZA:'RSA', NG:'NGR', MA:'MAR', EG:'EGY', TN:'TUN', DZ:'ALG', KE:'KEN', GH:'GHA', SN:'SEN', CM:'CMR', CI:'CIV', ET:'ETH', IL:'ISR',
-  AE:'UAE', SA:'KSA', QA:'QAT', KW:'KUW', BH:'BRN', OM:'OMA', JO:'JOR', LB:'LIB', KZ:'KAZ', UZ:'UZB'
+  AE:'UAE', SA:'KSA', QA:'QAT', KW:'KUW', BH:'BRN', OM:'OMA', JO:'JOR', LB:'LIB', KZ:'KAZ', UZB:'UZB'
 };
 var TIMEZONE_TO_ISO2 = {
   'Europe/Zurich':'CH', 'Europe/Berlin':'DE', 'Europe/Busingen':'DE', 'Europe/Vienna':'AT', 'Europe/Paris':'FR', 'Europe/Rome':'IT',
@@ -939,10 +939,10 @@ function resetTracks() {
     }
     tracks.push({ variant: inst.id, steps: arr, notes: noteArr, tied: tiedArr, trackLength: STEPS, barCount: 1, waveform: 'sine', params: pObj, stepLocks: {}, retrigLocks: {}, chanceLocks: {} });
   }
-  envEditMode = {}; envEditMode[BASS_TRACK_IDX] = 'decay'; envEditMode[SYNTH_TRACK_IDX] = 'decay';
-  filterEditMode = {}; filterEditMode[BASS_TRACK_IDX] = 'filter'; filterEditMode[SYNTH_TRACK_IDX] = 'filter';
-  reverbEditMode = {}; reverbEditMode[BASS_TRACK_IDX] = 'reverb'; reverbEditMode[SYNTH_TRACK_IDX] = 'reverb';
-  viewedBar = {}; viewedBar[BASS_TRACK_IDX] = 0; viewedBar[SYNTH_TRACK_IDX] = 0;
+  envEditMode[BASS_TRACK_IDX] = 'decay'; envEditMode[SYNTH_TRACK_IDX] = 'decay';
+  filterEditMode[BASS_TRACK_IDX] = 'filter'; filterEditMode[SYNTH_TRACK_IDX] = 'filter';
+  reverbEditMode[BASS_TRACK_IDX] = 'reverb'; reverbEditMode[SYNTH_TRACK_IDX] = 'reverb';
+  viewedBar[BASS_TRACK_IDX] = 0; viewedBar[SYNTH_TRACK_IDX] = 0;
   stepEditMode = 'perStep';
 }
 resetTracks();
@@ -969,7 +969,7 @@ var clubSchedulerTimer = null, clubCrowdTimer = null, clubNextBeatTime = 0, club
 
 var samplerMicStream = null, samplerMicSource = null, samplerMicInputGain = null, samplerMicGraphBuilt = false;
 var samplerCaptureInitStarted = false, vocalCaptureInitPromise = null;
-var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerSilentSink = null;
+var samplerCaptureWorklet = null, samplerCaptureScript = null, samplerCaptureScriptConnected = false, samplerSilentSink = null;
 var samplerAnalyser = null, samplerTimeData = null;
 var samplerMacroValue = 0.0, vocalVolume = 1.0, samplerMonitorOn = false, samplerMetronomeOn = false;
 var samplerDryGain = null, samplerMidGain = null, samplerMidSlapGain = null, samplerSlapDelay = null;
@@ -1156,7 +1156,7 @@ function createMetallicHatBuffer(ctx) {
 }
 function createSnareWarmCurve() { var n = 2048, c = new Float32Array(n); for (var i = 0; i < n; i++) c[i] = Math.tanh(((i * 2) / (n - 1) - 1) * 1.35) * 0.90; return c; }
 function createModFoldCurve() {
-  var n = 2048, c = new Float32Array(n), k = Math.PI * 3.5;
+  var n = 2049, c = new Float32Array(n), k = Math.PI * 3.0;
   for (var i = 0; i < n; i++) {
     var x = (i * 2) / (n - 1) - 1;
     c[i] = Math.sin(x * k);
@@ -1165,12 +1165,13 @@ function createModFoldCurve() {
 }
 function buildModMorphWaves(ctx) {
   modMorphWaves = [];
-  var N = 24, steps = 21;
+  var N = 16, steps = 21;
   for (var s = 0; s < steps; s++) {
     var m = s / (steps - 1);
     var real = new Float32Array(N);
     var imag = new Float32Array(N);
     for (var k = 1; k < N; k++) {
+      var rolloff = k === 1 ? 1.0 : Math.cos((k / N) * Math.PI * 0.45);
       var sineC = (k === 1) ? 1.0 : 0.0;
       var triC = (k % 2 === 1) ? (Math.pow(-1, (k - 1) / 2) / (k * k)) : 0.0;
       var sawC = 0.65 / k;
@@ -1179,7 +1180,7 @@ function buildModMorphWaves(ctx) {
       if (m <= 0.3333) val = lerp(sineC, triC, m / 0.3333);
       else if (m <= 0.6667) val = lerp(triC, sawC, (m - 0.3333) / 0.3334);
       else val = lerp(sawC, sqrC, (m - 0.6667) / 0.3333);
-      imag[k] = val;
+      imag[k] = val * rolloff;
     }
     modMorphWaves.push(ctx.createPeriodicWave(real, imag));
   }
@@ -1376,8 +1377,7 @@ function startClubAmbience() {
   }
   clubAmbienceActive = true; clubBeatTimesMs = [];
   var now = audioCtx.currentTime;
-  clubAmbienceGain.gain.cancelScheduledValues(now);
-  clubAmbienceGain.gain.setValueAtTime(Math.max(0.0001, clubAmbienceGain.gain.value || 0.0001), now);
+  cancelAndHoldParam(clubAmbienceGain.gain, now, clubAmbienceGain.gain.value);
   clubAmbienceGain.gain.linearRampToValueAtTime(0.60, now + 0.14);
   clubNextBeatTime = now + 0.02; clubBeatIndex = 0; scheduleClubBeatsTick();
   if (clubSchedulerTimer) clearInterval(clubSchedulerTimer);
@@ -1387,15 +1387,15 @@ function startClubAmbience() {
 }
 
 function stopClubAmbience() {
+  var wasActive = clubAmbienceActive;
   clubAmbienceActive = false; clubBeatTimesMs = [];
   if (clubSchedulerTimer) { clearInterval(clubSchedulerTimer); clubSchedulerTimer = null; }
   if (clubCrowdTimer) { clearTimeout(clubCrowdTimer); clubCrowdTimer = null; }
-  if (audioCtx && clubAmbienceGain) {
+  if (wasActive && audioCtx && clubAmbienceGain) {
     var now = audioCtx.currentTime;
     try {
-      clubAmbienceGain.gain.cancelScheduledValues(now);
-      clubAmbienceGain.gain.setValueAtTime(clubAmbienceGain.gain.value, now);
-      clubAmbienceGain.gain.linearRampToValueAtTime(0.0, now + 0.14);
+      cancelAndHoldParam(clubAmbienceGain.gain, now, clubAmbienceGain.gain.value);
+      clubAmbienceGain.gain.setTargetAtTime(0.0, now, 0.025);
     } catch (e) {}
   }
 }
@@ -1580,8 +1580,7 @@ function setRewind(on) {
       rewindElapsedSamples = 0; rewindStutterBaseIdx = (rewindTopIdx - hitAgeSamples + ringLen) % ringLen;
       rewindCursor = Math.max(256, span - Math.max(0, Math.min(span - 512, hitAgeSamples - tailOffset)));
     }
-    dryMixGain.gain.setTargetAtTime
-(0.0, now, 0.005);
+    dryMixGain.gain.setTargetAtTime(0.0, now, 0.005);
     if (vocalDryGain) vocalDryGain.gain.setTargetAtTime(0.0, now, 0.005);
     if (vocalRadioOutGain) vocalRadioOutGain.gain.setTargetAtTime(0.0, now, 0.005);
     rewindOutGain.gain.setTargetAtTime(1.15, now, 0.005);
@@ -1695,7 +1694,6 @@ function stopCrowdSwell() {
     setTimeout(function() { var all = nodes.allNodes || [nodes.gain, nodes.revSend]; for (var i = 0; i < all.length; i++) if (all[i]) try { all[i].disconnect(); } catch (err) {} }, 80);
   } catch (e) {}
 }
-
 function lerp(a, b, t) { return a + (b - a) * t; }
 function normToFilterHz(t) { return 120 * Math.pow(18000 / 120, t); }
 function applyStepBusLocks(instIdx, stepIdx, time, effP, isDrum, velState) {
@@ -1868,9 +1866,12 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
 
   var sumNode = audioCtx.createGain(); sumNode.gain.value = 1.0;
   var foldAmt = clamp01(foldNorm + (isAccent ? 0.12 : (isGhost ? -0.14 : 0)), 0.2);
-  var foldPre = audioCtx.createGain(); foldPre.gain.setValueAtTime(lerp(0.045, 0.95, Math.pow(foldAmt, 1.35)), trigTime);
-  var waveFolder = audioCtx.createWaveShaper(); waveFolder.curve = modFoldCurve; waveFolder.oversample = '2x';
-  var foldPost = audioCtx.createGain(); foldPost.gain.setValueAtTime(lerp(1.65, 0.28, Math.pow(foldAmt, 0.85)), trigTime);
+  var foldPre = audioCtx.createGain(); foldPre.gain.setValueAtTime(lerp(0.055, 0.95, Math.pow(foldAmt, 1.35)), trigTime);
+  var waveFolder = audioCtx.createWaveShaper(); waveFolder.curve = modFoldCurve; waveFolder.oversample = 'none';
+  var foldPost = audioCtx.createGain(); foldPost.gain.setValueAtTime(lerp(1.55, 0.30, Math.pow(foldAmt, 0.85)), trigTime);
+  var modToneLPF = audioCtx.createBiquadFilter(); modToneLPF.type = 'lowpass';
+  modToneLPF.frequency.setValueAtTime(Math.min(maxFreq, lerp(7500, 12500, Math.max(morphNorm, foldAmt))), trigTime);
+  modToneLPF.Q.value = 0.7;
 
   var envGain = audioCtx.createGain();
   envGain.gain.setValueAtTime(0.0001, trigTime);
@@ -1878,7 +1879,7 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
   envGain.gain.exponentialRampToValueAtTime(0.001, trigTime + atk + decayVal);
   envGain.gain.linearRampToValueAtTime(0.0, totalEnd);
 
-  sumNode.connect(foldPre); foldPre.connect(waveFolder); waveFolder.connect(foldPost); foldPost.connect(envGain); envGain.connect(dest);
+  sumNode.connect(foldPre); foldPre.connect(waveFolder); waveFolder.connect(foldPost); foldPost.connect(modToneLPF); modToneLPF.connect(envGain); envGain.connect(dest);
 
   var waveIdx = modMorphWaves.length ? Math.max(0, Math.min(modMorphWaves.length - 1, Math.round(morphNorm * (modMorphWaves.length - 1)))) : 0;
   var pWave = modMorphWaves[waveIdx] || null;
@@ -1895,8 +1896,8 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
   } else if (mode === 'liquid') {
     ratios = [1.0, 1.0 + 0.014 * harmNorm, 2.0 + 0.03 * harmNorm, 0.5, 1.5 + 0.45 * harmNorm, 3.0 + 1.1 * harmNorm];
     oscGains = [0.40, 0.16 + 0.12 * harmNorm, 0.10 + 0.12 * harmNorm, 0.08 + 0.08 * harmNorm, 0.04 + 0.09 * harmNorm, 0.02 + 0.08 * harmNorm];
-    pitchMult = 3.8 + harmNorm * 2.5 + (isAccent ? 0.6 : 0);
-    pitchTime = Math.min(0.17, 0.030 + decayVal * 0.36);
+    pitchMult = 3.5 + harmNorm * 2.2 + (isAccent ? 0.5 : 0);
+    pitchTime = Math.min(0.16, 0.030 + decayVal * 0.34);
   } else {
     var metalSpread = [0, 0.12, -0.15, 0.24, -0.20, 0.32];
     var metalBase = [1.0, 1.483, 1.932, 2.546, 3.197, 4.412];
@@ -1907,10 +1908,12 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
     pitchTime = 0.012;
   }
 
-  var oscs = [], oscGainNodes = [], allNodes = [sumNode, foldPre, waveFolder, foldPost, envGain];
+  var oscs = [], oscGainNodes = [], allNodes = [sumNode, foldPre, waveFolder, foldPost, modToneLPF, envGain];
   for (var oi = 0; oi < 6; oi++) {
     var osc = audioCtx.createOscillator();
-    if (pWave) osc.setPeriodicWave(pWave); else osc.type = 'sine';
+    if (mode === 'liquid' && oi >= 3) osc.type = 'sine';
+    else if (pWave) osc.setPeriodicWave(pWave);
+    else osc.type = 'sine';
     var targetF = Math.max(20, Math.min(maxFreq, baseFreq * ratios[oi]));
     var startF = Math.max(20, Math.min(maxFreq, targetF * pitchMult));
     osc.frequency.setValueAtTime(startF, trigTime);
@@ -1924,10 +1927,11 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
   if (mode === 'liquid') {
     var fmBus = audioCtx.createGain(); fmBus.gain.value = 1.0;
     var fmEnvGain = audioCtx.createGain();
-    var fmDepth = baseFreq * (1.4 + harmNorm * 6.8);
-    var fmDecay = Math.min(0.15, 0.024 + decayVal * 0.42);
+    var fmDepth = baseFreq * (0.75 + harmNorm * 2.8);
+    var fmDecay = Math.min(0.14, 0.024 + decayVal * 0.40);
     fmEnvGain.gain.setValueAtTime(fmDepth, trigTime);
-    fmEnvGain.gain.exponentialRampToValueAtTime(Math.max(1.0, baseFreq * 0.08), trigTime + fmDecay);
+    fmEnvGain.gain.exponentialRampToValueAtTime(Math.max(0.5, baseFreq * 0.05), trigTime + fmDecay);
+    fmEnvGain.gain.linearRampToValueAtTime(0.0, trigTime + fmDecay + 0.004);
     for (var fmi = 3; fmi < 6; fmi++) oscs[fmi].connect(fmBus);
     fmBus.connect(fmEnvGain);
     for (var ci = 0; ci < 3; ci++) fmEnvGain.connect(oscs[ci].frequency);
@@ -1941,17 +1945,18 @@ function triggerModDrum(stepIdx, time, velState, retrigCount) {
     nFilt.frequency.setValueAtTime(Math.min(maxFreq, baseFreq * (mode === 'metal' ? 4.2 : 2.6)), trigTime);
     nFilt.Q.value = (mode === 'metal') ? 0.9 : 1.35;
     var nGain = audioCtx.createGain();
-    var nPeak = (mode === 'metal' ? 0.34 : 0.22) * harmNorm;
-    var nDec = (mode === 'metal') ? Math.max(0.025, decayVal * 0.78) : Math.min(0.060, decayVal * 0.32);
+    var nPeak = (mode === 'metal' ? 0.28 : 0.18) * harmNorm;
+    var nDec = (mode === 'metal') ? Math.max(0.025, decayVal * 0.78) : Math.min(0.055, decayVal * 0.30);
     nGain.gain.setValueAtTime(Math.max(0.0001, nPeak), trigTime);
-    nGain.gain.exponentialRampToValueAtTime(0.0001, trigTime + nDec);
-    nSrc.connect(nFilt); nFilt.connect(nGain); nGain.connect(sumNode);
-    nSrc.start(trigTime, Math.random() * 0.8); nSrc.stop(totalEnd + 0.004);
+    nGain.gain.exponentialRampToValueAtTime(0.0005, trigTime + nDec);
+    nGain.gain.linearRampToValueAtTime(0.0, trigTime + nDec + 0.004);
+    nSrc.connect(nFilt); nFilt.connect(nGain); nGain.connect(envGain);
+    nSrc.start(trigTime, Math.random() * 0.8); nSrc.stop(trigTime + nDec + 0.008);
     allNodes.push(nSrc, nFilt, nGain);
   }
 
   detachOnEnded(oscs[0], allNodes);
-  for (var si2 = 0; si2 < 6; si2++) { oscs[si2].start(trigTime); oscs[si2].stop(totalEnd + 0.004); }
+  for (var si2 = 0; si2 < 6; si2++) { oscs[si2].start(trigTime); oscs[si2].stop(totalEnd + 0.006); }
 }
 
 function triggerSound(instIdx, stepIdx, time, velState, forceRetrig, retrigCount, isLastRetrig) {
@@ -2191,7 +2196,7 @@ function scheduler() {
   if (!isPlaying || !audioCtx) return;
   if (audioCtx.state !== 'running') { audioCtx.resume().catch(function() {}); nextNoteTime = audioCtx.currentTime + 0.05; return; }
   var stepDur = 60 / bpm / 4;
-  if (nextNoteTime < audioCtx.currentTime - 0.08 || nextNoteTime > audioCtx.currentTime + 1.0) nextNoteTime = audioCtx.currentTime + 0.02;
+  if (nextNoteTime < audioCtx.currentTime - 0.015 || nextNoteTime > audioCtx.currentTime + 1.0) nextNoteTime = audioCtx.currentTime + 0.015;
   var count = 0;
   while (nextNoteTime < audioCtx.currentTime + 0.10 && count < 4) {
     var noteTime = Math.max(audioCtx.currentTime + 0.003, nextNoteTime + getSwingOffset(globalStep, stepDur));
@@ -2206,7 +2211,12 @@ function startSequencer() {
   lastDuckTime = 0; lastCrushGateTime = 0; tiedChancePass = [true, true, true, true, true, true, true, true];
   lastLpfModTime = [0,0,0,0,0,0,0,0,0]; lastResModTime = [0,0,0,0,0,0,0,0,0]; lastVolModTime = [0,0,0,0,0,0,0,0,0]; lastRevModTime = [0,0,0,0,0,0,0,0,0];
   silenceMonoVoice(BASS_TRACK_IDX, 0.01); silenceMonoVoice(SYNTH_TRACK_IDX, 0.01); stopVocalPlayback(0.01);
-  if (audioCtx && masterGain) { masterGain.gain.cancelScheduledValues(0); masterGain.gain.setValueAtTime(0.85, audioCtx.currentTime); nextNoteTime = audioCtx.currentTime + 0.05; }
+  if (audioCtx && masterGain) {
+    var stNow = audioCtx.currentTime;
+    cancelAndHoldParam(masterGain.gain, stNow, masterGain.gain.value);
+    masterGain.gain.linearRampToValueAtTime(0.85, stNow + 0.018);
+    nextNoteTime = stNow + 0.05;
+  }
   syncAllTrackAudioParams(); setRewind(false); setHighPass(false); setSpaceEcho(false); setCrushGate(false);
   lastHitAudioTime = -1; prevHitAudioTime = -1;
   if (rewindWorklet) rewindWorklet.port.postMessage({ type: 'clear' }); if (ringBuf) ringBuf.fill(0);
@@ -2334,6 +2344,17 @@ function applyVocalVolume(val) {
   if (audioCtx && samplerMonitorGain && samplerMonitorOn) samplerMonitorGain.gain.setTargetAtTime(1.0 * Math.min(1.5, vocalVolume), audioCtx.currentTime, 0.015);
 }
 
+function ensureSamplerCaptureScriptConnected(on) {
+  if (!samplerCaptureScript || !samplerMicProcessedBus || !samplerSilentSink) return;
+  if (on && !samplerCaptureScriptConnected) {
+    try { samplerMicProcessedBus.connect(samplerCaptureScript); samplerCaptureScript.connect(samplerSilentSink); samplerCaptureScriptConnected = true; } catch (e) {}
+  } else if (!on && samplerCaptureScriptConnected) {
+    try { samplerMicProcessedBus.disconnect(samplerCaptureScript); } catch (e) {}
+    try { samplerCaptureScript.disconnect(); } catch (e) {}
+    samplerCaptureScriptConnected = false;
+  }
+}
+
 function buildSamplerCaptureFallback() {
   if (!audioCtx || !samplerMicProcessedBus || samplerCaptureWorklet || samplerCaptureScript) return;
   try {
@@ -2354,7 +2375,7 @@ function buildSamplerCaptureFallback() {
         }
       }
     };
-    samplerMicProcessedBus.connect(samplerCaptureScript); samplerCaptureScript.connect(samplerSilentSink);
+    ensureSamplerCaptureScriptConnected(true);
   } catch (err) {}
 }
 
@@ -2458,6 +2479,7 @@ function setupSamplerMicGraph(stream) {
     initVocalCaptureNode();
     applySamplerMacro(samplerMacroValue);
   }
+  if (samplerCaptureScript) ensureSamplerCaptureScriptConnected(true);
   if (samplerMicSource) { try { samplerMicSource.disconnect(); } catch (e) {} samplerMicSource = null; }
   samplerMicSource = audioCtx.createMediaStreamSource(stream);
   samplerMicSource.connect(samplerMicInputGain);
@@ -2467,13 +2489,22 @@ function stopSamplerMicStream() {
   micSessionToken++;
   micAcquiring = false;
   cancelVocalCaptureNode();
+  ensureSamplerCaptureScriptConnected(false);
+  if (audioCtx && samplerMonitorGain) {
+    try {
+      var mNow = audioCtx.currentTime;
+      cancelAndHoldParam(samplerMonitorGain.gain, mNow, samplerMonitorGain.gain.value);
+      samplerMonitorGain.gain.setTargetAtTime(0.0, mNow, 0.008);
+    } catch (e) {}
+  }
   if (samplerMicSource) { try { samplerMicSource.disconnect(); } catch (e) {} samplerMicSource = null; }
   if (samplerMicStream) { stopStreamTracks(samplerMicStream); samplerMicStream = null; }
-  if (audioCtx && samplerMonitorGain) {
-    try { samplerMonitorGain.gain.cancelScheduledValues(audioCtx.currentTime); samplerMonitorGain.gain.setValueAtTime(0.0, audioCtx.currentTime); } catch (e) {}
-  }
-  setPlaybackAudioSession();
-  setTimeout(function() { if (!micAcquiring && !hasLiveMicStream()) setPlaybackAudioSession(); }, 120);
+  setTimeout(function() {
+    if (!micAcquiring && !hasLiveMicStream()) {
+      setPlaybackAudioSession();
+      if (isPlaying && audioCtx) nextNoteTime = Math.max(nextNoteTime, audioCtx.currentTime + 0.015);
+    }
+  }, 40);
   if (audioCtx && audioCtx.state !== 'running') {
     audioCtx.resume().then(function() { if (isPlaying && audioCtx) nextNoteTime = audioCtx.currentTime + 0.03; }).catch(function() {});
   }
@@ -2759,9 +2790,9 @@ function encodeAudioBufferToWavBlob(audioBuffer) {
   function writeStr(off, s) { for (var i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); }
   writeStr(0, 'RIFF'); view.setUint32(4, 36 + len * 2, true); writeStr(8, 'WAVE');
   writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-  writeStr(36, 'data'); view.setUint16(22, numCh, true); view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true);
+  view.setUint16(22, numCh, true); view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true);
   view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-  view.setUint32(40, len * 2, true);
+  writeStr(36, 'data'); view.setUint32(40, len * 2, true);
   var offset = 44;
   for (var i = 0; i < len; i++) { var s = Math.max(-1, Math.min(1, samples[i])); view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true); offset += 2; }
   return new Blob([buf], { type: 'audio/wav' });
@@ -4027,8 +4058,7 @@ function renderTurn() {
   renderInstTitle(); bpmBox.classList.toggle('hidden', turnIndex !== 0); barSwitcher.classList.toggle('hidden', !isPiano);
   modModeRow.classList.toggle('hidden', !isMod);
   stepGrid.classList.toggle('hidden', isPiano); accentBanner.classList.toggle('hidden', isPiano); if (isPiano) hideAccentBannerImmediate();
-  waveBar.classList.toggle('hidden', !isWave); pianoRollWrap.classList.
-toggle('hidden', !isPiano);
+  waveBar.classList.toggle('hidden', !isWave); pianoRollWrap.classList.toggle('hidden', !isPiano);
   boxFilter.classList.remove('hidden'); boxReverb.classList.remove('hidden');
   boxSteps.classList.toggle('hidden', isPiano || isMod);
   boxHarmonics.classList.toggle('hidden', !isMod);
